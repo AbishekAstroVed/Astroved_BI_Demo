@@ -3,8 +3,8 @@ import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, ShieldCheck, BarChart2, P
 import { api } from '../services/api';
 
 const Login = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@astroved.com');
+  const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);

@@ -313,12 +313,12 @@ const Sales = () => {
       splitLine: { lineStyle: { color: '#e5e7eb' } }
     },
     series: [
-      { name: 'USD (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.usd || [], itemStyle: { color: '#16a34a' } },
-      { name: 'INR (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.inr || [], itemStyle: { color: '#f97316' } },
-      { name: 'MYR (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.myr || [], itemStyle: { color: '#eab308' } },
-      { name: 'USD (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.usdPrev || [], itemStyle: { color: '#86efac' } },
-      { name: 'INR (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.inrPrev || [], itemStyle: { color: '#fdba74' } },
-      { name: 'MYR (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.myrPrev || [], itemStyle: { color: '#fde047' } }
+      { name: 'USD (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.usd || [], itemStyle: { color: '#2563eb' } }, // Blue
+      { name: 'INR (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.inr || [], itemStyle: { color: '#dc2626' } }, // Red
+      { name: 'MYR (Current Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.myr || [], itemStyle: { color: '#16a34a' } }, // Green
+      { name: 'USD (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.usdPrev || [], itemStyle: { color: '#9333ea' } }, // Purple
+      { name: 'INR (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.inrPrev || [], itemStyle: { color: '#d97706' } }, // Amber
+      { name: 'MYR (Previous Period)', type: 'line', symbol: 'circle', symbolSize: 6, data: currencyGrowthData.myrPrev || [], itemStyle: { color: '#0891b2' } }  // Cyan
     ]
   };
 
