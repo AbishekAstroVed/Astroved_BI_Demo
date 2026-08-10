@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-cosmic-bg: var(--cosmic-bg);
+  --color-cosmic-card: var(--cosmic-card);
+  --color-cosmic-card-hover: var(--cosmic-card-hover);
+  --color-cosmic-border: var(--cosmic-border);
+  --color-cosmic-text: var(--cosmic-text);
+  --color-cosmic-muted: var(--cosmic-muted);
+  --color-cosmic-primary: var(--cosmic-primary);
+  --color-cosmic-secondary: var(--cosmic-secondary);
+  --color-cosmic-accent: var(--cosmic-accent);
+  --color-cosmic-success: var(--cosmic-success);
+  --color-cosmic-danger: var(--cosmic-danger);
+  
+  /* Custom primary color requested by user */
+  --color-indigo-500: #6868f9;
+  --color-indigo-600: #6868f9;
+}
+
+:root {
+  /* Cosmic Dark Theme Defaults */
+  --cosmic-bg: #070a13;
+  --cosmic-card: #0b0f19;
+  --cosmic-card-hover: #0f172a;
+  --cosmic-border: #2d3748;
+  --cosmic-text: #f8fafc;
+  --cosmic-muted: #94a3b8;
+  --cosmic-primary: #6868f9;
+  --cosmic-secondary: #06b6d4;
+  --cosmic-accent: #f59e0b;
+  --cosmic-success: #10b981;
+  --cosmic-danger: #ef4444;
+}
+
+:root.light {
+  /* Elegant Light Theme Overrides */
+  --cosmic-bg: #f8fafc;
+  --cosmic-card: #ffffff;
+  --cosmic-card-hover: #f1f5f9;
+  --cosmic-border: #cbd5e1;
+  --cosmic-text: #0f172a;
+  --cosmic-muted: #64748b;
+  --cosmic-primary: #6868f9;
+  --cosmic-secondary: #0891b2;
+}
+
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cosmic-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cosmic-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cosmic-card-hover);
+}
+
+/* High premium glassmorphism utility classes */
+.glass-panel {
+  background: var(--cosmic-card);
+  border: 1px solid var(--cosmic-border);
+}
+
+.glass-panel-hover {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
+}
+
+.glass-panel-hover:hover {
+  background: var(--cosmic-card-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--cosmic-bg);
+  color: var(--cosmic-text);
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: default;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+}
+
+/* Premium Toast Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-toast-progress {
+  animation: toastProgress 3s linear forwards;
+}
+
+@keyframes dynamicIsland {
+  0% {
+    transform: translate(-50%, -80px) scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: translate(-50%, 6px) scale(1.03);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-dynamic-island {
+  animation: dynamicIsland 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
