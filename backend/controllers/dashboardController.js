@@ -158,10 +158,12 @@ export const getExecutiveDashboard = async (req, res) => {
     try {
       const pool = await connectMSSQL();
       const request = pool ? pool.request() : null;
-      if (endDate && request) request.input('endDate', endDate);
+      if (startDate && request) request.input('p_startDate', startDate);
+      if (endDate && request) request.input('p_endDate', endDate);
       if (pool && request) {
         const result = await request.query(`
-          DECLARE @today DATE = ${endDate ? 'CAST(@endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @today DATE = ${endDate ? 'CAST(@p_endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @startDate DATE = ${startDate ? 'CAST(@p_startDate AS DATE)' : 'NULL'};
           DECLARE @yesterday DATE = DATEADD(day, -1, @today);
           
           DECLARE @thisMonth INT = MONTH(@today);
@@ -233,7 +235,8 @@ export const getExecutiveDashboard = async (req, res) => {
           AND Gp.Code <> '9999999999'        
           AND TestAccounts.CustomerId IS NULL                
           AND SL.ShopId = 1
-          AND GP.OrderDate >= DATEADD(year, -2, @today);
+          AND GP.OrderDate >= ISNULL(@startDate, DATEADD(year, -2, @today))
+          AND GP.OrderDate <= @today;
 
           -- 0. KPI Query
           SELECT 
@@ -358,9 +361,11 @@ export const getExecutiveDashboard = async (req, res) => {
 
         // 1.5 Fetch Cancellations & Refunds
         const cancelReq = pool.request();
+        if (startDate) cancelReq.input('startDate', startDate);
         if (endDate) cancelReq.input('endDate', endDate);
         const cancelResult = await cancelReq.query(`
           DECLARE @today DATE = ${endDate ? 'CAST(@endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @startDate DATE = ${startDate ? 'CAST(@startDate AS DATE)' : 'NULL'};
           DECLARE @thisMonth INT = MONTH(@today);
           DECLARE @thisYear INT = YEAR(@today);
 
@@ -375,7 +380,8 @@ export const getExecutiveDashboard = async (req, res) => {
           INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
           INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
           WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1
-            AND GP.OrderDate >= DATEADD(year, -1, DATEFROMPARTS(@thisYear, 1, 1));
+            AND GP.OrderDate >= ISNULL(@startDate, DATEADD(year, -1, DATEFROMPARTS(@thisYear, 1, 1)))
+            AND GP.OrderDate <= @today;
 
           -- Refunds Temp
           SELECT 
@@ -386,7 +392,8 @@ export const getExecutiveDashboard = async (req, res) => {
           INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
           INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
           WHERE PA.TypeId = 19 AND SL.ShopId = 1
-            AND GP.OrderDate >= DATEADD(year, -1, DATEFROMPARTS(@thisYear, 1, 1));
+            AND GP.OrderDate >= ISNULL(@startDate, DATEADD(year, -1, DATEFROMPARTS(@thisYear, 1, 1)))
+            AND GP.OrderDate <= @today;
 
           -- 0. Cancellations Day
           SELECT CONVERT(varchar, OrderDate, 107) AS date, SUM(NetRevenue) AS revenue FROM #TempCancellations WHERE OrderDate = @today GROUP BY OrderDate;
@@ -420,9 +427,11 @@ export const getExecutiveDashboard = async (req, res) => {
 
         // 2. Fetch Top Selling Products & Recent Orders
         const advancedReq = pool.request();
+        if (startDate) advancedReq.input('startDate', startDate);
         if (endDate) advancedReq.input('endDate', endDate);
         const advancedResult = await advancedReq.query(`
           DECLARE @today DATE = ${endDate ? 'CAST(@endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @startDate DATE = ${startDate ? 'CAST(@startDate AS DATE)' : 'NULL'};
           DECLARE @thisMonth INT = MONTH(@today);
           DECLARE @thisYear INT = YEAR(@today);
 
@@ -486,7 +495,8 @@ export const getExecutiveDashboard = async (req, res) => {
           WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
             AND Gp.Code <> '9999999999'        
             AND TestAccounts.CustomerId IS NULL                
-            AND GP.OrderDate >= DATEFROMPARTS(@thisYear, 1, 1);
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today;
 
           -- 0. Top Products (Week)
           SELECT TOP 50 ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders

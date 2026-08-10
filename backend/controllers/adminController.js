@@ -1013,6 +1013,32 @@ const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
             if (Object.keys(newKpi).length > 0) val = newKpi;
           }
 
+          // Extract arrays inside KPI object (like todayRevenueCards, monthRevenueCards)
+          Object.keys(val).forEach(k => {
+            if (Array.isArray(val[k])) {
+              const isCards = k.toLowerCase().includes('cards');
+              if (isCards) {
+                sections.push({
+                  title: prefix + formatKey(k),
+                  isCards: true,
+                  data: val[k]
+                });
+              } else {
+                const dataRows = val[k].map(item => {
+                  if (typeof item !== 'object') return { Metric: item, Value: '' };
+                  let metricField = item.title ? 'title' : (Object.keys(item)[0]);
+                  let valField = item.value ? 'value' : (Object.keys(item)[1] || Object.keys(item)[0]);
+                  return { Metric: String(item[metricField] || ''), Value: item[valField] };
+                });
+                sections.push({
+                  title: prefix + formatKey(k),
+                  data: dataRows
+                });
+              }
+              delete val[k];
+            }
+          });
+
           const dailyKeys = Object.keys(val).filter(k => k.toLowerCase().includes('daily') || k.toLowerCase().includes('today') || k.toLowerCase().includes('yesterday') || k.toLowerCase().includes('current'));
           const monthlyKeys = Object.keys(val).filter(k => k.toLowerCase().includes('mtd') || k.toLowerCase().includes('month'));
           const otherKeys = Object.keys(val).filter(k => !dailyKeys.includes(k) && !monthlyKeys.includes(k));
@@ -1057,9 +1083,21 @@ const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
               };
             }
 
+            // Explicit override for Events Data (NLW, NLI, OML)
+            if (key === 'overallEventsData' || key === 'specialEventsData') {
+              const total = Number(item.nlw || 0) + Number(item.nli || 0) + Number(item.oml || 0);
+              return {
+                Metric: String(item.name || item.eventName || 'Unknown'),
+                Value: `${total.toLocaleString()} (NLW: ${item.nlw || 0}, NLI: ${item.nli || 0}, OML: ${item.oml || 0})`
+              };
+            }
+
             // Try to guess the best metric and value fields based on standard dashboard outputs
             let metricField = Object.keys(item).find(k => ['name', 'keyword', 'page', 'month', 'date', 'range', 'type', 'label', 'word', 'monthyear'].includes(k.toLowerCase())) || Object.keys(item)[0];
-            let valField = Object.keys(item).find(k => ['revenue', 'amount', 'value', 'count', 'clicks', 'users', 'raw', 'orders', 'rate'].includes(k.toLowerCase())) || Object.keys(item)[1] || Object.keys(item)[0];
+            let valField = Object.keys(item).find(k => ['revenue', 'amount', 'value', 'count', 'clicks', 'users', 'raw', 'orders', 'rate'].includes(k.toLowerCase()));
+            if (!valField) {
+              valField = Object.keys(item).find(k => k !== metricField && k !== 'id') || Object.keys(item)[1] || Object.keys(item)[0];
+            }
 
             return { Metric: String(item[metricField] || ''), Value: item[valField] };
           });
@@ -1282,37 +1320,57 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
               `;
             }
             
-            htmlContent += `
-              <table>
-                <thead>
-                  <tr>
-                    <th>Metric / Product Name</th>
-                    <th class="right">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-            `;
-            
-            section.data.forEach(row => {
-              let valObj = row.Value;
-              if (valObj !== null && typeof valObj === 'object') {
-                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-              }
-              const metricName = (row.Metric || 'Unknown').toString().substring(0, 80);
-              const val = (valObj !== null && valObj !== undefined) ? (typeof valObj === 'number' ? valObj.toLocaleString() : valObj.toString()) : '0';
-              
-              htmlContent += `
-                <tr>
-                  <td>${metricName}</td>
-                  <td class="right">${val}</td>
-                </tr>
-              `;
-            });
-            
-            htmlContent += `
-                </tbody>
-              </table>
-            `;
+            if (section.isCards) {
+               htmlContent += `<div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; page-break-inside: avoid;">`;
+               section.data.forEach(card => {
+                  let badgeColor = '#6b7280';
+                  if (card.badgeColor && card.badgeColor.includes('emerald')) badgeColor = '#10b981';
+                  if (card.badgeColor && card.badgeColor.includes('rose')) badgeColor = '#f43f5e';
+                  
+                  htmlContent += `
+                    <div style="flex: 1 1 calc(25% - 15px); min-width: 150px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                      <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">${card.title || 'Metric'}</div>
+                      <div style="font-size: 20px; font-weight: bold; color: #111827; margin-bottom: 8px;">${card.value || ''}</div>
+                      <div style="font-size: 12px; font-weight: 500; color: ${badgeColor};">
+                        ${card.change || ''}
+                      </div>
+                    </div>
+                  `;
+               });
+               htmlContent += `</div>`;
+            } else {
+               htmlContent += `
+                 <table>
+                   <thead>
+                     <tr>
+                       <th>Metric / Product Name</th>
+                       <th class="right">Value</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+               `;
+               
+               section.data.forEach(row => {
+                 let valObj = row.Value;
+                 if (valObj !== null && typeof valObj === 'object') {
+                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+                 }
+                 const metricName = (row.Metric || 'Unknown').toString().substring(0, 80);
+                 const val = (valObj !== null && valObj !== undefined) ? (typeof valObj === 'number' ? valObj.toLocaleString() : valObj.toString()) : '0';
+                 
+                 htmlContent += `
+                   <tr>
+                     <td>${metricName}</td>
+                     <td class="right">${val}</td>
+                   </tr>
+                 `;
+               });
+               
+               htmlContent += `
+                   </tbody>
+                 </table>
+               `;
+            }
           }
         } else {
           htmlContent += `<p style="font-size: 14px; color: #666;">No live data available for this dashboard right now.</p>`;
@@ -1365,8 +1423,23 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     const wb = XLSX.utils.book_new();
     if (dashboards && dashboards.length > 0) {
       for (const dashboard of dashboards) {
-        const data = await fetchDashboardDataForReport(dashboard);
-        const wsData = data.length > 0 ? data : [{ Metric: 'No Data', Value: 0 }];
+        const sections = await fetchDashboardDataForReport(dashboard);
+        let flatData = [];
+        sections.forEach(sec => {
+           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+           if (sec.isCards) {
+              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+           } else if (sec.data) {
+              sec.data.forEach(row => {
+                 let valObj = row.Value;
+                 if (valObj !== null && typeof valObj === 'object') {
+                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+                 }
+                 flatData.push({ Metric: row.Metric, Value: valObj });
+              });
+           }
+        });
+        const wsData = flatData.length > 0 ? flatData : [{ Metric: 'No Data', Value: 0 }];
         const ws = XLSX.utils.json_to_sheet(wsData);
         XLSX.utils.book_append_sheet(wb, ws, dashboard.substring(0, 31));
       }
@@ -1385,21 +1458,40 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     let csvString = '';
     if (dashboards && dashboards.length > 0) {
       for (const dashboard of dashboards) {
-        const data = await fetchDashboardDataForReport(dashboard);
-        if (data.length > 0) {
+        const sections = await fetchDashboardDataForReport(dashboard);
+        let flatData = [];
+        sections.forEach(sec => {
+           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+           if (sec.isCards) {
+              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+           } else if (sec.data) {
+              sec.data.forEach(row => {
+                 let valObj = row.Value;
+                 if (valObj !== null && typeof valObj === 'object') {
+                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+                 }
+                 flatData.push({ Metric: row.Metric, Value: valObj });
+              });
+           }
+        });
+        if (flatData.length > 0) {
           csvString += `--- ${dashboard} ---\n`;
-          csvString += Object.keys(data[0]).join(',') + '\n';
-          data.forEach(row => {
+          csvString += Object.keys(flatData[0]).join(',') + '\n';
+          flatData.forEach(row => {
              csvString += Object.values(row).map(v => {
                 if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
-                return `"${v}"`;
+                let valStr = String(v).replace(/"/g, '""');
+                if (valStr.includes(',') || valStr.includes('\\n') || valStr.includes('"')) {
+                  return `"${valStr}"`;
+                }
+                return valStr;
              }).join(',') + '\n';
           });
           csvString += '\n';
         }
       }
     } else {
-      csvString = 'Notice\nNo dashboards selected\n';
+      csvString = 'Notice\\nNo dashboards selected\\n';
     }
     attachments.push({ filename: `${safeName}_Report.csv`, content: csvString });
   } catch (err) {
