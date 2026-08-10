@@ -12,7 +12,7 @@ import SystemConfig from '../models/SystemConfig.js';
 import nodemailer from 'nodemailer';
 import XLSX from 'xlsx';
 import fs from 'fs';
-import PDFDocument from 'pdfkit';
+import puppeteer from 'puppeteer';
 import path from 'path';
 import cron from 'node-cron';
 import { connectMSSQL } from '../config/mssql.js';
@@ -1216,97 +1216,148 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const safeName = name.replace(/\s+/g, '_');
 
   // --- 1. GENERATE PDF ---
+  const includePDF = format === 'PDF' || format === 'All Formats';
+  const includeExcel = format === 'Excel' || format === 'All Formats';
+  const includeCSV = format === 'CSV' || format === 'All Formats';
+  let pdfErrorMessage = null;
+  
+  if (includePDF) {
   try {
-    const pdfBuffer = await new Promise(async (resolve) => {
-      const doc = new PDFDocument();
-      const chunks = [];
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
+    let htmlContent = `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+            h1 { text-align: center; color: #4f46e5; margin-bottom: 5px; }
+            .header-info { text-align: center; margin-bottom: 30px; color: #666; font-size: 14px; }
+            h2.dashboard-title { color: #4f46e5; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; font-size: 24px; page-break-before: always; page-break-after: avoid; }
+            .section-title { font-size: 18px; color: #374151; margin-top: 30px; margin-bottom: 15px; font-weight: bold; page-break-after: avoid; }
+            .chart-container { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; page-break-inside: auto; table-layout: fixed; word-wrap: break-word; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: auto; page-break-after: auto; }
+            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+            th { background-color: #f9fafb; font-weight: bold; color: #4b5563; }
+            td.right { text-align: right; }
+            th.right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>AstroVed BI Enterprise Report</h1>
+          <div class="header-info">
+            <div>Schedule Name: ${name}</div>
+            <div>Generated On: ${new Date().toLocaleString()}</div>
+          </div>
+    `;
 
-      doc.fontSize(20).text('AstroVed BI Enterprise Report', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(14).text(`Schedule Name: ${name}`);
-      doc.fontSize(12).text(`Generated On: ${new Date().toLocaleString()}`);
-      doc.moveDown(2);
-
-      if (dashboards && dashboards.length > 0) {
-        for (const dashboard of dashboards) {
-          doc.fontSize(16).fillColor('#4f46e5').text(dashboard, { underline: true });
-          doc.moveDown(1);
-          doc.fillColor('black');
-
-          const sections = await fetchDashboardDataForReport(dashboard, period);
-
-          if (sections && sections.length > 0) {
-            const chartPromises = sections.map(section => {
-              const isRecentOrders = section.title.toLowerCase().includes('recent order');
-              if (section.data && section.data.length >= 2 && !isRecentOrders) {
-                return generateChartImage(dashboard, section.title, section.data).catch(err => null);
-              }
-              return Promise.resolve(null);
-            });
-            const chartBuffers = await Promise.all(chartPromises);
-
-            for (let i = 0; i < sections.length; i++) {
-              const section = sections[i];
-              if (!section.data || section.data.length === 0) continue;
-
-              if (doc.y > 650) doc.addPage();
-              doc.fontSize(14).font('Helvetica-Bold').fillColor('#333333').text(section.title);
-              doc.moveDown(0.5);
-
-              const chartBuffer = chartBuffers[i];
-              if (chartBuffer) {
-                if (doc.y > 450) doc.addPage();
-                doc.image(chartBuffer, { fit: [500, 300], align: 'center' });
-                doc.moveDown(2);
-              }
-
-              const drawHeader = () => {
-                doc.fontSize(12).font('Helvetica-Bold').fillColor('black');
-                const headerY = doc.y;
-                doc.text('Metric / Product Name', 50, headerY, { width: 380, align: 'left' });
-                const endY1 = doc.y;
-                doc.text('Value', 440, headerY, { width: 122, align: 'right' });
-                const endY2 = doc.y;
-                doc.y = Math.max(endY1, endY2);
-                doc.moveDown(0.5);
-                doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
-                doc.moveDown(0.5);
-              };
-
-              drawHeader();
-              doc.font('Helvetica');
-              section.data.forEach(row => {
-                if (doc.y > 700) { doc.addPage(); drawHeader(); doc.font('Helvetica'); }
-                let valObj = row.Value;
-                if (valObj !== null && typeof valObj === 'object') {
-                  valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-                }
-                const metricName = (row.Metric || 'Unknown').toString().substring(0, 80);
-                const val = (valObj !== null && valObj !== undefined) ? (typeof valObj === 'number' ? valObj.toLocaleString() : valObj.toString()) : '0';
-                const startY = doc.y;
-                doc.text(metricName, 50, startY, { width: 380, align: 'left' });
-                const endY = doc.y;
-                doc.text(val, 440, startY, { width: 122, align: 'right' });
-                doc.y = Math.max(endY, doc.y);
-                doc.moveDown(0.5);
-              });
-              doc.moveDown(2);
+    if (dashboards && dashboards.length > 0) {
+      for (const dashboard of dashboards) {
+        htmlContent += `<h2 class="dashboard-title">${dashboard}</h2>`;
+        
+        const sections = await fetchDashboardDataForReport(dashboard, period);
+        
+        if (sections && sections.length > 0) {
+          const chartPromises = sections.map(section => {
+            const isRecentOrders = section.title.toLowerCase().includes('recent order');
+            if (section.data && section.data.length >= 2 && !isRecentOrders) {
+              return generateChartImage(dashboard, section.title, section.data).catch(err => null);
             }
-          } else {
-            doc.fontSize(12).text('No live data available for this dashboard right now.');
+            return Promise.resolve(null);
+          });
+          const chartBuffers = await Promise.all(chartPromises);
+          
+          for (let i = 0; i < sections.length; i++) {
+            const section = sections[i];
+            if (!section.data || section.data.length === 0) continue;
+            
+            htmlContent += `<div class="section-title">${section.title}</div>`;
+            
+            const chartBuffer = chartBuffers[i];
+            if (chartBuffer) {
+              const base64Chart = chartBuffer.toString('base64');
+              htmlContent += `
+                <div class="chart-container">
+                  <img src="data:image/png;base64,${base64Chart}" width="500" height="300" />
+                </div>
+              `;
+            }
+            
+            htmlContent += `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Metric / Product Name</th>
+                    <th class="right">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            section.data.forEach(row => {
+              let valObj = row.Value;
+              if (valObj !== null && typeof valObj === 'object') {
+                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+              }
+              const metricName = (row.Metric || 'Unknown').toString().substring(0, 80);
+              const val = (valObj !== null && valObj !== undefined) ? (typeof valObj === 'number' ? valObj.toLocaleString() : valObj.toString()) : '0';
+              
+              htmlContent += `
+                <tr>
+                  <td>${metricName}</td>
+                  <td class="right">${val}</td>
+                </tr>
+              `;
+            });
+            
+            htmlContent += `
+                </tbody>
+              </table>
+            `;
           }
-          doc.moveDown(2);
+        } else {
+          htmlContent += `<p style="font-size: 14px; color: #666;">No live data available for this dashboard right now.</p>`;
         }
-      } else {
-        doc.fontSize(12).text('No dashboards selected for this report.');
       }
-      doc.end();
+    } else {
+      htmlContent += `<p style="font-size: 14px; color: #666;">No dashboards selected for this report.</p>`;
+    }
+    
+    htmlContent += `
+        </body>
+      </html>
+    `;
+
+    const browser = await puppeteer.launch({ 
+      headless: 'new', 
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] 
     });
-    attachments.push({ filename: `${safeName}_Report.pdf`, content: pdfBuffer });
+    const page = await browser.newPage();
+    
+    // Write HTML to disk to completely bypass Chromium WebSocket payload limits!
+    const tempHtmlPath = path.join(process.cwd(), `temp_report_${Date.now()}.html`);
+    fs.writeFileSync(tempHtmlPath, htmlContent);
+    
+    // Use timeout: 120000 to prevent timeout on large reports with many charts
+    await page.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    
+    const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
+    await page.pdf({ 
+      path: tempPdfPath,
+      format: 'A4', 
+      printBackground: true, 
+      displayHeaderFooter: true,
+      headerTemplate: `<div style="font-size: 10px; color: #9ca3af; text-align: center; width: 100%; padding: 0 20px;">AstroVed BI - Automated Report (${name})</div>`,
+      footerTemplate: `<div style="font-size: 10px; color: #9ca3af; text-align: center; width: 100%; padding: 0 20px;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
+      margin: { top: '60px', bottom: '60px', left: '20px', right: '20px' },
+      timeout: 120000
+    });
+    await browser.close();
+    
+    attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath, _tempHtmlPath: tempHtmlPath });
   } catch (err) {
     console.error("Failed to attach PDF", err);
+    pdfErrorMessage = err.message;
+  }
   }
 
   // --- 2. GENERATE EXCEL ---

@@ -1363,8 +1363,14 @@ export const getMonthlySalesDashboard = async (req, res) => {
     let quarterSpecials = [];
     let currencyGrowth = {};
 
-    const finalStartDate = startDate;
-    const finalEndDate = endDate || startDate;
+    let finalStartDate = startDate;
+    let finalEndDate = endDate || startDate;
+
+    if (!finalStartDate) {
+      const now = new Date();
+      finalStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      finalEndDate = now.toISOString().split('T')[0];
+    }
 
     try {
       const pool = await connectMSSQL();

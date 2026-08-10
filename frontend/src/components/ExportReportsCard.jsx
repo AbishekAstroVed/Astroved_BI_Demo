@@ -32,6 +32,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     const bestSellers = data?.bestSellers || [];
     const lowPerformers = data?.lowPerformers || [];
     const currencies = data?.currencies || [];
+    const currencyGrowth = data?.currencyGrowth || null;
 
     const isMonthlySales = (exportPeriod === 'Monthly' || pageTitle.toLowerCase().includes('monthly')) && pageTitle.toLowerCase().includes('sales');
 
@@ -99,6 +100,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       bestSellers,
       lowPerformers,
       currencies,
+      currencyGrowth,
       geoData,
       customerMetricsRows,
       customerMetricsLabels,
@@ -137,6 +139,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         bestSellers,
         lowPerformers,
         currencies,
+        currencyGrowth,
         geoData,
         customerMetricsRows,
         customerMetricsLabels,
@@ -250,7 +253,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       if (salesByEvent.length > 0) {
         csv += "Sales by Event Name\nEvent Name,Product Name,Orders,Revenue ($)\n";
         salesByEvent.forEach(item => {
-          csv += `"${item.eventName || item.name || ''}","${item.productName || item.name || ''}",${item.orders || 0},${item.revenue || 0}\n`;
+          csv += `"${item.eventName || item.name || ''}","${item.productName || item.name || ''}",${item.qty || item.quantity || item.sold || item.sales || item.orders || 0},${item.revenue || 0}\n`;
         });
         csv += "\n";
       }
@@ -413,6 +416,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         bestSellers,
         lowPerformers,
         currencies,
+        currencyGrowth,
         geoData,
         customerMetricsRows,
         customerMetricsLabels,
@@ -534,16 +538,16 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         summaryRows.push(
           ["--- SALES BY EVENT NAME ---"],
           ["Event Name", "Product Name", "Orders", "Revenue ($)"],
-          ...salesByEvent.map(item => [item.eventName || item.name || '', item.productName || item.name || '', item.orders || 0, item.revenue || 0]),
+          ...salesByEvent.map(item => [item.eventName || item.name || '', item.productName || item.name || '', item.qty || item.quantity || item.sold || item.sales || item.orders || 0, item.revenue || 0]),
           []
         );
       }
 
-      if (quarterSpecials.length > 0) {
+      if (data?.specialsStoreItems && data.specialsStoreItems.length > 0) {
         summaryRows.push(
           ["--- SPECIALS STORE ITEMS ---"],
-          ["Item Name", "Price ($)", "Quantity Sold", "Total Revenue ($)"],
-          ...quarterSpecials.map(item => [item.name || '', item.price || 0, item.sold || item.sales || item.orders || 0, item.revenue || 0]),
+          ["Item Name", "Quantity Sold", "Total Revenue ($)"],
+          ...data.specialsStoreItems.map(item => [item.name || item.eventName || '', item.qty || item.quantity || item.sold || item.sales || item.orders || 0, item.revenue || 0]),
           []
         );
       }
@@ -571,6 +575,23 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
           ["--- REVENUE BY CURRENCY SHARE ---"],
           ["Currency Name", "Share (%)"],
           ...currencies.map(c => [c.name || '', `${c.value || 0}%`]),
+          []
+        );
+      }
+
+      if (currencyGrowth && currencyGrowth.labels && currencyGrowth.labels.length > 0) {
+        summaryRows.push(
+          ["--- CURRENCY GROWTH TREND ---"],
+          ["Date", "USD (Current)", "INR (Current)", "MYR (Current)", "USD (Previous)", "INR (Previous)", "MYR (Previous)"],
+          ...currencyGrowth.labels.map((label, i) => [
+            label,
+            currencyGrowth.usd?.[i] || 0,
+            currencyGrowth.inr?.[i] || 0,
+            currencyGrowth.myr?.[i] || 0,
+            currencyGrowth.usdPrev?.[i] || 0,
+            currencyGrowth.inrPrev?.[i] || 0,
+            currencyGrowth.myrPrev?.[i] || 0
+          ]),
           []
         );
       }
@@ -752,16 +773,15 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         const wsSalesEvent = XLSX.utils.json_to_sheet(salesByEvent.map(item => ({
           "Event Name": item.eventName || item.name || '',
           "Product Name": item.productName || item.name || '',
-          "Orders": item.orders || 0,
+          "Orders": item.qty || item.quantity || item.sold || item.sales || item.orders || 0,
           "Revenue ($)": item.revenue || 0
         })));
         XLSX.utils.book_append_sheet(wb, wsSalesEvent, "Sales By Event");
       }
-      if (quarterSpecials.length > 0) {
-        const wsSpecials = XLSX.utils.json_to_sheet(quarterSpecials.map(item => ({
-          "Item Name": item.name || '',
-          "Price ($)": item.price || 0,
-          "Quantity Sold": item.sold || item.sales || item.orders || 0,
+      if (data?.specialsStoreItems && data.specialsStoreItems.length > 0) {
+        const wsSpecials = XLSX.utils.json_to_sheet(data.specialsStoreItems.map(item => ({
+          "Item Name": item.name || item.eventName || '',
+          "Quantity Sold": item.qty || item.quantity || item.sold || item.sales || item.orders || 0,
           "Total Revenue ($)": item.revenue || 0
         })));
         XLSX.utils.book_append_sheet(wb, wsSpecials, "Specials Store Items");
@@ -777,6 +797,19 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       if (geoData.length > 1) {
         const wsGeo = XLSX.utils.json_to_sheet(geoData.slice(1).map(r => ({ "Country Code": r[0], "Revenue Share (%)": r[1] })));
         XLSX.utils.book_append_sheet(wb, wsGeo, "Sales Growth Map");
+      }
+
+      if (currencyGrowth && currencyGrowth.labels && currencyGrowth.labels.length > 0) {
+        const wsCurrencyGrowth = XLSX.utils.json_to_sheet(currencyGrowth.labels.map((label, i) => ({
+          "Date": label,
+          "USD (Current)": currencyGrowth.usd?.[i] || 0,
+          "INR (Current)": currencyGrowth.inr?.[i] || 0,
+          "MYR (Current)": currencyGrowth.myr?.[i] || 0,
+          "USD (Previous)": currencyGrowth.usdPrev?.[i] || 0,
+          "INR (Previous)": currencyGrowth.inrPrev?.[i] || 0,
+          "MYR (Previous)": currencyGrowth.myrPrev?.[i] || 0
+        })));
+        XLSX.utils.book_append_sheet(wb, wsCurrencyGrowth, "Currency Growth Trend");
       }
       if (newMemberTrendByCurrency.length > 0) {
         const wsTrend = XLSX.utils.json_to_sheet(newMemberTrendByCurrency.map(r => ({
@@ -820,6 +853,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         bestSellers,
         lowPerformers,
         currencies,
+        currencyGrowth,
         geoData,
         customerMetricsRows,
         customerMetricsLabels,
@@ -1081,14 +1115,14 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <h2>2. Sales Growth Stats Map (Heat Map Visual)</h2>
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
               <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:10px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                🗺️ Regional Sales Growth Heat Map Distribution
+                🗺️ Regional Sales Growth Heat Map Distribution (Top 15)
               </div>
               <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:15px; font-size:11px; color:#64748b;">
                 <span>Heat Intensity Scale:</span>
                 <span style="display:inline-block; width:140px; height:10px; border-radius:5px; background:linear-gradient(90deg, #c7d2fe 0%, #6868f9 50%, #3730a3 100%);"></span>
                 <span style="font-weight:bold; color:#3730a3;">High Volume</span>
               </div>
-              <svg width="680" height="${geoRows.length * 38 + 20}" viewBox="0 0 680 ${geoRows.length * 38 + 20}" xmlns="http://www.w3.org/2000/svg">
+              <svg style="display: block; max-width: 100%;" width="680" height="${Math.min(geoRows.length, 15) * 38 + 20}" viewBox="0 0 680 ${Math.min(geoRows.length, 15) * 38 + 20}" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="heatGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stop-color="#c7d2fe" />
@@ -1096,8 +1130,8 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                     <stop offset="100%" stop-color="#3730a3" />
                   </linearGradient>
                 </defs>
-                ${geoRows.map((item, idx) => {
-                  const maxShare = Math.max(...geoRows.map(r => r.share || 0), 1);
+                ${geoRows.slice(0, 15).map((item, idx) => {
+                  const maxShare = Math.max(...geoRows.slice(0, 15).map(r => r.share || 0), 1);
                   const share = item.share || 0;
                   const barW = Math.max(15, Math.round((share / maxShare) * 360));
                   const yPos = idx * 38 + 10;
@@ -1118,17 +1152,17 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <h2>4. Event Revenue Share Chart</h2>
             <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
               <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:15px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                📊 Event Revenue Share Graphic Chart
+                📊 Event Revenue Share Graphic Chart (Top 15)
               </div>
-              <svg width="680" height="${eventSales.length * 36 + 30}" viewBox="0 0 680 ${eventSales.length * 36 + 30}" xmlns="http://www.w3.org/2000/svg">
+              <svg style="display: block; max-width: 100%;" width="680" height="${Math.min(eventSales.length, 15) * 36 + 30}" viewBox="0 0 680 ${Math.min(eventSales.length, 15) * 36 + 30}" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stop-color="#6868f9" />
                     <stop offset="100%" stop-color="#3b82f6" />
                   </linearGradient>
                 </defs>
-                ${eventSales.map((item, idx) => {
-                  const maxRev = Math.max(...eventSales.map(e => e.revenue || 0), 1);
+                ${eventSales.slice(0, 15).map((item, idx) => {
+                  const maxRev = Math.max(...eventSales.slice(0, 15).map(e => e.revenue || 0), 1);
                   const rev = item.revenue || 0;
                   const name = item.name || item.eventName || `Event #${idx + 1}`;
                   const share = totalEventRevenue > 0 ? ((rev / totalEventRevenue) * 100).toFixed(1) : 0;
@@ -1164,20 +1198,21 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>Product Name</th><th>Orders</th><th>Revenue</th></tr></thead>
               <tbody>
-                ${salesByEvent.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${salesByEvent.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
 
-          ${quarterSpecials.length > 0 ? `
+          ${(data?.specialsStoreItems && data.specialsStoreItems.length > 0) ? `
             <h2>7. Specials Store Items</h2>
             <table>
-              <thead><tr><th>Item Name</th><th>Price</th><th>Quantity Sold</th><th>Total Revenue</th></tr></thead>
+              <thead><tr><th>Item Name</th><th>Quantity Sold</th><th>Total Revenue</th></tr></thead>
               <tbody>
-                ${quarterSpecials.map(item => `<tr><td>${item.name || ''}</td><td>$${item.price || 0}</td><td>${item.sold || item.sales || item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${data.specialsStoreItems.map(item => `<tr><td>${item.name || item.eventName || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
+
 
           ${bestSellers.length > 0 ? `
             <h2>8. Best Selling Products</h2>
@@ -1207,6 +1242,77 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 ${currencies.map(c => `<tr><td>${c.name || ''}</td><td>${c.value || 0}%</td></tr>`).join('')}
               </tbody>
             </table>
+            </table>
+          ` : ''}
+
+          ${(currencyGrowth && currencyGrowth.labels && currencyGrowth.labels.length > 0) ? `
+            <h2>11. Currency Growth Chart</h2>
+            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:15px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
+                📈 Currency Growth Trend (USD, INR, MYR)
+              </div>
+              <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:15px; font-size:10px; font-weight:bold;">
+                <span style="color:#16a34a;">● USD (Current)</span>
+                <span style="color:#f97316;">● INR (Current)</span>
+                <span style="color:#eab308;">● MYR (Current)</span>
+              </div>
+              <svg style="display: block; max-width: 100%;" width="680" height="260" viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg">
+                ${(() => {
+                  const labels = currencyGrowth.labels;
+                  const usd = currencyGrowth.usd || [];
+                  const inr = currencyGrowth.inr || [];
+                  const myr = currencyGrowth.myr || [];
+                  
+                  let maxVal = 100;
+                  [...usd, ...inr, ...myr].forEach(v => { if (v > maxVal) maxVal = v; });
+                  maxVal = maxVal * 1.1;
+
+                  const chartW = 600;
+                  const chartH = 180;
+                  const leftMargin = 60;
+                  const topMargin = 20;
+
+                  const stepX = labels.length > 1 ? chartW / (labels.length - 1) : chartW;
+
+                  const getPoints = (dataArr) => {
+                    return dataArr.map((v, i) => {
+                      const x = leftMargin + (i * stepX);
+                      const y = topMargin + chartH - ((v / maxVal) * chartH);
+                      return x + ',' + y;
+                    }).join(' ');
+                  };
+
+                  const usdPoints = getPoints(usd);
+                  const inrPoints = getPoints(inr);
+                  const myrPoints = getPoints(myr);
+
+                  let grids = '';
+                  for (let i = 0; i <= 4; i++) {
+                    const y = topMargin + chartH - (i * (chartH / 4));
+                    const val = Math.round((i / 4) * maxVal);
+                    grids += '<line x1="' + leftMargin + '" y1="' + y + '" x2="' + (leftMargin + chartW) + '" y2="' + y + '" stroke="#e2e8f0" stroke-dasharray="' + (i===0 ? '' : '4,4') + '" />' +
+                             '<text x="' + (leftMargin - 10) + '" y="' + (y + 4) + '" text-anchor="end" fill="#64748b" font-size="10">' + val.toLocaleString() + '</text>';
+                  }
+
+                  let xLabels = '';
+                  const numLabels = 6;
+                  for (let i = 0; i < numLabels; i++) {
+                    const idx = Math.floor(i * (labels.length - 1) / (numLabels - 1));
+                    if (labels[idx]) {
+                      const x = leftMargin + (idx * stepX);
+                      let labelText = labels[idx];
+                      if (labelText.length > 10) labelText = labelText.substring(0, 10) + '...';
+                      xLabels += '<text x="' + x + '" y="' + (topMargin + chartH + 20) + '" text-anchor="middle" fill="#64748b" font-size="9">' + labelText + '</text>';
+                    }
+                  }
+
+                  return grids + xLabels + 
+                    '<polyline fill="none" stroke="#16a34a" stroke-width="2" points="' + usdPoints + '" />' +
+                    '<polyline fill="none" stroke="#f97316" stroke-width="2" points="' + inrPoints + '" />' +
+                    '<polyline fill="none" stroke="#eab308" stroke-width="2" points="' + myrPoints + '" />';
+                })()}
+              </svg>
+            </div>
           ` : ''}
 
           ${categorySales.length > 0 ? `

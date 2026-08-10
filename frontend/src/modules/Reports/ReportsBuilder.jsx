@@ -125,7 +125,9 @@ const ReportsBuilder = () => {
         time: scheduleTime,
         period: schedulePeriod,
         senderEmail: senderEmail,
-        dashboards: selectedDashboards.map(d => typeof d === 'string' ? d : d.value),
+        dashboards: selectedDashboards.length > 0 
+          ? selectedDashboards.map(d => typeof d === 'string' ? d : d.value)
+          : DASHBOARD_OPTIONS.map(d => d.value),
         status: 'Active'
       };
 
@@ -234,7 +236,7 @@ const ReportsBuilder = () => {
         recipients: sch.recipients,
         format: sch.format,
         senderEmail: senderEmail,
-        dashboards: sch.dashboards || []
+        dashboards: sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards : DASHBOARD_OPTIONS.map(d => d.value)
       });
       toast.dismiss(loadingToast);
       toast.success(`Successfully dispatched report to: ${sch.recipients}`);
