@@ -168,10 +168,17 @@ export const getExecutiveDashboard = async (req, res) => {
           
           DECLARE @thisMonth INT = MONTH(@today);
           DECLARE @thisYear INT = YEAR(@today);
-          DECLARE @lastMonth INT = MONTH(DATEADD(month, -1, @today));
-          DECLARE @lastMonthYear INT = YEAR(DATEADD(month, -1, @today));
+          DECLARE @lastMonth INT = CASE WHEN @thisMonth = 1 THEN 12 ELSE @thisMonth - 1 END;
+          DECLARE @lastMonthYear INT = CASE WHEN @thisMonth = 1 THEN @thisYear - 1 ELSE @thisYear END;
+          DECLARE @lastYear INT = @thisYear - 1;
 
-          DECLARE @lastYear INT = YEAR(DATEADD(year, -1, @today));
+          -- We need enough data in #TempBaseOrders to support YTD and Last YTD calculations.
+          -- So the base data must start at least on Jan 1st of @lastYear, or earlier if @startDate is earlier.
+          DECLARE @minRequiredDate DATE = DATEFROMPARTS(@lastYear, 1, 1);
+          DECLARE @baseDataStart DATE = CASE 
+              WHEN @startDate IS NOT NULL AND @startDate < @minRequiredDate THEN @startDate
+              ELSE @minRequiredDate
+          END;
 
           IF OBJECT_ID('tempdb..#TempBaseOrders') IS NOT NULL DROP TABLE #TempBaseOrders;
           SELECT 
@@ -235,7 +242,7 @@ export const getExecutiveDashboard = async (req, res) => {
           AND Gp.Code <> '9999999999'        
           AND TestAccounts.CustomerId IS NULL                
           AND SL.ShopId = 1
-          AND GP.OrderDate >= ISNULL(@startDate, DATEADD(year, -2, @today))
+          AND GP.OrderDate >= @baseDataStart
           AND GP.OrderDate <= @today;
 
           -- 0. KPI Query
@@ -361,19 +368,18 @@ export const getExecutiveDashboard = async (req, res) => {
 
         // 1.5 Fetch Cancellations & Refunds
         const cancelReq = pool.request();
-        if (startDate) cancelReq.input('startDate', startDate);
-        if (endDate) cancelReq.input('endDate', endDate);
+        if (startDate) cancelReq.input('p_startDate', startDate);
+        if (endDate) cancelReq.input('p_endDate', endDate);
         const cancelResult = await cancelReq.query(`
-          DECLARE @today DATE = ${endDate ? 'CAST(@endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
-          DECLARE @startDate DATE = ${startDate ? 'CAST(@startDate AS DATE)' : 'NULL'};
+          DECLARE @today DATE = ${endDate ? 'CAST(@p_endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @startDate DATE = ${startDate ? 'CAST(@p_startDate AS DATE)' : 'NULL'};
           DECLARE @thisMonth INT = MONTH(@today);
           DECLARE @thisYear INT = YEAR(@today);
 
           -- Cancellations Temp
           SELECT 
               CAST(GP.OrderDate AS DATE) as OrderDate,
-              CAST(ROUND(PA.Amount * 1.0 / NULLIF(SUM(PA.Amount) OVER (PARTITION BY ORD.OrderId), 0) * 
-                 (SELECT SUM(USDPrice) FROM Vaaak.ProductwiseOrderDetail WHERE SelectedListId = ORD.OrderId), 2) AS DECIMAL(18,2)) as NetRevenue
+              PA.Amount as NetRevenue
           INTO #TempCancellations
           FROM Payment PA WITH (NOLOCK)
           INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
@@ -427,11 +433,11 @@ export const getExecutiveDashboard = async (req, res) => {
 
         // 2. Fetch Top Selling Products & Recent Orders
         const advancedReq = pool.request();
-        if (startDate) advancedReq.input('startDate', startDate);
-        if (endDate) advancedReq.input('endDate', endDate);
+        if (startDate) advancedReq.input('p_startDate', startDate);
+        if (endDate) advancedReq.input('p_endDate', endDate);
         const advancedResult = await advancedReq.query(`
-          DECLARE @today DATE = ${endDate ? 'CAST(@endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
-          DECLARE @startDate DATE = ${startDate ? 'CAST(@startDate AS DATE)' : 'NULL'};
+          DECLARE @today DATE = ${endDate ? 'CAST(@p_endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+          DECLARE @startDate DATE = ${startDate ? 'CAST(@p_startDate AS DATE)' : 'NULL'};
           DECLARE @thisMonth INT = MONTH(@today);
           DECLARE @thisYear INT = YEAR(@today);
 
@@ -857,68 +863,15 @@ export const getExecutiveDashboard = async (req, res) => {
       traffic.metrics.bounce.count = Number(avgBounce.toFixed(1)) || 0;
     }
 
-    // If running in Report generation mode and there's no data, populate mock details so the PDF is properly filled
-    if (req.query.isReport) {
-      if (!mssqlTrendDay || mssqlTrendDay.length === 0) {
-        mssqlTrendDay = [
-          { date: 'Mon', revenue: 12000, orders: 40 },
-          { date: 'Tue', revenue: 15000, orders: 55 },
-          { date: 'Wed', revenue: 11000, orders: 35 },
-          { date: 'Thu', revenue: 19000, orders: 70 },
-          { date: 'Fri', revenue: 21000, orders: 85 }
-        ];
-      }
-      if (!mssqlCategoriesDay || mssqlCategoriesDay.length === 0) {
-        mssqlCategoriesDay = [
-          { name: 'Puja Services', raw: 45000, value: 45 },
-          { name: 'Consultations', raw: 25000, value: 25 },
-          { name: 'Gemstones', raw: 20000, value: 20 },
-          { name: 'Other', raw: 10000, value: 10 }
-        ];
-      }
-      if (!mssqlChannelsDay || mssqlChannelsDay.length === 0) {
-        mssqlChannelsDay = [
-          { name: 'Organic Search', raw: 50000, value: 50 },
-          { name: 'Social Media', raw: 25000, value: 25 },
-          { name: 'Direct', raw: 15000, value: 15 },
-          { name: 'Email Marketing', raw: 10000, value: 10 }
-        ];
-      }
-      if (!mssqlTopProductsDay || mssqlTopProductsDay.length === 0) {
-        mssqlTopProductsDay = [
-          { id: 1, name: 'Special Group Homa', revenue: 15000, orders: 12 },
-          { id: 2, name: 'Premium Astrology Consultation', revenue: 12000, orders: 8 },
-          { id: 3, name: 'Navagraha Puja', revenue: 8000, orders: 20 },
-          { id: 4, name: 'Ruby Gemstone', revenue: 6000, orders: 2 }
-        ];
-      }
-    }
-
     const categories = mssqlCategoriesDay;
     const channels = mssqlChannelsDay;
     const topProducts = mssqlTopProductsDay;
     const recentOrders = [];
     const targetComparison = [];
     const buildTrafficObj = (trendArray, baseChange) => {
-      let orders = 0;
-      (trendArray || []).forEach(t => orders += (t.orders || 0));
-      const visitors = orders * 42;
-      
-      const trend = (trendArray || []).map(t => (t.orders || 0) * 42);
-
-      if (visitors === 0) return { trend: [], metrics: { organic: { count: 0, change: 0 }, paid: { count: 0, change: 0 }, total: { count: 0, change: 0 }, bounce: { count: 0, change: 0 } } };
-      return {
-        trend,
-        metrics: {
-          organic: { count: Math.floor(visitors * 0.65), change: baseChange + 2 },
-          paid: { count: Math.floor(visitors * 0.35), change: baseChange - 1 },
-          total: { count: visitors, change: baseChange },
-          bounce: { 
-            count: Number((32.6 + (baseChange * 0.2)).toFixed(1)), 
-            change: Number((-1.2 - (baseChange * 0.1)).toFixed(1)) 
-          }
-        }
-      };
+      // With fake data removed, we no longer multiply orders by 42.
+      // Traffic should come strictly from Google Analytics
+      return { trend: [], metrics: { organic: { count: 0, change: 0 }, paid: { count: 0, change: 0 }, total: { count: 0, change: 0 }, bounce: { count: 0, change: 0 } } };
     };
 
     const trafficDay = buildTrafficObj(mssqlTrendDay, 5);

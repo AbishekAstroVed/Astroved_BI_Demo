@@ -12,7 +12,7 @@ import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 
 const Executive = () => {
-  const { startDate, endDate, compareEnabled, getCompareDates } = useDateFilter();
+  const { startDate, endDate, compareEnabled, getCompareDates, selectPreset, datePreset } = useDateFilter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQueryModal, setShowQueryModal] = useState(false);
@@ -27,7 +27,13 @@ const Executive = () => {
   const [refundsFilter, setRefundsFilter] = useState('This Week');
   const [cancellationsFilter, setCancellationsFilter] = useState('This Week');
   const [trafficFilter, setTrafficFilter] = useState('This Month');
-  const [exportPeriod, setExportPeriod] = useState('Daily');
+  const [exportPeriod, setExportPeriod] = useState(() => {
+    if (datePreset === 'today' || datePreset === 'yesterday') return 'Daily';
+    if (datePreset === '7days') return 'Weekly';
+    if (datePreset === 'mtd' || datePreset === '30days') return 'Monthly';
+    if (datePreset === 'ytd' || datePreset === 'custom') return 'Yearly';
+    return 'Daily';
+  });
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -40,10 +46,15 @@ const Executive = () => {
   // Sync export period to individual dropdowns
   useEffect(() => {
     let filterVal = 'This Week';
-    if (exportPeriod === 'Daily') filterVal = 'Today';
-    else if (exportPeriod === 'Weekly') filterVal = 'This Week';
-    else if (exportPeriod === 'Monthly') filterVal = 'This Month';
-    else if (exportPeriod === 'Yearly') filterVal = 'This Year';
+    if (exportPeriod === 'Daily') {
+      filterVal = 'Today';
+    } else if (exportPeriod === 'Weekly') {
+      filterVal = 'This Week';
+    } else if (exportPeriod === 'Monthly') {
+      filterVal = 'This Month';
+    } else if (exportPeriod === 'Yearly') {
+      filterVal = 'This Year';
+    }
 
     setRevenueOverviewFilter(filterVal);
     setCategoryFilter(filterVal);
@@ -82,20 +93,20 @@ const Executive = () => {
   const topProductsPage = usePagination(
     data ? (
       topProductsFilter === 'Today' || topProductsFilter === 'Daily' ? data.topProductsDay :
-      topProductsFilter === 'This Week' || topProductsFilter === 'Weekly' ? data.topProductsWeek :
-      topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
-      data.topProductsYear
-    ) || [] : [], 
+        topProductsFilter === 'This Week' || topProductsFilter === 'Weekly' ? data.topProductsWeek :
+          topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
+            data.topProductsYear
+    ) || [] : [],
     10
   );
 
   const recentOrdersPage = usePagination(
     data ? (
       recentOrdersFilter === 'Today' || recentOrdersFilter === 'Daily' ? data.recentOrdersDay :
-      recentOrdersFilter === 'This Week' || recentOrdersFilter === 'Weekly' ? data.recentOrdersWeek :
-      recentOrdersFilter === 'This Month' || recentOrdersFilter === 'Monthly' ? data.recentOrdersMonth :
-      data.recentOrdersYear
-    ) || [] : [], 
+        recentOrdersFilter === 'This Week' || recentOrdersFilter === 'Weekly' ? data.recentOrdersWeek :
+          recentOrdersFilter === 'This Month' || recentOrdersFilter === 'Monthly' ? data.recentOrdersMonth :
+            data.recentOrdersYear
+    ) || [] : [],
     10
   );
 
@@ -1196,7 +1207,13 @@ const Executive = () => {
           {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
             <button
               key={period}
-              onClick={() => setExportPeriod(period)}
+              onClick={() => {
+                setExportPeriod(period);
+                if (period === 'Daily' && selectPreset) selectPreset('today');
+                else if (period === 'Weekly' && selectPreset) selectPreset('7days');
+                else if (period === 'Monthly' && selectPreset) selectPreset('mtd');
+                else if (period === 'Yearly' && selectPreset) selectPreset('ytd');
+              }}
               className={`flex-1 md:flex-none md:w-28 flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-medium transition-all ${exportPeriod === period
                 ? 'bg-[#f0f7ff] dark:bg-blue-500/20 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/30 rounded shadow-sm z-10'
                 : 'text-slate-500 dark:text-slate-400 bg-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 border-y border-transparent ' + (exportPeriod !== period && idx !== 0 && exportPeriod !== ['Daily', 'Weekly', 'Monthly', 'Yearly'][idx - 1] ? 'border-l-[1px] border-l-slate-200 dark:border-l-slate-600' : 'border-l-0')
@@ -1697,7 +1714,7 @@ const Executive = () => {
             </div>
             <div className="p-4 md:p-6 overflow-auto flex-1 bg-slate-900">
               <pre className="text-sm font-mono text-emerald-400 whitespace-pre-wrap break-words">
-{`SELECT OrderId,customerid,OrderDate,ProductName,EventName,Quantity,Currency, UsdPrice,        
+                {`SELECT OrderId,customerid,OrderDate,ProductName,EventName,Quantity,Currency, UsdPrice,        
 Cast(UsdPriceDiscount As Decimal(18,2)) As UsdPriceDiscount, OrderType,PrimaryTracking,SecondaryTracking ,TrafficCategory        
 FROM (        
 SELECT                   
