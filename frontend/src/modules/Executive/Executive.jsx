@@ -1359,68 +1359,7 @@ const Executive = () => {
 
       </div>
 
-      {/* ----------------- ROW 2.5: REFUNDS & CANCELLATIONS ----------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {/* Refunds */}
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Refunds Trend</h4>
-            <select
-              value={refundsFilter}
-              onChange={(e) => setRefundsFilter(e.target.value)}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 px-2 py-1 rounded focus:outline-none cursor-pointer"
-            >
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="This Year">This Year</option>
-            </select>
-          </div>
-          {showRevenue ? (
-            currentRefunds && currentRefunds.length > 0 ? (
-              <EChartWrapper option={refundsOption} height="220px" />
-            ) : (
-              <div className="h-[220px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-                <span>No refunds data available for this period.</span>
-              </div>
-            )
-          ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
-            </div>
-          )}
-        </div>
 
-        {/* Cancellations */}
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Cancellations Trend</h4>
-            <select
-              value={cancellationsFilter}
-              onChange={(e) => setCancellationsFilter(e.target.value)}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 px-2 py-1 rounded focus:outline-none cursor-pointer"
-            >
-              <option value="Today">Today</option>
-              <option value="This Week">This Week</option>
-              <option value="This Month">This Month</option>
-              <option value="This Year">This Year</option>
-            </select>
-          </div>
-          {showRevenue ? (
-            currentCancellations && currentCancellations.length > 0 ? (
-              <EChartWrapper option={cancellationsOption} height="220px" />
-            ) : (
-              <div className="h-[220px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-                <span>No cancellations data available for this period.</span>
-              </div>
-            )
-          ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ----------------- ROW 3: LISTS & COMPARISONS (Top Selling, Recent Orders, Rev vs Target) ----------------- */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
