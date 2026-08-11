@@ -1362,7 +1362,7 @@ const Executive = () => {
 
 
       {/* ----------------- ROW 3: LISTS & COMPARISONS (Top Selling, Recent Orders, Rev vs Target) ----------------- */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Top Selling Products */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
@@ -1381,7 +1381,7 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[300px] overflow-y-auto custom-scrollbar">
+              <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -1427,7 +1427,7 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[300px] overflow-y-auto custom-scrollbar">
+              <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -1439,7 +1439,7 @@ const Executive = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                    {currentRecentOrders.map((ord, idx) => (
+                    {recentOrdersPage.currentData.map((ord, idx) => (
                       <tr key={idx} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 font-mono text-indigo-400">{ord.id}</td>
                         <td className="py-2 px-3">
@@ -1447,10 +1447,10 @@ const Executive = () => {
                           <span className="block text-[9px] text-cosmic-muted mt-0.5">ID: {ord.customerId}</span>
                         </td>
                         <td className="py-2 px-3 text-right font-mono">
-                          {showRevenue ? formatDollar(ord.amount) : 'ðŸ”’ Restricted'}
+                          {showRevenue ? formatDollar(ord.amount) : '🔒 Restricted'}
                         </td>
                         <td className="py-2 px-3">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${ord.status === 'Paid' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${ord.status === 'Paid' || ord.status === 'Complete' || ord.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
                             }`}>
                             {ord.status}
                           </span>
@@ -1462,6 +1462,7 @@ const Executive = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...recentOrdersPage} />
           </div>
         </div>
 
@@ -1481,9 +1482,9 @@ const Executive = () => {
             </select>
           </div>
           {showRevenue ? (
-            <EChartWrapper option={targetOption} height="300px" />
+            <EChartWrapper option={targetOption} height="400px" />
           ) : (
-            <div className="h-[300px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
+            <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
               <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
               <span>Your role profile does not have permission to view target matching.</span>
             </div>
