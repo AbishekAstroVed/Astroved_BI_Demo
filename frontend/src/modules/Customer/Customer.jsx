@@ -3,7 +3,7 @@ import { Calendar, TrendingUp } from 'lucide-react';
 import MonthlyCustomers from './MonthlyCustomers';
 
 const Customer = () => {
-  const [activeTab, setActiveTab] = useState('monthly');
+  const [activeTab, setActiveTab] = useState('daily');
   const userPermissions = JSON.parse(localStorage.getItem('astroved_permissions') || '{}');
   if (userPermissions && userPermissions.data && userPermissions.data.viewCustomer === false) {
     return (

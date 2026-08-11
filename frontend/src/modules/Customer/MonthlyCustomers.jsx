@@ -10,7 +10,7 @@ const customerCache = {};
 
 const MonthlyCustomers = () => {
   const { startDate, endDate } = useDateFilter();
-  const [activeTab, setActiveTab] = useState('monthly');
+  const [activeTab, setActiveTab] = useState('daily');
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showAllContributors, setShowAllContributors] = useState(false);
@@ -30,7 +30,7 @@ const MonthlyCustomers = () => {
     );
   }
 
-  const [metricsPeriod, setMetricsPeriod] = useState('Monthly');
+  const [metricsPeriod, setMetricsPeriod] = useState('Daily');
   const [useCustomDates, setUseCustomDates] = useState(false);
   const [prevDates, setPrevDates] = useState({ startDate, endDate });
 
@@ -46,8 +46,8 @@ const MonthlyCustomers = () => {
   const [highContributors, setHighContributors] = useState([]);
   const [newCustomersByTraffic, setNewCustomersByTraffic] = useState([]);
   const [projectionByTraffic, setProjectionByTraffic] = useState([]);
-  const [revenueByTrafficSource, setRevenueByTrafficSource] = useState(customerCache['Monthly']?.revenueByTrafficSource || []);
-  const [loadingMetrics, setLoadingMetrics] = useState(!customerCache['Monthly']);
+  const [revenueByTrafficSource, setRevenueByTrafficSource] = useState(customerCache['Daily']?.revenueByTrafficSource || []);
+  const [loadingMetrics, setLoadingMetrics] = useState(!customerCache['Daily']);
 
   useEffect(() => {
     const fetchMetrics = async () => {

@@ -27,13 +27,7 @@ const Executive = () => {
   const [refundsFilter, setRefundsFilter] = useState('This Week');
   const [cancellationsFilter, setCancellationsFilter] = useState('This Week');
   const [trafficFilter, setTrafficFilter] = useState('This Month');
-  const [exportPeriod, setExportPeriod] = useState(() => {
-    if (datePreset === 'today' || datePreset === 'yesterday') return 'Daily';
-    if (datePreset === '7days') return 'Weekly';
-    if (datePreset === 'mtd' || datePreset === '30days') return 'Monthly';
-    if (datePreset === 'ytd' || datePreset === 'custom') return 'Yearly';
-    return 'Daily';
-  });
+  const [exportPeriod, setExportPeriod] = useState('Daily');
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
