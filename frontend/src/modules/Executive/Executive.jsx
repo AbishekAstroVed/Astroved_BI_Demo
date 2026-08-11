@@ -1362,7 +1362,7 @@ const Executive = () => {
 
 
       {/* ----------------- ROW 3: LISTS & COMPARISONS (Top Selling, Recent Orders, Rev vs Target) ----------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         {/* Top Selling Products */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
@@ -1381,7 +1381,7 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[210px] overflow-y-auto custom-scrollbar">
+              <div className="overflow-x-auto w-full h-[300px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -1427,7 +1427,7 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[210px] overflow-y-auto custom-scrollbar">
+              <div className="overflow-x-auto w-full h-[300px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
@@ -1481,9 +1481,9 @@ const Executive = () => {
             </select>
           </div>
           {showRevenue ? (
-            <EChartWrapper option={targetOption} height="210px" />
+            <EChartWrapper option={targetOption} height="300px" />
           ) : (
-            <div className="h-[210px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
+            <div className="h-[300px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
               <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
               <span>Your role profile does not have permission to view target matching.</span>
             </div>
