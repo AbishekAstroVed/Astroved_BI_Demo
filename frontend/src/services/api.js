@@ -1,11 +1,15 @@
 const originalFetch = window.fetch;
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+
 const fetch = (url, options = {}) => {
   const token = localStorage.getItem('astroved_token');
   const headers = { ...options.headers };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  return originalFetch(url, { ...options, headers });
+  
+  const fullUrl = url.startsWith('/api') ? `${BASE_URL}${url}` : url;
+  return originalFetch(fullUrl, { ...options, headers });
 };
 
 const handleResponse = async (response) => {
