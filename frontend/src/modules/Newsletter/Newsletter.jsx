@@ -7,6 +7,8 @@ import { useDateFilter } from '../../contexts/DateFilterContext';
 import MultiSelectDropdown from '../../components/MultiSelectDropdown';
 import SearchableDropdown from '../../components/SearchableDropdown';
 import ExportReportsCard from '../../components/ExportReportsCard';
+import Pagination from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 echarts.registerMap('world', worldGeoJson);
 
@@ -394,6 +396,16 @@ const Newsletter = () => {
     ]
   };
 
+  const categorySalesPage = usePagination(categorySales || [], 10);
+  const dateWisePerformancePage = usePagination(dateWisePerformance || [], 10);
+  const overallPerformanceDataPage = usePagination(overallPerformanceData || [], 10);
+  const breakupSummaryPage = usePagination(breakupSummary || [], 10);
+  const typesComparedPage = usePagination(typesCompared || [], 10);
+  const overallEventsDataPage = usePagination(overallEventsData || [], 10);
+  const specialEventsDataPage = usePagination(specialEventsData || [], 10);
+  const specialEventsPerformanceDataPage = usePagination(specialEventsPerformanceData || [], 10);
+  const eventsComparedPage = usePagination(eventsCompared || [], 10);
+
   return (
     <div className="space-y-6">
 
@@ -479,7 +491,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {categorySales.map((item, idx) => (
+                    {categorySalesPage.currentData.map((item, idx) => (
                       <tr
                         key={item.id}
                         className={`hover:bg-cosmic-bg transition-colors cursor-pointer ${eventName === item.name ? 'bg-indigo-500/20' : ''}`}
@@ -500,6 +512,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...categorySalesPage} />
           </div>
           {/* Date Wise Newsletter Performance */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
@@ -519,11 +532,11 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {dateWisePerformance.map((item, idx) => (
+                    {dateWisePerformancePage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-4">
-                            <span className="text-cosmic-muted font-medium w-6 text-right">{idx + 1}.</span>
+                            <span className="text-cosmic-muted font-medium w-6 text-right">{((dateWisePerformancePage.currentPage - 1) * 10) + idx + 1}.</span>
                             <span>{item.date}</span>
                           </div>
                         </td>
@@ -535,6 +548,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...dateWisePerformancePage} />
           </div>
 
           {/* Over All NewsLetter Statistics Summary */}
@@ -563,9 +577,9 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {overallPerformanceData.map((item, idx) => (
+                    {overallPerformanceDataPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
-                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{((overallPerformanceDataPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-3">{item.date}</td>
                         <td className="py-2.5 px-3">{item.name}</td>
                         <td className="py-2.5 px-3 truncate max-w-[200px]">{item.subject}</td>
@@ -590,6 +604,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...overallPerformanceDataPage} />
           </div>
 
 
@@ -675,7 +690,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {breakupSummary.map((item, idx) => {
+                    {breakupSummaryPage.currentData.map((item, idx) => {
                       const isSelected = nlCategory.length === 1 && nlCategory[0].value === item.type;
                       return (
                         <tr
@@ -684,7 +699,7 @@ const Newsletter = () => {
                           onClick={() => handleCategoryClick(item.type)}
                           title="Click to filter dashboard by this newsletter category"
                         >
-                          <td className="py-2.5 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                          <td className="py-2.5 px-3 text-cosmic-muted text-center">{((breakupSummaryPage.currentPage - 1) * 10) + idx + 1}.</td>
                           <td className="py-2.5 px-4 font-medium">{item.type}</td>
                           <td className="py-2.5 px-4 text-right font-medium">{item.count}</td>
                           <td className="py-2.5 px-4 text-right font-medium">${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -702,6 +717,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...breakupSummaryPage} />
           </div>
 
           {/* Types Of NewsLetter Compared With Last Month */}
@@ -725,13 +741,13 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {typesCompared.map((item, idx) => {
+                    {typesComparedPage.currentData.map((item, idx) => {
                       return (
                         <tr
                           key={idx}
                           className={`hover:bg-cosmic-bg transition-colors ${idx % 2 === 1 ? 'bg-black/5' : ''}`}
                         >
-                          <td className="py-2.5 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                          <td className="py-2.5 px-3 text-cosmic-muted text-center">{((typesComparedPage.currentPage - 1) * 10) + idx + 1}.</td>
                           <td className="py-2.5 px-4 font-medium">{item.type}</td>
                           <td className="py-2.5 px-4 text-right font-medium">{item.count}</td>
                           <td className="py-2.5 px-4 text-right font-medium">
@@ -781,6 +797,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...typesComparedPage} />
           </div>
 
           {/* Overall Newsletters Performance */}
@@ -802,7 +819,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {overallEventsData.map((item, idx) => (
+                    {overallEventsDataPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4">{item.name}</td>
                         <td className="py-2.5 px-4 text-right">${item.nlw.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -822,6 +839,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...overallEventsDataPage} />
           </div>
 
           {/* Special Events Newsletters Performance */}
@@ -843,7 +861,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {specialEventsData.map((item, idx) => (
+                    {specialEventsDataPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4">{item.name}</td>
                         <td className="py-2.5 px-4 text-right">${item.nlw.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -863,6 +881,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...specialEventsDataPage} />
           </div>
 
           {/* Special Events NewsLetter Statistics Summary */}
@@ -891,9 +910,9 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {specialEventsPerformanceData.map((item, idx) => (
+                    {specialEventsPerformanceDataPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
-                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{((specialEventsPerformanceDataPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-3">{item.date}</td>
                         <td className="py-2.5 px-3">{item.name}</td>
                         <td className="py-2.5 px-3 truncate max-w-[200px]">{item.subject}</td>
@@ -918,6 +937,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...specialEventsPerformanceDataPage} />
           </div>
 
           {/* NewsLetter Statistics Based On Category Wise */}
@@ -963,9 +983,9 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {eventsCompared.map((item, idx) => (
+                    {eventsComparedPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
-                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                        <td className="py-2.5 px-3 text-cosmic-muted text-center">{((eventsComparedPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-4">{item.type}</td>
                         <td className="py-2.5 px-4 text-right text-cosmic-muted">{item.prevCount || 0}</td>
                         <td className="py-2.5 px-4 text-right font-medium">{item.count}</td>
@@ -993,6 +1013,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
+            <Pagination {...eventsComparedPage} />
           </div>
 
           {/* Export Reports Component */}

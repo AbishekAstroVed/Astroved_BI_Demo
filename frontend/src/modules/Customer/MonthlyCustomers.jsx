@@ -5,6 +5,8 @@ import { api } from '../../services/api';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import { Heart, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import ExportReportsCard from '../../components/ExportReportsCard';
+import Pagination from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 const customerCache = {};
 
@@ -239,6 +241,13 @@ const MonthlyCustomers = () => {
 
 
 
+  const newCustByEventPage = usePagination(newCustomersByEvent, 10);
+  const newCustByProductPage = usePagination(newCustomersByProduct, 10);
+  const highContribPage = usePagination(highContributors, 10);
+  const newCustByTrafficPage = usePagination(newCustomersByTraffic, 10);
+  const projByTrafficPage = usePagination(projectionByTraffic, 10);
+  const revByTrafficPage = usePagination(revenueByTrafficSource, 10);
+
   return (
     <div className="space-y-6">
       {/* Global Metrics Period Toggle */}
@@ -391,9 +400,9 @@ const MonthlyCustomers = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                        {newCustomersByEvent.map((item, idx) => (
+                        {newCustByEventPage.currentData.map((item, idx) => (
                           <tr key={item.id} className="hover:bg-cosmic-bg">
-                            <td className="py-2 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                            <td className="py-2 px-3 text-cosmic-muted text-center">{((newCustByEventPage.currentPage - 1) * 10) + idx + 1}.</td>
                             <td className="py-2 px-3">{item.name}</td>
                             <td className="py-2 px-3 text-center">{item.qty}</td>
                             <td className="py-2 px-3 text-right">${item.revenue.toFixed(2)}</td>
@@ -403,6 +412,7 @@ const MonthlyCustomers = () => {
                     </table>
                   </div>
                 </div>
+                <Pagination {...newCustByEventPage} />
               </div>
 
               {/* Table 2: Product Name */}
@@ -422,9 +432,9 @@ const MonthlyCustomers = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                        {newCustomersByProduct.map((item, idx) => (
+                        {newCustByProductPage.currentData.map((item, idx) => (
                           <tr key={item.id} className="hover:bg-cosmic-bg">
-                            <td className="py-2 px-3 text-cosmic-muted text-center">{idx + 1}.</td>
+                            <td className="py-2 px-3 text-cosmic-muted text-center">{((newCustByProductPage.currentPage - 1) * 10) + idx + 1}.</td>
                             <td className="py-2 px-3">{item.name}</td>
                             <td className="py-2 px-3 text-center">{item.qty}</td>
                             <td className="py-2 px-3 text-right">${item.revenue.toFixed(2)}</td>
@@ -434,6 +444,7 @@ const MonthlyCustomers = () => {
                     </table>
                   </div>
                 </div>
+                <Pagination {...newCustByProductPage} />
               </div>
             </div>
           </div>
@@ -468,10 +479,10 @@ const MonthlyCustomers = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                      {highContributors.map((item, idx) => (
+                      {highContribPage.currentData.map((item, idx) => (
                         <tr key={item.id || idx} className="hover:bg-cosmic-bg">
                           <td className="py-2 px-3 flex items-center space-x-2">
-                            <span className="text-cosmic-muted w-4">{idx + 1}.</span>
+                            <span className="text-cosmic-muted w-4">{((highContribPage.currentPage - 1) * 10) + idx + 1}.</span>
                             <span>{item.name}</span>
                           </td>
                           <td className="py-2 px-3">{item.currency}</td>
@@ -484,6 +495,7 @@ const MonthlyCustomers = () => {
                   </table>
                 </div>
               </div>
+              <Pagination {...highContribPage} />
             </div>
           </div>
 
@@ -506,10 +518,10 @@ const MonthlyCustomers = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                      {newCustomersByTraffic.map((item, idx) => (
+                      {newCustByTrafficPage.currentData.map((item, idx) => (
                         <tr key={item.id || idx} className="hover:bg-cosmic-bg">
                           <td className="py-3 px-4 flex items-center space-x-2">
-                            <span className="text-cosmic-muted w-4">{idx + 1}.</span>
+                            <span className="text-cosmic-muted w-4">{((newCustByTrafficPage.currentPage - 1) * 10) + idx + 1}.</span>
                             <span>{item.source}</span>
                           </td>
                           <td className="py-3 px-4 text-center">{item.qty}</td>
@@ -526,6 +538,7 @@ const MonthlyCustomers = () => {
                   </table>
                 </div>
               </div>
+              <Pagination {...newCustByTrafficPage} />
             </div>
           </div>
 
@@ -561,10 +574,10 @@ const MonthlyCustomers = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                        {projectionByTraffic.map((item, idx) => (
+                        {projByTrafficPage.currentData.map((item, idx) => (
                           <tr key={item.id || idx} className="hover:bg-cosmic-bg">
                             <td className="py-2 px-3 flex items-center space-x-2">
-                              <span className="text-cosmic-muted w-4">{idx + 1}.</span>
+                              <span className="text-cosmic-muted w-4">{((projByTrafficPage.currentPage - 1) * 10) + idx + 1}.</span>
                               <span>{item.group}</span>
                             </td>
                             <td className="py-2 px-3 text-right">{item.expected}</td>
@@ -582,6 +595,7 @@ const MonthlyCustomers = () => {
                     </table>
                   </div>
                 </div>
+                <Pagination {...projByTrafficPage} />
               </div>
 
               {/* Revenue By Traffic Sources */}
@@ -602,10 +616,10 @@ const MonthlyCustomers = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                        {revenueByTrafficSource.map((item, idx) => (
+                        {revByTrafficPage.currentData.map((item, idx) => (
                           <tr key={item.id || idx} className="hover:bg-cosmic-bg">
                             <td className="py-2 px-3 flex items-center space-x-2">
-                              <span className="text-cosmic-muted w-4">{idx + 1}.</span>
+                              <span className="text-cosmic-muted w-4">{((revByTrafficPage.currentPage - 1) * 10) + idx + 1}.</span>
                               <span>{item.source}</span>
                             </td>
                             <td className="py-2 px-3 text-center">{item.qty}</td>
@@ -622,6 +636,7 @@ const MonthlyCustomers = () => {
                     </table>
                   </div>
                 </div>
+                <Pagination {...revByTrafficPage} />
               </div>
             </div>
           </div>

@@ -1376,7 +1376,7 @@ const Executive = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left text-[11px] border-collapse relative">
+                <table className="w-full text-left text-[11px] border-collapse relative whitespace-nowrap">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
                       <th className="py-2 px-3 font-medium w-8">#</th>
@@ -1422,7 +1422,7 @@ const Executive = () => {
             </div>
             <div className="overflow-x-auto">
               <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left text-[11px] border-collapse relative">
+                <table className="w-full text-left text-[11px] border-collapse relative whitespace-nowrap">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
                       <th className="py-2 px-3 font-medium">Order ID</th>

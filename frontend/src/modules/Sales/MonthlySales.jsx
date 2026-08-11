@@ -55,6 +55,8 @@ const MonthlySales = ({
   } = data || {};
 
   const specStorePage = usePagination(specialsStoreItems, 10);
+  const bestSellersPage = usePagination(bestSellers, 5);
+  const lowPerformersPage = usePagination(lowPerformers, 5);
 
   return (
     <div className="flex flex-col space-y-6 mb-6">
@@ -96,7 +98,7 @@ const MonthlySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[400px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -143,7 +145,7 @@ const MonthlySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[320px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -250,7 +252,7 @@ const MonthlySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[280px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -312,7 +314,7 @@ const MonthlySales = ({
               </h4>
               <div className="overflow-x-auto">
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                         <th className="py-2 px-3 w-16">Code</th>
@@ -323,7 +325,7 @@ const MonthlySales = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                      {bestSellers?.map((prod) => (
+                      {bestSellersPage.currentData.map((prod) => (
                         <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                           <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                           <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -338,6 +340,7 @@ const MonthlySales = ({
                   </table>
                 </div>
               </div>
+              <Pagination {...bestSellersPage} />
             </div>
 
             {/* Low Performers */}
@@ -348,7 +351,7 @@ const MonthlySales = ({
               </h4>
               <div className="overflow-x-auto">
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs border-collapse">
+                  <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                         <th className="py-2 px-3 w-16">Code</th>
@@ -359,7 +362,7 @@ const MonthlySales = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                      {lowPerformers?.map((prod) => (
+                      {lowPerformersPage.currentData.map((prod) => (
                         <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                           <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                           <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -374,6 +377,7 @@ const MonthlySales = ({
                   </table>
                 </div>
               </div>
+              <Pagination {...lowPerformersPage} />
             </div>
           </div>
         </div>

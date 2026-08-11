@@ -2,6 +2,8 @@ import React from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
 import { DollarSign, ShoppingBag, TrendingDown, AlertCircle } from 'lucide-react';
 import ExportReportsCard from '../../components/ExportReportsCard';
+import Pagination from '../../components/Pagination';
+import { usePagination } from '../../hooks/usePagination';
 
 const DailySales = ({
   data,
@@ -23,6 +25,12 @@ const DailySales = ({
     lowPerformers = [],
     specialsStoreItems = []
   } = data || {};
+
+  const revenueSourcePage = usePagination(revenueSource, 10);
+  const eventSalesPage = usePagination(eventSales, 10);
+  const specialsStoreItemsPage = usePagination(specialsStoreItems, 10);
+  const bestSellersPage = usePagination(bestSellers, 5);
+  const lowPerformersPage = usePagination(lowPerformers, 5);
 
   const displayDate = dailyDate ? dailyDate.split('-').reverse().join('-') : 'today';
 
@@ -59,7 +67,7 @@ const DailySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[400px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -70,8 +78,8 @@ const DailySales = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {revenueSource && revenueSource.length > 0 ? (
-                    revenueSource.map((item, idx) => (
+                  {revenueSourcePage.currentData.length > 0 ? (
+                    revenueSourcePage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
@@ -93,6 +101,7 @@ const DailySales = ({
               </table>
             </div>
           </div>
+          <Pagination {...revenueSourcePage} />
         </div>
       </div>
 
@@ -105,7 +114,7 @@ const DailySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[320px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -115,8 +124,8 @@ const DailySales = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {eventSales && eventSales.length > 0 ? (
-                    eventSales.map((item, idx) => (
+                  {eventSalesPage.currentData.length > 0 ? (
+                    eventSalesPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -137,6 +146,7 @@ const DailySales = ({
               </table>
             </div>
           </div>
+          <Pagination {...eventSalesPage} />
         </div>
 
         {/* Currency Card */}
@@ -211,7 +221,7 @@ const DailySales = ({
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full max-h-[280px]">
-              <table className="w-full text-left text-xs border-collapse relative">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
@@ -221,8 +231,8 @@ const DailySales = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {specialsStoreItems && specialsStoreItems.length > 0 ? (
-                    specialsStoreItems.map((item, idx) => (
+                  {specialsStoreItemsPage.currentData.length > 0 ? (
+                    specialsStoreItemsPage.currentData.map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -243,6 +253,7 @@ const DailySales = ({
               </table>
             </div>
           </div>
+          <Pagination {...specialsStoreItemsPage} />
         </div>
       </div>
 
@@ -256,7 +267,7 @@ const DailySales = ({
             Best Selling Products
           </h4>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
               <thead>
                 <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                   <th className="py-2 px-3 w-16">Code</th>
@@ -267,7 +278,7 @@ const DailySales = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {bestSellers?.map((prod) => (
+                {bestSellersPage.currentData.map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -281,6 +292,7 @@ const DailySales = ({
               </tbody>
             </table>
           </div>
+          <Pagination {...bestSellersPage} />
         </div>
 
         {/* Low Performers Card */}
@@ -290,7 +302,7 @@ const DailySales = ({
             Low Performing Products / Alert List
           </h4>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
               <thead>
                 <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                   <th className="py-2 px-3 w-16">Code</th>
@@ -301,7 +313,7 @@ const DailySales = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {lowPerformers?.map((prod) => (
+                {lowPerformersPage.currentData.map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -315,6 +327,7 @@ const DailySales = ({
               </tbody>
             </table>
           </div>
+          <Pagination {...lowPerformersPage} />
         </div>
       </div>
 
