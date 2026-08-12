@@ -222,7 +222,7 @@ const Marketing = ({ setCurrentModule }) => {
       axisLabel: { rotate: 15, color: '#94a3b8', fontSize: 10 }
     },
     yAxis: [
-      { type: 'value', name: 'Spend ($)', axisLabel: { formatter: (v) => `$${v / 1000}k`, color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+      { type: 'value', name: 'Spend ($)', axisLabel: { formatter: (v) => `${v / 1000}k`, color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
       { type: 'value', name: 'ROAS (x)', axisLabel: { formatter: '{value}x', color: '#10b981' }, splitLine: { show: false } }
     ],
     series: [
@@ -254,7 +254,7 @@ const Marketing = ({ setCurrentModule }) => {
       axisLabel: { rotate: 15, color: '#94a3b8', fontSize: 10 }
     },
     yAxis: [
-      { type: 'value', name: 'Spend ($)', axisLabel: { formatter: (v) => `$${v / 1000}k`, color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+      { type: 'value', name: 'Spend ($)', axisLabel: { formatter: (v) => `${v / 1000}k`, color: '#94a3b8' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
       { type: 'value', name: 'Conversions', axisLabel: { color: '#f59e0b' }, splitLine: { show: false } }
     ],
     series: [
@@ -461,7 +461,7 @@ const Marketing = ({ setCurrentModule }) => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-cosmic-border/50 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-cosmic-border/50 text-center">
                 <div>
                   <span className="text-[10px] text-cosmic-muted uppercase block font-semibold">Ad Spend</span>
                   <span className="text-sm font-black text-cosmic-text">{showCost ? formatCurrency(metaAdsData?.totalSpend || 0) : '🔒'}</span>
@@ -498,7 +498,7 @@ const Marketing = ({ setCurrentModule }) => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-cosmic-border/50 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-cosmic-border/50 text-center">
                 <div>
                   <span className="text-[10px] text-cosmic-muted uppercase block font-semibold">Ad Spend</span>
                   <span className="text-sm font-black text-cosmic-text">{showCost ? formatCurrency(googleAdsData?.totalSpend || 0) : '🔒'}</span>
@@ -588,7 +588,7 @@ const Marketing = ({ setCurrentModule }) => {
           </div>
 
           {/* Meta KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
               <span className="text-[10px] text-cosmic-muted font-bold uppercase block">Meta Ad Spend</span>
               <span className="text-xl font-black text-cosmic-text mt-1 block">{showCost ? formatCurrency(metaAdsData?.totalSpend || 0) : '🔒'}</span>
@@ -756,7 +756,7 @@ const Marketing = ({ setCurrentModule }) => {
           </div>
 
           {/* Google KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
               <span className="text-[10px] text-cosmic-muted font-bold uppercase block">Google Ad Spend</span>
               <span className="text-xl font-black text-cosmic-text mt-1 block">{showCost ? formatCurrency(googleAdsData?.totalSpend || 0) : '🔒'}</span>

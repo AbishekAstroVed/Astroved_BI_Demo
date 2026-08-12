@@ -5,7 +5,7 @@ const KPICard = ({ title, value, compValue, compChange, targetVal, formatType = 
   const isPositive = compChange >= 0;
 
   const displayVal = formatType === 'currency' 
-    ? (typeof value === 'number' ? `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}` : value)
+    ? (typeof value === 'number' ? `${value.toLocaleString(undefined, {maximumFractionDigits: 0})}` : value)
     : formatType === 'percentage' 
       ? `${typeof value === 'number' ? value.toFixed(2) : value}%`
       : (typeof value === 'number' ? value.toLocaleString() : value);
@@ -44,12 +44,12 @@ const KPICard = ({ title, value, compValue, compChange, targetVal, formatType = 
           {targetVal !== undefined && (
             <span className="flex items-center">
               <Target size={12} className="mr-1 text-cosmic-accent" />
-              Target: <span className="text-cosmic-text ml-1">{formatType === 'currency' ? `$${targetVal.toLocaleString(undefined, {maximumFractionDigits: 0})}` : targetVal}</span>
+              Target: <span className="text-cosmic-text ml-1">{formatType === 'currency' ? `${targetVal.toLocaleString(undefined, {maximumFractionDigits: 0})}` : targetVal}</span>
             </span>
           )}
           {compValue !== undefined && (
             <span>
-              Prev: <span className="text-cosmic-text">{formatType === 'currency' ? `$${compValue.toLocaleString(undefined, {maximumFractionDigits: 0})}` : compValue}</span>
+              Prev: <span className="text-cosmic-text">{formatType === 'currency' ? `${compValue.toLocaleString(undefined, {maximumFractionDigits: 0})}` : compValue}</span>
             </span>
           )}
         </div>

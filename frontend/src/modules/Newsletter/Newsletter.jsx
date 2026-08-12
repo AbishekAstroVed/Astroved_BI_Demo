@@ -131,6 +131,8 @@ const Newsletter = () => {
   };
 
 
+  const categorySalesPage = usePagination(categorySales || [], 10);
+
   const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768;
   const maxVisibleItems = isMobileView ? 5 : 12;
 
@@ -142,44 +144,29 @@ const Newsletter = () => {
         if (!params || !params.length) return '';
         const dataItem = params[0].data;
         const fullName = dataItem?.fullName || params[0].name;
-        return `${fullName}<br/>${params[0].marker} ${params[0].seriesName}: $${params[0].value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `${fullName}<br/>${params[0].marker} ${params[0].seriesName}: ${params[0].value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       }
     },
-    grid: { bottom: '25%', left: '15%', right: '5%', top: '15%' },
+    grid: { bottom: '15%', left: '15%', right: '5%', top: '15%' },
     xAxis: {
       type: 'category',
-      data: categorySales.map(item => item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name),
+      data: categorySalesPage.currentData.map(item => item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name),
       axisLabel: { color: 'var(--cosmic-text)', fontSize: 10, rotate: 45 }
     },
     yAxis: {
       type: 'value',
       axisLabel: {
         color: 'var(--cosmic-text)',
-        formatter: (value) => value >= 1000 ? `$${value / 1000}k` : `$${value}`
+        formatter: (value) => value >= 1000 ? `${value / 1000}k` : `${value}`
       },
       splitLine: { lineStyle: { color: 'var(--cosmic-border)' } }
     },
-    dataZoom: [
-      {
-        type: 'slider',
-        show: categorySales.length > maxVisibleItems,
-        start: 0,
-        end: categorySales.length > maxVisibleItems ? Math.floor((maxVisibleItems / categorySales.length) * 100) : 100,
-        bottom: 5,
-        height: 12
-      },
-      {
-        type: 'inside',
-        start: 0,
-        end: 100
-      }
-    ],
     series: [
       {
-        name: 'Net Revenue In ($)',
+        name: 'Net Revenue In USD',
         type: 'bar',
         barWidth: isMobileView ? '50%' : '60%',
-        data: categorySales.map(item => ({
+        data: categorySalesPage.currentData.map(item => ({
           value: Number(item.revenue.toFixed(2)),
           fullName: item.name
         })),
@@ -206,7 +193,7 @@ const Newsletter = () => {
       trigger: 'item',
       formatter: function (params) {
         const fullName = params.data?.fullName || params.name;
-        return `${params.marker} <b>${fullName}</b><br/>Revenue: $${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${params.percent}%)`;
+        return `${params.marker} <b>${fullName}</b><br/>Revenue: ${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${params.percent}%)`;
       },
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderColor: '#e2e8f0',
@@ -242,7 +229,7 @@ const Newsletter = () => {
     tooltip: {
       trigger: 'item',
       formatter: (params) => {
-        return `${params.marker} <b>${params.name}</b><br/>Revenue: $${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${params.percent}%)`;
+        return `${params.marker} <b>${params.name}</b><br/>Revenue: ${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${params.percent}%)`;
       },
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderColor: '#e2e8f0',
@@ -271,7 +258,7 @@ const Newsletter = () => {
         label: {
           show: true,
           formatter: (params) => {
-            return `${params.name}\n$${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            return `${params.name}\n${params.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           },
           fontSize: isMobileView ? 9 : 11,
           color: 'var(--cosmic-text)',
@@ -333,7 +320,7 @@ const Newsletter = () => {
     xAxis: { type: 'category', data: ['NLW', 'OML', 'NLI'], axisLabel: { color: 'var(--cosmic-text)' } },
     yAxis: { type: 'value', axisLabel: { color: 'var(--cosmic-text)' }, splitLine: { lineStyle: { color: 'var(--cosmic-border)' } } },
     series: [
-      { name: 'Net Revenue In ($)', type: 'bar', data: [kpiData.western, kpiData.targeted, kpiData.india], itemStyle: { color: '#00bcd4' }, label: { show: true, position: 'top', color: 'var(--cosmic-text)', formatter: '${c}' } }
+      { name: 'Net Revenue In USD', type: 'bar', data: [kpiData.western, kpiData.targeted, kpiData.india], itemStyle: { color: '#00bcd4' }, label: { show: true, position: 'top', color: 'var(--cosmic-text)', formatter: '${c}' } }
     ]
   };
 
@@ -355,7 +342,7 @@ const Newsletter = () => {
       type: 'value',
       axisLabel: {
         color: 'var(--cosmic-text)',
-        formatter: (value) => value >= 1000 ? `$${value / 1000}k` : `$${value}`
+        formatter: (value) => value >= 1000 ? `${value / 1000}k` : `${value}`
       },
       splitLine: { lineStyle: { color: '#334155' } }
     },
@@ -372,7 +359,7 @@ const Newsletter = () => {
           show: true,
           position: 'top',
           color: '#f97316',
-          formatter: (params) => params.value ? (params.value >= 1000 ? '$' + (params.value / 1000).toFixed(1) + 'k' : '$' + params.value) : '',
+          formatter: (params) => params.value ? (params.value >= 1000 ? (params.value / 1000).toFixed(1) + 'k' : params.value) : '',
           fontSize: isMobileView ? 8 : 10
         },
         barGap: '10%'
@@ -389,14 +376,13 @@ const Newsletter = () => {
           show: true,
           position: 'top',
           color: '#6868f9',
-          formatter: (params) => params.value ? (params.value >= 1000 ? '$' + (params.value / 1000).toFixed(1) + 'k' : '$' + params.value) : '',
+          formatter: (params) => params.value ? (params.value >= 1000 ? (params.value / 1000).toFixed(1) + 'k' : params.value) : '',
           fontSize: isMobileView ? 8 : 10
         }
       }
     ]
   };
 
-  const categorySalesPage = usePagination(categorySales || [], 10);
   const dateWisePerformancePage = usePagination(dateWisePerformance || [], 10);
   const overallPerformanceDataPage = usePagination(overallPerformanceData || [], 10);
   const breakupSummaryPage = usePagination(breakupSummary || [], 10);
@@ -482,7 +468,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -522,13 +508,13 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border text-left">News Letter Sent Date</th>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border text-left">NewsLetter Name</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In ($)</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In USD</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -559,7 +545,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -620,13 +606,16 @@ const Newsletter = () => {
                 option={eventConversionChartOption}
                 onEvents={{
                   click: (params) => {
-                    const match = categorySales.find(c => c.name.startsWith(params.name.replace('...', '')));
+                    const match = categorySalesPage.currentData.find(c => c.name.startsWith(params.name.replace('...', '')));
                     const fullName = match ? match.name : params.name;
                     setEventName(prev => prev === fullName ? 'All' : fullName);
                     setTimeout(() => document.getElementById('breakup-summary')?.scrollIntoView({ behavior: 'smooth' }), 100);
                   }
                 }}
               />
+            </div>
+            <div className="px-4 pb-4">
+              <Pagination {...categorySalesPage} />
             </div>
           </div>
 
@@ -679,7 +668,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -728,16 +717,16 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
                       <th className="py-3 px-3 font-medium w-8 text-center border-b border-cosmic-border"></th>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">News Letter Type</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">News Letter Count</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Δ</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In ($)</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Δ</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In USD</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -753,7 +742,7 @@ const Newsletter = () => {
                           <td className="py-2.5 px-4 text-right font-medium">
                             {item.countPct !== null && item.countPct !== undefined && item.prevCount > 0 ? (
                               <span className={item.countPct >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                {Math.abs(item.countPct).toFixed(1)}% {item.countPct >= 0 ? '↑' : '↓'}
+                                {Math.abs(item.countPct).toFixed(1)}% {item.countPct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}
                               </span>
                             ) : '-'}
                           </td>
@@ -761,7 +750,7 @@ const Newsletter = () => {
                           <td className="py-2.5 px-4 text-right font-medium">
                             {item.revPct !== null && item.revPct !== undefined && item.prevRevenue > 0 ? (
                               <span className={item.revPct >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                {Math.abs(item.revPct).toFixed(1)}% {item.revPct >= 0 ? '↑' : '↓'}
+                                {Math.abs(item.revPct).toFixed(1)}% {item.revPct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}
                               </span>
                             ) : '-'}
                           </td>
@@ -779,7 +768,7 @@ const Newsletter = () => {
                            const totalPrevCount = typesCompared.reduce((acc, curr) => acc + curr.prevCount, 0);
                            if (totalPrevCount === 0) return '-';
                            const pct = ((totalCount - totalPrevCount) / totalPrevCount) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
+                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}</span>;
                         })()}
                       </td>
                       <td className="py-4 px-4 text-right">${typesCompared.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -789,7 +778,7 @@ const Newsletter = () => {
                            const totalPrevRev = typesCompared.reduce((acc, curr) => acc + curr.prevRevenue, 0);
                            if (totalPrevRev === 0) return '-';
                            const pct = ((totalRev - totalPrevRev) / totalPrevRev) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
+                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}</span>;
                         })()}
                       </td>
                     </tr>
@@ -808,7 +797,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -850,7 +839,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -892,7 +881,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -968,7 +957,7 @@ const Newsletter = () => {
               <div className="flex-1 flex justify-end"></div>
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="overflow-y-auto overflow-x-auto max-h-[350px] w-full">
+              <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
@@ -976,10 +965,10 @@ const Newsletter = () => {
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">Event Name</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Prev Count</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Current Count</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Δ</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Prev Revenue ($)</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Current Revenue ($)</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Δ</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -993,7 +982,7 @@ const Newsletter = () => {
                           {item.countPct !== null ? (
                             <span className={`flex items-center justify-end ${item.countPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                               {Math.abs(item.countPct).toFixed(1)}%
-                              {item.countPct >= 0 ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>}
+                              {item.countPct >= 0 ? <span className="ml-1">Ã¢â€ â€˜</span> : <span className="ml-1">Ã¢â€ â€œ</span>}
                             </span>
                           ) : '-'}
                         </td>
@@ -1003,7 +992,7 @@ const Newsletter = () => {
                           {item.revPct !== null ? (
                             <span className={`flex items-center justify-end ${item.revPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                               {Math.abs(item.revPct).toFixed(1)}%
-                              {item.revPct >= 0 ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>}
+                              {item.revPct >= 0 ? <span className="ml-1">Ã¢â€ â€˜</span> : <span className="ml-1">Ã¢â€ â€œ</span>}
                             </span>
                           ) : '-'}
                         </td>
@@ -1021,10 +1010,10 @@ const Newsletter = () => {
             <ExportReportsCard
               data={{
                 newsletterKpiCards: [
-                  { title: 'Western Newsletter (NLW)', value: `$${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
-                  { title: 'Targeted Mailers (OML)', value: `$${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
-                  { title: 'India Newsletter (NLI)', value: `$${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
-                  { title: 'Overall Newsletter Sales', value: `$${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
+                  { title: 'Western Newsletter (NLW)', value: `${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
+                  { title: 'Targeted Mailers (OML)', value: `${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
+                  { title: 'India Newsletter (NLI)', value: `${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
+                  { title: 'Overall Newsletter Sales', value: `${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
                 ],
                 categorySales,
                 dateWisePerformance,

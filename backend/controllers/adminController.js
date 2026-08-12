@@ -192,20 +192,11 @@ export const exportCollection = async (req, res) => {
           return true;
         });
       } else if (collection === 'kpis') {
-        if (duration === 'daily') data = data.slice(0, 1);
-        else if (duration === 'weekly') data = data.slice(0, 2);
-        else if (duration === 'monthly') data = data.slice(0, 4);
-        else if (duration === 'quarterly') data = data.slice(0, 6);
+        // No slicing needed
       } else if (collection === 'targets') {
-        if (duration === 'daily') data = data.slice(0, 1);
-        else if (duration === 'weekly') data = data.slice(0, 2);
-        else if (duration === 'monthly') data = data.slice(0, 4);
-        else if (duration === 'quarterly') data = data.slice(0, 6);
+        // No slicing needed
       } else if (collection === 'schedules') {
-        if (duration === 'daily') data = data.slice(0, 1);
-        else if (duration === 'weekly') data = data.slice(0, 2);
-        else if (duration === 'monthly') data = data.slice(0, 3);
-        else if (duration === 'quarterly') data = data.slice(0, 5);
+        // No slicing needed
       }
     }
 
@@ -585,16 +576,16 @@ export const generateAIInsights = async (req, res) => {
       period: period,
       executive: execData ? {
         kpi: execData.kpi,
-        topProducts: execData.topProductsMonth?.slice(0, 5)
+        topProducts: execData.topProductsMonth
       } : null,
       sales: salesData ? {
         kpi: salesData.salesKpiData,
-        bestSellers: salesData.bestSellers?.slice(0, 5),
-        lowPerformers: salesData.lowPerformers?.slice(0, 5)
+        bestSellers: salesData.bestSellers,
+        lowPerformers: salesData.lowPerformers
       } : null,
       marketing: marketingData ? {
         kpi: marketingData.kpiData,
-        topCampaigns: marketingData.campaigns?.slice(0, 3)
+        topCampaigns: marketingData.campaigns
       } : null,
       newsletter: newsletterData ? {
         kpi: newsletterData.kpiData
@@ -1072,7 +1063,7 @@ const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
           }
         } else if (Array.isArray(val) && val.length > 0) {
           // Handle Arrays (like topProducts, categories, channels, keywords, etc.)
-          const dataRows = val.slice(0, 15).map(item => {
+          const dataRows = val.map(item => {
             if (typeof item !== 'object') return { Metric: item, Value: '' };
 
             // Explicit override for Recent Orders
@@ -1142,7 +1133,7 @@ const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
 const generateChartImage = async (dashboardName, title, data) => {
   if (!data || data.length === 0) return null;
 
-  const topData = data.slice(0, 10);
+  const topData = data;
   const labels = topData.map(d => (d.Metric || 'Unknown').toString().substring(0, 30));
   const values = topData.map(d => Number(d.Value) || 0);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Chart } from "react-google-charts";
 import EChartWrapper from '../../charts/EChartWrapper';
 import { DollarSign, ShoppingBag, TrendingDown, AlertCircle } from 'lucide-react';
@@ -6,7 +6,7 @@ import ExportReportsCard from '../../components/ExportReportsCard';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 
-const MonthlySales = ({
+const MonthlySales = ({ eventSalesChartPage, 
   data,
   showRevenue,
   geoData,
@@ -72,7 +72,7 @@ const MonthlySales = ({
             <div key={index} className={`bg-cosmic-card border ${index === 3 ? 'border-2' : ''} border-cosmic-border rounded-xl ${index === 3 ? 'shadow-md' : 'shadow-sm'} p-5 flex flex-col items-center justify-center`}>
               <span className={`${index === 3 ? 'text-xs' : 'text-[13px]'} font-medium text-slate-500 dark:text-slate-400 mb-2`}>{card.title}</span>
               <span className={`text-[32px] ${index === 3 ? 'font-medium' : 'font-normal'} tracking-tight text-slate-900 dark:text-white mb-2`}>
-                {showRevenue ? card.value : '🔒'}
+                {showRevenue ? card.value : 'ðŸ”’'}
               </span>
               <span className={`text-[10px] font-medium flex items-center ${card.badgeColor}`}>
                 {card.change}
@@ -97,7 +97,7 @@ const MonthlySales = ({
             <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
           </div>
           <div className="overflow-x-auto flex-1">
-            <div className="overflow-auto w-full max-h-[400px]">
+            <div className="overflow-auto w-full ">
               <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
@@ -117,7 +117,7 @@ const MonthlySales = ({
                         <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
                         <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `$${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
                         </td>
                       </tr>
                     ))
@@ -144,14 +144,14 @@ const MonthlySales = ({
             <h4 className="text-cosmic-text font-semibold text-sm">Total Sales By Event Name</h4>
           </div>
           <div className="overflow-x-auto flex-1">
-            <div className="overflow-auto w-full max-h-[320px]">
+            <div className="overflow-auto w-full ">
               <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
                     <th className="py-2 px-3 font-medium">Event Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue ▾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue â–¾</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -162,7 +162,7 @@ const MonthlySales = ({
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right font-mono text-cosmic-muted">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-text font-medium">
-                          {showRevenue ? `$${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
                         </td>
                       </tr>
                     ))
@@ -215,7 +215,7 @@ const MonthlySales = ({
               </div>
             ) : (
               <div className="h-40 flex flex-col items-center justify-center text-[10px] text-cosmic-muted font-bold">
-                <span>🔒 Currency share restricted</span>
+                <span>ðŸ”’ Currency share restricted</span>
               </div>
             )}
           </div>
@@ -234,10 +234,13 @@ const MonthlySales = ({
       <div className="w-full mt-6 mb-6">
         <div className="bg-cosmic-card border border-cosmic-border p-6 rounded-2xl flex flex-col shadow-lg ring-1 ring-[#6868f9]/20">
           {showRevenue ? (
-            <EChartWrapper option={categoryOption} height="400px" />
+            <>
+              <EChartWrapper option={categoryOption} height="400px" />
+              <div className="mt-4"><Pagination {...eventSalesChartPage} /></div>
+            </>
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
+              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
               <span>Your role profile does not have permission to view event revenue share.</span>
             </div>
           )}
@@ -251,14 +254,14 @@ const MonthlySales = ({
             <h4 className="font-semibold text-sm">Revenue as per Specials Store Items</h4>
           </div>
           <div className="overflow-x-auto flex-1">
-            <div className="overflow-auto w-full max-h-[280px]">
+            <div className="overflow-auto w-full ">
               <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
-                    <th className="py-2 px-3 font-medium">Store Item Name ⓘ ▾</th>
+                    <th className="py-2 px-3 font-medium">Store Item Name â“˜ â–¾</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue ⓘ ▾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue â“˜ â–¾</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -269,7 +272,7 @@ const MonthlySales = ({
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `$${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
                         </td>
                       </tr>
                     ))
@@ -296,7 +299,7 @@ const MonthlySales = ({
               <EChartWrapper option={countryOption} height="280px" />
             ) : (
               <div className="h-[280px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-                <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
+                <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
                 <span>Your role profile does not have permission to view country revenue.</span>
               </div>
             )}
@@ -314,7 +317,7 @@ const MonthlySales = ({
               </h4>
               <div className="overflow-x-auto">
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
+                  <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                         <th className="py-2 px-3 w-16">Code</th>
@@ -332,7 +335,7 @@ const MonthlySales = ({
                           <td className="py-2.5 px-3 text-cosmic-muted">{prod.category}</td>
                           <td className="py-2.5 px-3 text-right font-medium">{prod.sales}</td>
                           <td className="py-2.5 px-3 text-right font-bold text-cosmic-success">
-                            {showRevenue ? `$${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒 Restricted'}
+                            {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’ Restricted'}
                           </td>
                         </tr>
                       ))}
@@ -351,7 +354,7 @@ const MonthlySales = ({
               </h4>
               <div className="overflow-x-auto">
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left text-xs border-collapse whitespace-nowrap">
+                  <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-cosmic-border text-cosmic-muted font-medium">
                         <th className="py-2 px-3 w-16">Code</th>
@@ -369,7 +372,7 @@ const MonthlySales = ({
                           <td className="py-2.5 px-3 text-cosmic-muted">{prod.category}</td>
                           <td className="py-2.5 px-3 text-right font-medium">{prod.sales}</td>
                           <td className="py-2.5 px-3 text-right font-bold text-cosmic-danger">
-                            {showRevenue ? `$${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒 Restricted'}
+                            {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’ Restricted'}
                           </td>
                         </tr>
                       ))}

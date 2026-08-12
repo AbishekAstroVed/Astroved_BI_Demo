@@ -389,7 +389,7 @@ const MonthlyCustomers = () => {
                   <h4 className="font-semibold text-sm">New Customers By Event Name</h4>
                 </div>
                 <div className="overflow-hidden">
-                  <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                  <div className="overflow-x-auto w-full">
                     <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                       <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                         <tr>
@@ -421,7 +421,7 @@ const MonthlyCustomers = () => {
                   <h4 className="font-semibold text-sm">New Customers By Product Name</h4>
                 </div>
                 <div className="overflow-hidden">
-                  <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                  <div className="overflow-x-auto w-full">
                     <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                       <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                         <tr>
@@ -467,7 +467,7 @@ const MonthlyCustomers = () => {
                 <h4 className="font-semibold text-sm">New Customers Sorted By High Contribution</h4>
               </div>
               <div className="overflow-hidden flex-1">
-                <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                <div className="overflow-x-auto w-full">
                   <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                     <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                       <tr>
@@ -506,7 +506,7 @@ const MonthlyCustomers = () => {
                 <h4 className="font-semibold text-sm">New Customers By Traffic Sources</h4>
               </div>
               <div className="overflow-hidden">
-                <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                <div className="overflow-x-auto w-full">
                   <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                     <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                       <tr>
@@ -561,7 +561,7 @@ const MonthlyCustomers = () => {
                   <h4 className="font-semibold text-sm">Projection By Traffic Category</h4>
                 </div>
                 <div className="overflow-hidden flex-1">
-                  <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                  <div className="overflow-x-auto w-full">
                     <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                       <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                         <tr>
@@ -604,7 +604,7 @@ const MonthlyCustomers = () => {
                   <h4 className="font-semibold text-sm">Revenue By Traffic Sources</h4>
                 </div>
                 <div className="overflow-hidden flex-1">
-                  <div className="overflow-y-auto overflow-x-auto max-h-[300px] w-full">
+                  <div className="overflow-x-auto w-full">
                     <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                       <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                         <tr>

@@ -329,7 +329,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       }
 
       if (dateWisePerformance.length > 0) {
-        csv += "Date Wise Newsletter Performance\nNews Letter Sent Date,NewsLetter Name,Net Revenue In ($)\n";
+        csv += "Date Wise Newsletter Performance\nNews Letter Sent Date,NewsLetter Name,Net Revenue In USD\n";
         dateWisePerformance.forEach(item => {
           csv += `"${item.date || ''}","${item.name || ''}",${item.revenue || 0}\n`;
         });
@@ -353,7 +353,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       }
 
       if (typesCompared.length > 0) {
-        csv += "Types Of NewsLetter Compared With Last Month\nNews Letter Type,News Letter Count,% Δ,Net Revenue In ($),% Δ\n";
+        csv += "Types Of NewsLetter Compared With Last Month\nNews Letter Type,News Letter Count,% Δ,Net Revenue In USD,% Δ\n";
         typesCompared.forEach(item => {
           csv += `"${item.type || ''}",${item.count || 0},"${item.countPct !== null && item.countPct !== undefined ? item.countPct + '%' : '-'}",${item.revenue || 0},"${item.revPct !== null && item.revPct !== undefined ? item.revPct + '%' : '-'}"\n`;
         });
@@ -635,7 +635,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       if (dateWisePerformance.length > 0) {
         summaryRows.push(
           ["Date Wise Newsletter Performance"],
-          ["News Letter Sent Date", "NewsLetter Name", "Net Revenue In ($)"],
+          ["News Letter Sent Date", "NewsLetter Name", "Net Revenue In USD"],
           ...dateWisePerformance.map(item => [item.date || '', item.name || '', item.revenue || 0]),
           []
         );
@@ -662,7 +662,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       if (typesCompared.length > 0) {
         summaryRows.push(
           ["Types Of NewsLetter Compared With Last Month"],
-          ["News Letter Type", "News Letter Count", "% Δ", "Net Revenue In ($)", "% Δ"],
+          ["News Letter Type", "News Letter Count", "% Δ", "Net Revenue In USD", "% Δ"],
           ...typesCompared.map(item => [item.type || '', item.count || 0, item.countPct !== null && item.countPct !== undefined ? item.countPct + '%' : '-', item.revenue || 0, item.revPct !== null && item.revPct !== undefined ? item.revPct + '%' : '-']),
           []
         );
@@ -974,7 +974,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Customer Name</th><th>Email</th><th>Country</th><th>Orders</th><th>Total Revenue ($)</th></tr>
               </thead>
               <tbody>
-                ${highContributors.map(c => `<tr><td>${c.customerName || c.name || ''}</td><td>${c.email || ''}</td><td>${c.country || ''}</td><td>${c.orders || 0}</td><td class="badge-green">$${(c.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${highContributors.map(c => `<tr><td>${c.customerName || c.name || ''}</td><td>${c.email || ''}</td><td>${c.country || ''}</td><td>${c.orders || 0}</td><td class="badge-green">${(c.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -986,7 +986,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Event Name</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
               </thead>
               <tbody>
-                ${newCustomersByEvent.map(e => `<tr><td>${e.eventName || e.name || ''}</td><td>${e.customers || e.qty || 0}</td><td>${e.countChange || '-'}</td><td class="badge-green">$${(e.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${e.revChange || '-'}</td></tr>`).join('')}
+                ${newCustomersByEvent.map(e => `<tr><td>${e.eventName || e.name || ''}</td><td>${e.customers || e.qty || 0}</td><td>${e.countChange || '-'}</td><td class="badge-green">${(e.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${e.revChange || '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -998,7 +998,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Product Name</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
               </thead>
               <tbody>
-                ${newCustomersByProduct.map(p => `<tr><td>${p.productName || p.name || ''}</td><td>${p.customers || p.qty || 0}</td><td>${p.countChange || '-'}</td><td class="badge-green">$${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${p.revChange || '-'}</td></tr>`).join('')}
+                ${newCustomersByProduct.map(p => `<tr><td>${p.productName || p.name || ''}</td><td>${p.customers || p.qty || 0}</td><td>${p.countChange || '-'}</td><td class="badge-green">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${p.revChange || '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1010,7 +1010,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Traffic Source</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
               </thead>
               <tbody>
-                ${newCustomersByTraffic.map(t => `<tr><td>${t.source || ''}</td><td>${t.customers || t.qty || 0}</td><td>${t.countChange || '-'}</td><td class="badge-green">$${(t.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${t.revChange || '-'}</td></tr>`).join('')}
+                ${newCustomersByTraffic.map(t => `<tr><td>${t.source || ''}</td><td>${t.customers || t.qty || 0}</td><td>${t.countChange || '-'}</td><td class="badge-green">${(t.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${t.revChange || '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1022,7 +1022,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Traffic Source</th><th>Quantity</th><th>Qty Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
               </thead>
               <tbody>
-                ${revenueByTrafficSource.map(r => `<tr><td>${r.source || ''}</td><td>${r.qty || 0}</td><td>${r.qtyChange || '-'}</td><td class="badge-green">$${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
+                ${revenueByTrafficSource.map(r => `<tr><td>${r.source || ''}</td><td>${r.qty || 0}</td><td>${r.qtyChange || '-'}</td><td class="badge-green">${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1106,7 +1106,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                 <tr><th>Traffic Group</th><th>Expected</th><th>Projected</th><th>Proj Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
               </thead>
               <tbody>
-                ${comparisonOfRevenueBySource.map(r => `<tr><td>${r.group}</td><td>${r.expected || 0}</td><td>${r.projected || 0}</td><td>${r.projChange || '-'}</td><td class="badge-green">$${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
+                ${comparisonOfRevenueBySource.map(r => `<tr><td>${r.group}</td><td>${r.expected || 0}</td><td>${r.projected || 0}</td><td>${r.projChange || '-'}</td><td class="badge-green">${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1175,7 +1175,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
                       <text x="170" y="${yPos + 14}" text-anchor="end" fill="#334155" font-size="11" font-weight="600" font-family="Segoe UI, sans-serif">${truncatedName}</text>
                       <rect x="180" y="${yPos}" width="320" height="20" rx="4" fill="#f1f5f9" />
                       <rect x="180" y="${yPos}" width="${barW}" height="20" rx="4" fill="url(#barGrad)" />
-                      <text x="${188 + barW}" y="${yPos + 14}" fill="#16a34a" font-size="11" font-weight="bold" font-family="Segoe UI, sans-serif">$${rev.toLocaleString()} (${share}%)</text>
+                      <text x="${188 + barW}" y="${yPos + 14}" fill="#16a34a" font-size="11" font-weight="bold" font-family="Segoe UI, sans-serif">${rev.toLocaleString()} (${share}%)</text>
                     </g>
                   `;
                 }).join('')}
@@ -1188,7 +1188,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>Product Name</th><th>Source</th><th>Revenue</th></tr></thead>
               <tbody>
-                ${revSource.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.source || ''}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${revSource.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.source || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1198,7 +1198,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>Product Name</th><th>Orders</th><th>Revenue</th></tr></thead>
               <tbody>
-                ${salesByEvent.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${salesByEvent.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1208,7 +1208,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Item Name</th><th>Quantity Sold</th><th>Total Revenue</th></tr></thead>
               <tbody>
-                ${data.specialsStoreItems.map(item => `<tr><td>${item.name || item.eventName || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${data.specialsStoreItems.map(item => `<tr><td>${item.name || item.eventName || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1219,7 +1219,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Code</th><th>Product Name</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
               <tbody>
-                ${bestSellers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || 0}</td><td class="badge-green">$${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${bestSellers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || 0}</td><td class="badge-green">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1229,7 +1229,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Code</th><th>Product Name</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
               <tbody>
-                ${lowPerformers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || p.orders || 0}</td><td class="badge-red">$${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${lowPerformers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || p.orders || 0}</td><td class="badge-red">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1320,7 +1320,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>NetRevenue ($)</th></tr></thead>
               <tbody>
-                ${categorySales.map(item => `<tr><td>${item.name || ''}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${categorySales.map(item => `<tr><td>${item.name || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1328,9 +1328,9 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
           ${dateWisePerformance.length > 0 ? `
             <h2>Date Wise Newsletter Performance</h2>
             <table>
-              <thead><tr><th>News Letter Sent Date</th><th>NewsLetter Name</th><th>Net Revenue In ($)</th></tr></thead>
+              <thead><tr><th>News Letter Sent Date</th><th>NewsLetter Name</th><th>Net Revenue In USD</th></tr></thead>
               <tbody>
-                ${dateWisePerformance.map(item => `<tr><td>${item.date || ''}</td><td>${item.name || ''}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${dateWisePerformance.map(item => `<tr><td>${item.date || ''}</td><td>${item.name || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1350,7 +1350,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>NewsLetter Type</th><th>NewsLetter Count</th><th>Net Revenue IN ($)</th></tr></thead>
               <tbody>
-                ${breakupSummary.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${breakupSummary.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1358,9 +1358,9 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
           ${typesCompared.length > 0 ? `
             <h2>Types Of NewsLetter Compared With Last Month</h2>
             <table>
-              <thead><tr><th>News Letter Type</th><th>News Letter Count</th><th>% Δ</th><th>Net Revenue In ($)</th><th>% Δ</th></tr></thead>
+              <thead><tr><th>News Letter Type</th><th>News Letter Count</th><th>% Δ</th><th>Net Revenue In USD</th><th>% Δ</th></tr></thead>
               <tbody>
-                ${typesCompared.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td>${item.countPct !== null && item.countPct !== undefined ? item.countPct + '%' : '-'}</td><td class="badge-green">$${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${item.revPct !== null && item.revPct !== undefined ? item.revPct + '%' : '-'}</td></tr>`).join('')}
+                ${typesCompared.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td>${item.countPct !== null && item.countPct !== undefined ? item.countPct + '%' : '-'}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${item.revPct !== null && item.revPct !== undefined ? item.revPct + '%' : '-'}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1370,7 +1370,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>NLW</th><th>NLI</th><th>OML</th></tr></thead>
               <tbody>
-                ${overallEventsData.map(item => `<tr><td>${item.name || ''}</td><td>$${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>$${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>$${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${overallEventsData.map(item => `<tr><td>${item.name || ''}</td><td>${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}
@@ -1380,7 +1380,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
             <table>
               <thead><tr><th>Event Name</th><th>NLW</th><th>NLI</th><th>OML</th></tr></thead>
               <tbody>
-                ${specialEventsData.map(item => `<tr><td>${item.name || ''}</td><td>$${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>$${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>$${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+                ${specialEventsData.map(item => `<tr><td>${item.name || ''}</td><td>${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
               </tbody>
             </table>
           ` : ''}

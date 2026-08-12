@@ -394,7 +394,7 @@ const UserManagementTab = ({ crud }) => {
                       </button>
                     </div>
                     <form onSubmit={handleAddUser} className="p-5 space-y-4 text-left">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs text-cosmic-muted mb-1">Full Name *</label>
                           <input required type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="w-full bg-cosmic-bg border border-cosmic-border rounded-lg px-3 py-2 text-sm text-cosmic-text focus:border-indigo-500 focus:outline-none" placeholder="John Doe" />

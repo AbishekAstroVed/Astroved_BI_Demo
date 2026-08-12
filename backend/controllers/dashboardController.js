@@ -172,7 +172,7 @@ export const getExecutiveDashboard = async (req, res) => {
           DECLARE @lastMonthYear INT = CASE WHEN @thisMonth = 1 THEN @thisYear - 1 ELSE @thisYear END;
           DECLARE @lastYear INT = @thisYear - 1;
 
-          -- We need enough data in #TempBaseOrders to support YTD and Last YTD calculations.
+          -- We need enough data in TempBaseOrders to support YTD and Last YTD calculations.
           -- So the base data must start at least on Jan 1st of @lastYear, or earlier if @startDate is earlier.
           DECLARE @minRequiredDate DATE = DATEFROMPARTS(@lastYear, 1, 1);
           DECLARE @baseDataStart DATE = CASE 
@@ -180,8 +180,11 @@ export const getExecutiveDashboard = async (req, res) => {
               ELSE @minRequiredDate
           END;
 
-          IF OBJECT_ID('tempdb..#TempBaseOrders') IS NOT NULL DROP TABLE #TempBaseOrders;
-          SELECT 
+          
+
+          -- 0. KPI Query
+          ;WITH TempBaseOrders AS (
+SELECT 
               GP.OrderDate,
               PA.OrderId,
               PA.ContactId,
@@ -202,7 +205,7 @@ export const getExecutiveDashboard = async (req, res) => {
                           MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
                       2) AS DECIMAL(18, 2))      
               END, 0)) AS NetRevenue
-          INTO #TempBaseOrders
+          
           FROM Payment AS PA WITH (NOLOCK)         
           INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
           INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
@@ -243,10 +246,9 @@ export const getExecutiveDashboard = async (req, res) => {
           AND TestAccounts.CustomerId IS NULL                
           AND SL.ShopId = 1
           AND GP.OrderDate >= @baseDataStart
-          AND GP.OrderDate <= @today;
-
-          -- 0. KPI Query
-          SELECT 
+          AND GP.OrderDate <= @today
+)
+SELECT 
               COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @today THEN NetRevenue ELSE 0 END), 0) AS dailyRevenue,
               COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN NetRevenue ELSE 0 END), 0) AS yesterdayRevenue,
               COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) AS mtdRevenue,
@@ -259,53 +261,443 @@ export const getExecutiveDashboard = async (req, res) => {
               COUNT(DISTINCT CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN ContactId END) AS yesterdayCustomers,
               COUNT(DISTINCT CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN ContactId END) AS mtdCustomers,
               COUNT(DISTINCT CASE WHEN MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear AND DAY(OrderDate) <= DAY(@today) THEN ContactId END) AS lastMtdCustomers
-          FROM #TempBaseOrders;
+          FROM TempBaseOrders;
 
           -- 1. This Week Trend
-          SELECT 
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT 
               CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date,
               SUM(NetRevenue) AS revenue,
               COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          FROM TempBaseOrders
           WHERE CAST(OrderDate AS DATE) >= DATEADD(day, -6, @today)
           GROUP BY CAST(OrderDate AS DATE)
           ORDER BY CAST(OrderDate AS DATE);
 
           -- 2. This Month Trend
-          SELECT 
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT 
               CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date,
               SUM(NetRevenue) AS revenue,
               COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          FROM TempBaseOrders
           WHERE MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear
           GROUP BY CAST(OrderDate AS DATE)
           ORDER BY CAST(OrderDate AS DATE);
 
           -- 3. This Year Trend
-          SELECT 
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT 
               DATENAME(month, OrderDate) + ' ' + CAST(YEAR(OrderDate) AS VARCHAR) AS date,
               SUM(NetRevenue) AS revenue,
               COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          FROM TempBaseOrders
           WHERE YEAR(OrderDate) = @thisYear
           GROUP BY DATENAME(month, OrderDate), MONTH(OrderDate), YEAR(OrderDate)
           ORDER BY YEAR(OrderDate), MONTH(OrderDate);
 
           -- 3a. Last Week Trend
-          SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
+          FROM TempBaseOrders
           WHERE CAST(OrderDate AS DATE) >= DATEADD(day, -13, @today) AND CAST(OrderDate AS DATE) < DATEADD(day, -6, @today)
           GROUP BY CAST(OrderDate AS DATE) ORDER BY CAST(OrderDate AS DATE);
 
           -- 3b. Last Month Trend
-          SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
+          FROM TempBaseOrders
           WHERE MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear
           GROUP BY CAST(OrderDate AS DATE) ORDER BY CAST(OrderDate AS DATE);
 
           -- 3c. Last Year Trend
-          SELECT DATENAME(month, OrderDate) + ' ' + CAST(YEAR(OrderDate) AS VARCHAR) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
-          FROM #TempBaseOrders
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT DATENAME(month, OrderDate) + ' ' + CAST(YEAR(OrderDate) AS VARCHAR) AS date, SUM(NetRevenue) AS revenue, COUNT(DISTINCT OrderId) AS orders
+          FROM TempBaseOrders
           WHERE YEAR(OrderDate) = @lastYear
           GROUP BY DATENAME(month, OrderDate), MONTH(OrderDate), YEAR(OrderDate) ORDER BY YEAR(OrderDate), MONTH(OrderDate);
 
@@ -313,8 +705,73 @@ export const getExecutiveDashboard = async (req, res) => {
           -- The Frontend will display empty states or mock data until the DB indexes are optimized.
 
           -- 6. Recent Orders (Week)
-          SELECT TOP 50 B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
-          FROM #TempBaseOrders B
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
+          FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
           LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
@@ -323,8 +780,73 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY B.OrderDate DESC;
 
           -- 7. Recent Orders (Month)
-          SELECT TOP 50 B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
-          FROM #TempBaseOrders B
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
+          FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
           LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
@@ -333,8 +855,73 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY B.OrderDate DESC;
 
           -- 8. Recent Orders (Year)
-          SELECT TOP 50 B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
-          FROM #TempBaseOrders B
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
+          FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
           LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
@@ -343,8 +930,73 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY B.OrderDate DESC;
 
           -- 9. Recent Orders (Day)
-          SELECT TOP 50 B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
-          FROM #TempBaseOrders B
+          ;WITH TempBaseOrders AS (
+SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND Gp.Code <> '9999999999'        
+          AND TestAccounts.CustomerId IS NULL                
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND GP.OrderDate <= @today
+)
+SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '') as customer, SUM(B.NetRevenue) as amount, OS.StatusName as status, B.OrderDate as time
+          FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
           LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
@@ -352,7 +1004,7 @@ export const getExecutiveDashboard = async (req, res) => {
           GROUP BY B.OrderId, C.CustomerId, C.FirstName, C.LastName, OS.StatusName, B.OrderDate
           ORDER BY B.OrderDate DESC;
 
-          DROP TABLE #TempBaseOrders;
+          
         `);
         mssqlKpiData = result.recordsets[0] ? result.recordsets[0][0] : null;
         mssqlTrendWeek = result.recordsets[1] || [];
@@ -443,8 +1095,11 @@ export const getExecutiveDashboard = async (req, res) => {
 
 
 
-          IF OBJECT_ID('tempdb..#TempAccurateProducts') IS NOT NULL DROP TABLE #TempAccurateProducts;
-          SELECT 
+          
+
+          -- 0. Top Products (Week)
+          ;WITH TempAccurateProducts AS (
+SELECT 
               GP.OrderDate,
               ORD.OrderId,
               PAT.Name AS ProductName,
@@ -462,7 +1117,7 @@ export const getExecutiveDashboard = async (req, res) => {
                           MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
                       2) AS DECIMAL(18, 2))      
               END, 0)) AS NetRevenue
-          INTO #TempAccurateProducts
+          
           FROM Payment AS PA WITH (NOLOCK)         
           INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
           INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
@@ -502,25 +1157,146 @@ export const getExecutiveDashboard = async (req, res) => {
             AND Gp.Code <> '9999999999'        
             AND TestAccounts.CustomerId IS NULL                
             AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
-            AND GP.OrderDate <= @today;
-
-          -- 0. Top Products (Week)
-          SELECT TOP 50 ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
-          FROM #TempAccurateProducts
+            AND GP.OrderDate <= @today
+)
+SELECT ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
+          FROM TempAccurateProducts
           WHERE ProductName IS NOT NULL AND ProductName != ''
             AND CAST(OrderDate AS DATE) >= DATEADD(day, -6, @today)
           GROUP BY ProductName ORDER BY revenue DESC;
 
           -- 1. Top Products (Month)
-          SELECT TOP 50 ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
-          FROM #TempAccurateProducts
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
+          FROM TempAccurateProducts
           WHERE ProductName IS NOT NULL AND ProductName != ''
             AND MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear
           GROUP BY ProductName ORDER BY revenue DESC;
 
           -- 2. Top Products (Year)
-          SELECT TOP 50 ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
-          FROM #TempAccurateProducts
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
+          FROM TempAccurateProducts
           WHERE ProductName IS NOT NULL AND ProductName != ''
             AND YEAR(OrderDate) = @thisYear
           GROUP BY ProductName ORDER BY revenue DESC;
@@ -528,7 +1304,68 @@ export const getExecutiveDashboard = async (req, res) => {
 
 
           -- 6. Categories (Week)
-          SELECT 
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT 
             CASE 
               WHEN PAT.ProductName LIKE '%Puja%' OR PAT.ProductName LIKE '%Pooja%' OR PAT.ProductName LIKE '%Homa%' OR PAT.ProductName LIKE '%Abishekam%' THEN 'Puja Services'
               WHEN PAT.ProductName LIKE '%Gem%' OR PAT.ProductName LIKE '%Ring%' OR PAT.ProductName LIKE '%Pendant%' OR PAT.ProductName LIKE '%Yantra%' THEN 'Products & Gemstones'
@@ -536,7 +1373,7 @@ export const getExecutiveDashboard = async (req, res) => {
               ELSE 'Other Services'
             END as name, 
             SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts PAT
+          FROM TempAccurateProducts PAT
           WHERE CAST(OrderDate AS DATE) >= DATEADD(day, -6, @today)
           GROUP BY 
             CASE 
@@ -548,7 +1385,68 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY raw DESC;
 
           -- 7. Categories (Month)
-          SELECT 
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT 
             CASE 
               WHEN PAT.ProductName LIKE '%Puja%' OR PAT.ProductName LIKE '%Pooja%' OR PAT.ProductName LIKE '%Homa%' OR PAT.ProductName LIKE '%Abishekam%' THEN 'Puja Services'
               WHEN PAT.ProductName LIKE '%Gem%' OR PAT.ProductName LIKE '%Ring%' OR PAT.ProductName LIKE '%Pendant%' OR PAT.ProductName LIKE '%Yantra%' THEN 'Products & Gemstones'
@@ -556,7 +1454,7 @@ export const getExecutiveDashboard = async (req, res) => {
               ELSE 'Other Services'
             END as name, 
             SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts PAT
+          FROM TempAccurateProducts PAT
           WHERE MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear
           GROUP BY 
             CASE 
@@ -568,7 +1466,68 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY raw DESC;
 
           -- 8. Categories (Year)
-          SELECT 
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT 
             CASE 
               WHEN PAT.ProductName LIKE '%Puja%' OR PAT.ProductName LIKE '%Pooja%' OR PAT.ProductName LIKE '%Homa%' OR PAT.ProductName LIKE '%Abishekam%' THEN 'Puja Services'
               WHEN PAT.ProductName LIKE '%Gem%' OR PAT.ProductName LIKE '%Ring%' OR PAT.ProductName LIKE '%Pendant%' OR PAT.ProductName LIKE '%Yantra%' THEN 'Products & Gemstones'
@@ -576,7 +1535,7 @@ export const getExecutiveDashboard = async (req, res) => {
               ELSE 'Other Services'
             END as name, 
             SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts PAT
+          FROM TempAccurateProducts PAT
           WHERE YEAR(OrderDate) = @thisYear
           GROUP BY 
             CASE 
@@ -588,7 +1547,68 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY raw DESC;
 
           -- 9. Channels (Week)
-          SELECT ISNULL(NULLIF(CASE
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ISNULL(NULLIF(CASE
                 WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
                 WHEN (TS.TrackingCode LIKE '%mybrowser-search.com%' OR TS.TrackingCode LIKE '%duckduckgo.com%' OR TS.TrackingCode LIKE '%ecosia.org%' OR TS.TrackingCode LIKE '%yahoo%' OR TS.TrackingCode LIKE '%bing%' OR TS.TrackingCode LIKE '%google%' OR TS.TrackingCode LIKE '%int.search.tb.ask.com%') THEN 'Organic'
                 WHEN (TS.TrackingCode LIKE '%YT_AV%' OR TS.TrackingCode LIKE '%youtube%' OR TS.TrackingCode LIKE '%YTB_AV%' OR TS.TrackingCode LIKE '%YTB_AVT%' OR TS.TrackingCode LIKE '%YTB_%') THEN 'YouTube'
@@ -606,13 +1626,74 @@ export const getExecutiveDashboard = async (req, res) => {
                 WHEN (TS.TrackingCode LIKE '%avd%') THEN 'Empoyee Sales'
                 ELSE 'Direct/Unknown'
               END, ''), 'Unknown') as name, SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts T
+          FROM TempAccurateProducts T
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = T.OrderId
           WHERE CAST(T.OrderDate AS DATE) >= DATEADD(day, -6, @today)
           GROUP BY TS.TrackingCode ORDER BY raw DESC;
 
           -- 10. Channels (Month)
-          SELECT ISNULL(NULLIF(CASE
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ISNULL(NULLIF(CASE
                 WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
                 WHEN (TS.TrackingCode LIKE '%mybrowser-search.com%' OR TS.TrackingCode LIKE '%duckduckgo.com%' OR TS.TrackingCode LIKE '%ecosia.org%' OR TS.TrackingCode LIKE '%yahoo%' OR TS.TrackingCode LIKE '%bing%' OR TS.TrackingCode LIKE '%google%' OR TS.TrackingCode LIKE '%int.search.tb.ask.com%') THEN 'Organic'
                 WHEN (TS.TrackingCode LIKE '%YT_AV%' OR TS.TrackingCode LIKE '%youtube%' OR TS.TrackingCode LIKE '%YTB_AV%' OR TS.TrackingCode LIKE '%YTB_AVT%' OR TS.TrackingCode LIKE '%YTB_%') THEN 'YouTube'
@@ -630,13 +1711,74 @@ export const getExecutiveDashboard = async (req, res) => {
                 WHEN (TS.TrackingCode LIKE '%avd%') THEN 'Empoyee Sales'
                 ELSE 'Direct/Unknown'
               END, ''), 'Unknown') as name, SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts T
+          FROM TempAccurateProducts T
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = T.OrderId
           WHERE MONTH(T.OrderDate) = @thisMonth AND YEAR(T.OrderDate) = @thisYear
           GROUP BY TS.TrackingCode ORDER BY raw DESC;
 
           -- 11. Channels (Year)
-          SELECT ISNULL(NULLIF(CASE
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ISNULL(NULLIF(CASE
                 WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
                 WHEN (TS.TrackingCode LIKE '%mybrowser-search.com%' OR TS.TrackingCode LIKE '%duckduckgo.com%' OR TS.TrackingCode LIKE '%ecosia.org%' OR TS.TrackingCode LIKE '%yahoo%' OR TS.TrackingCode LIKE '%bing%' OR TS.TrackingCode LIKE '%google%' OR TS.TrackingCode LIKE '%int.search.tb.ask.com%') THEN 'Organic'
                 WHEN (TS.TrackingCode LIKE '%YT_AV%' OR TS.TrackingCode LIKE '%youtube%' OR TS.TrackingCode LIKE '%YTB_AV%' OR TS.TrackingCode LIKE '%YTB_AVT%' OR TS.TrackingCode LIKE '%YTB_%') THEN 'YouTube'
@@ -654,20 +1796,142 @@ export const getExecutiveDashboard = async (req, res) => {
                 WHEN (TS.TrackingCode LIKE '%avd%') THEN 'Empoyee Sales'
                 ELSE 'Direct/Unknown'
               END, ''), 'Unknown') as name, SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts T
+          FROM TempAccurateProducts T
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = T.OrderId
           WHERE YEAR(T.OrderDate) = @thisYear
           GROUP BY TS.TrackingCode ORDER BY raw DESC;
 
           -- 12. Top Products (Day)
-          SELECT TOP 50 ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
-          FROM #TempAccurateProducts
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ProductName as name, SUM(NetRevenue) as revenue, COUNT(DISTINCT OrderId) as orders
+          FROM TempAccurateProducts
           WHERE ProductName IS NOT NULL AND ProductName != ''
             AND CAST(OrderDate AS DATE) = @today
           GROUP BY ProductName ORDER BY revenue DESC;
 
           -- 13. Categories (Day)
-          SELECT 
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT 
             CASE 
               WHEN PAT.ProductName LIKE '%Puja%' OR PAT.ProductName LIKE '%Pooja%' OR PAT.ProductName LIKE '%Homa%' OR PAT.ProductName LIKE '%Abishekam%' THEN 'Puja Services'
               WHEN PAT.ProductName LIKE '%Gem%' OR PAT.ProductName LIKE '%Ring%' OR PAT.ProductName LIKE '%Pendant%' OR PAT.ProductName LIKE '%Yantra%' THEN 'Products & Gemstones'
@@ -675,7 +1939,7 @@ export const getExecutiveDashboard = async (req, res) => {
               ELSE 'Other Services'
             END as name, 
             SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts PAT
+          FROM TempAccurateProducts PAT
           WHERE CAST(OrderDate AS DATE) = @today
           GROUP BY 
             CASE 
@@ -687,7 +1951,68 @@ export const getExecutiveDashboard = async (req, res) => {
           ORDER BY raw DESC;
 
           -- 14. Channels (Day)
-          SELECT ISNULL(NULLIF(CASE
+          ;WITH TempAccurateProducts AS (
+SELECT 
+              GP.OrderDate,
+              ORD.OrderId,
+              PAT.Name AS ProductName,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) 
+              ON od.OrderId = pod.SelectedListId      
+              AND od.Currency = pod.Currency      
+              AND (      
+                  (od.SelectedItemId = pod.SelectedItemId)              
+                  OR (      
+                      od.SelectedItemId = 0       
+                      AND NOT EXISTS (      
+                          SELECT 1      
+                          FROM Vaaak.OrderDiscounts od2      
+                          WHERE od2.OrderId = pod.SelectedListId      
+                          AND od2.SelectedItemId > 0      
+                      )      
+                  )      
+              )      
+          LEFT JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+          LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              Where TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND SL.ShopId = 1
+            AND Gp.Code <> '9999999999'        
+            AND TestAccounts.CustomerId IS NULL                
+            AND GP.OrderDate >= ISNULL(@startDate, DATEFROMPARTS(@thisYear, 1, 1))
+            AND GP.OrderDate <= @today
+)
+SELECT ISNULL(NULLIF(CASE
                 WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
                 WHEN (TS.TrackingCode LIKE '%mybrowser-search.com%' OR TS.TrackingCode LIKE '%duckduckgo.com%' OR TS.TrackingCode LIKE '%ecosia.org%' OR TS.TrackingCode LIKE '%yahoo%' OR TS.TrackingCode LIKE '%bing%' OR TS.TrackingCode LIKE '%google%' OR TS.TrackingCode LIKE '%int.search.tb.ask.com%') THEN 'Organic'
                 WHEN (TS.TrackingCode LIKE '%YT_AV%' OR TS.TrackingCode LIKE '%youtube%' OR TS.TrackingCode LIKE '%YTB_AV%' OR TS.TrackingCode LIKE '%YTB_AVT%' OR TS.TrackingCode LIKE '%YTB_%') THEN 'YouTube'
@@ -705,12 +2030,12 @@ export const getExecutiveDashboard = async (req, res) => {
                 WHEN (TS.TrackingCode LIKE '%avd%') THEN 'Empoyee Sales'
                 ELSE 'Direct/Unknown'
               END, ''), 'Unknown') as name, SUM(NetRevenue) as raw
-          FROM #TempAccurateProducts T
+          FROM TempAccurateProducts T
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = T.OrderId
           WHERE CAST(T.OrderDate AS DATE) = @today
           GROUP BY TS.TrackingCode ORDER BY raw DESC;
 
-          DROP TABLE #TempAccurateProducts;
+          
         `);
 
         mssqlTopProductsWeek = advancedResult.recordsets[0].map((row, index) => ({ id: index + 1, name: row.name, revenue: row.revenue, orders: row.orders }));
@@ -1101,8 +2426,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
               )
-              SELECT TOP 5
-                'P' + RIGHT('000' + CAST(ProductId AS VARCHAR(10)), 3) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
+              SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
               FROM BaseData GROUP BY ProductId, ProductName HAVING SUM(NetRevenue) > 0 ORDER BY revenue DESC
             `);
             bestSellers = result.recordset.map(r => ({ id: r.id, name: r.name, category: r.category, revenue: r.revenue, sales: r.sales, status: r.status }));
@@ -1134,11 +2458,10 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
               )
-              SELECT TOP 5
-                'P' + RIGHT('000' + CAST(ProductId AS VARCHAR(10)), 3) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
+              SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
               FROM BaseData GROUP BY ProductId, ProductName HAVING SUM(NetRevenue) > 0 ORDER BY revenue ASC
             `);
-            lowPerformers = result.recordset.map((r, i) => ({ id: i + 1, name: r.name, category: r.category, revenue: r.revenue, orders: r.sales, status: r.status }));
+            lowPerformers = result.recordset.map(r => ({ id: r.id, name: r.name, category: r.category, revenue: r.revenue, orders: r.sales, status: r.status }));
           })(),
 
           // 4. Specials Store Items
@@ -1166,8 +2489,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
                 AND (PAT.Name LIKE '%Package%' OR PAT.Name LIKE '%Program%' OR PAT.Name LIKE '%Special%' OR PAT.Name LIKE '%Reading%')
               )
-              SELECT TOP 5
-                ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
+              SELECT ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
               FROM BaseData GROUP BY ProductName ORDER BY revenue DESC
             `);
             specialsStoreItems = result.recordset.map((r, idx) => ({ id: idx + 1, name: r.name, qty: r.qty, revenue: r.revenue || 0 }));
@@ -1197,8 +2519,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
               )
-              SELECT TOP 10 
-                ProductName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
+              SELECT ProductName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
               FROM BaseData GROUP BY ProductName ORDER BY revenue DESC
             `);
             eventSales = result.recordset.map((r, idx) => ({ id: idx + 1, name: r.name, qty: r.quantity, revenue: r.revenue || 0 }));
@@ -1249,8 +2570,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) = @targetDate
               )
-              SELECT TOP 10 
-                ProductName as event, TrafficCategory as source, SUM(NetRevenue) as revenue 
+              SELECT ProductName as event, TrafficCategory as source, SUM(NetRevenue) as revenue 
               FROM BaseData 
               GROUP BY ProductName, TrafficCategory ORDER BY revenue DESC
             `);
@@ -1349,19 +2669,13 @@ export const getMonthlySalesDashboard = async (req, res) => {
               DECLARE @prevRangeStart DATE = DATEADD(day, -DATEDIFF(day, @rangeStart, @rangeEnd) - 1, @rangeStart);
               DECLARE @prevRangeEnd DATE = DATEADD(day, -1, @rangeStart);
 
-              CREATE TABLE #BaseOrders (
-                OrderDate DATE,
-                Currency VARCHAR(10),
-                NetRevenue DECIMAL(18,2),
-                EventName NVARCHAR(255),
-                ProductName NVARCHAR(255),
-                ShopName NVARCHAR(255),
-                ProductId INT,
-                OrderId INT
-              );
+              
 
-              INSERT INTO #BaseOrders
-              SELECT 
+              
+
+              -- 1. KPI Data (Result Set 0)
+              ;WITH BaseOrders AS (
+SELECT 
                 CAST(GP.OrderDate AS DATE) as OrderDate, 
                 POD.Currency,
                 (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
@@ -1385,10 +2699,9 @@ export const getMonthlySalesDashboard = async (req, res) => {
               LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
-              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd) OPTION (RECOMPILE);
-
-              -- 1. KPI Data (Result Set 0)
-              SELECT 
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 
                 COALESCE(SUM(CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END), 0) AS currentRevenue,
                 COALESCE(SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN NetRevenue ELSE 0 END), 0) AS previousRevenue,
                 COUNT(DISTINCT CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN OrderDate END) AS currentOrders,
@@ -1399,45 +2712,177 @@ export const getMonthlySalesDashboard = async (req, res) => {
                 COALESCE(SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN (CASE WHEN Currency='INR' THEN NetRevenue ELSE 0 END) ELSE 0 END), 0) AS prevINR,
                 COALESCE(SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN (CASE WHEN Currency='USD' THEN NetRevenue ELSE 0 END) ELSE 0 END), 0) AS prevUSD,
                 COALESCE(SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN (CASE WHEN Currency='MYR' THEN NetRevenue ELSE 0 END) ELSE 0 END), 0) AS prevMYR
-              FROM #BaseOrders;
+              FROM BaseOrders;
 
               -- 2. Best Sellers (Result Set 1)
-              SELECT TOP 5
-                'P' + RIGHT('000' + CAST(ProductId AS VARCHAR(10)), 3) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
-              FROM #BaseOrders 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
+              FROM BaseOrders 
               WHERE OrderDate >= @rangeStart AND OrderDate <= @rangeEnd
               GROUP BY ProductId, ProductName 
               HAVING SUM(NetRevenue) > 0 
               ORDER BY revenue DESC;
 
               -- 3. Low Performers (Result Set 2)
-              SELECT TOP 5
-                'P' + RIGHT('000' + CAST(ProductId AS VARCHAR(10)), 3) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, CASE WHEN SUM(NetRevenue) > 1000 THEN 'Warning' ELSE 'Critical' END as status
-              FROM #BaseOrders 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, CASE WHEN SUM(NetRevenue) > 1000 THEN 'Warning' ELSE 'Critical' END as status
+              FROM BaseOrders 
               WHERE OrderDate >= @rangeStart AND OrderDate <= @rangeEnd
               GROUP BY ProductId, ProductName 
               HAVING SUM(NetRevenue) > 0 
               ORDER BY revenue ASC;
 
               -- 4. Specials Store Items (Result Set 3)
-              SELECT TOP 20
-                ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
-              FROM #BaseOrders 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
+              FROM BaseOrders 
               WHERE OrderDate >= @rangeStart AND OrderDate <= @rangeEnd
                 AND (ProductName LIKE '%Package%' OR ProductName LIKE '%Program%' OR ProductName LIKE '%Special%' OR ProductName LIKE '%Reading%')
               GROUP BY ProductName 
               ORDER BY revenue DESC;
 
               -- 5. Sales By Event Name (Result Set 4)
-              SELECT 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 
                 EventName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
-              FROM #BaseOrders 
+              FROM BaseOrders 
               WHERE OrderDate >= @rangeStart AND OrderDate <= @rangeEnd
               GROUP BY EventName 
               ORDER BY revenue DESC;
 
               -- 6. Revenue Source (Result Set 5)
-              SELECT 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 
                 B.EventName as event, B.ProductName as product, 
                 ISNULL(NULLIF(CASE
                   WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
@@ -1458,32 +2903,86 @@ export const getMonthlySalesDashboard = async (req, res) => {
                   ELSE 'Direct/Unknown'
                 END, ''), 'Unknown') as source, 
                 SUM(B.NetRevenue) as revenue 
-              FROM #BaseOrders B
+              FROM BaseOrders B
               LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = B.OrderId
               WHERE B.OrderDate >= @rangeStart AND B.OrderDate <= @rangeEnd
               GROUP BY B.EventName, B.ProductName, TS.TrackingCode 
               ORDER BY revenue DESC;
 
               -- 7. Quarter Specials Total Revenue (Result Set 6)
-              SELECT 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 
                 EventName,
                 MIN(CASE WHEN OrderDate >= @rangeStart THEN OrderDate END) as EventDate,
                 SUM(CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) as currentRevenue,
                 SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN NetRevenue ELSE 0 END) as previousRevenue
-              FROM #BaseOrders 
+              FROM BaseOrders 
               WHERE EventName != 'Regular Store Item'
               GROUP BY EventName 
               HAVING SUM(CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) > 0
               ORDER BY currentRevenue DESC;
 
               -- 8. Currency Growth (Daily) (Result Set 7)
-              SELECT 
+              ;WITH BaseOrders AS (
+SELECT 
+                CAST(GP.OrderDate AS DATE) as OrderDate, 
+                POD.Currency,
+                (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue,
+                CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
+                PAT.Name AS ProductName,
+                S.Name AS ShopName,
+                P.ProductId,
+                ORD.OrderId
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+              INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+              INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+              INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON Pod.ProductId = PAI.ProductId    
+              JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              JOIN Shop S WITH (NOLOCK) ON S.ShopId = SL.ShopId
+              LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+              LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+              WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+)
+SELECT 
                 OrderDate, Currency, SUM(NetRevenue) as Revenue
-              FROM #BaseOrders
+              FROM BaseOrders
               GROUP BY OrderDate, Currency
               ORDER BY OrderDate ASC;
 
-              DROP TABLE #BaseOrders;
+              
             `);
 
         const r = result.recordsets[0] ? result.recordsets[0][0] : {};
@@ -2155,29 +3654,30 @@ export const getNewsletterDashboard = async (req, res) => {
       ORDER BY NLW DESC;
 
       -- 3. Date Wise Performance
-      SELECT 
-          CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-          CAST(GP.OrderDate AS DATE) as RawDate,
-          CASE     
-              WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-              ELSE 'Regular Store Item'     
-          END AS EventName,
-          POD.USDPrice as Revenue,
-          TS.TrackingCode
-      INTO #DateWiseBase
-      FROM Payment PA WITH (NOLOCK)
-      JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-      JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-      JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-      JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-      JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-      LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-      LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-      WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
-        AND (${trackingConditions})
-        ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""};
+      
 
-      SELECT 
+      ;WITH DateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      )
+SELECT 
           'DateWise' as ResultType,
           OrderDateStr AS date,
           RawDate,
@@ -2186,42 +3686,84 @@ export const getNewsletterDashboard = async (req, res) => {
               ELSE EventName 
           END AS name,
           SUM(ISNULL(Revenue, 0)) AS revenue
-      FROM #DateWiseBase
+      FROM DateWiseBase
       GROUP BY OrderDateStr, RawDate, CASE WHEN LEN(ISNULL(TrackingCode, '')) > 0 THEN TrackingCode ELSE EventName END
       ORDER BY RawDate DESC, revenue DESC;
 
       -- 4. Special Events Newsletter Performance
-      SELECT 
+      ;WITH DateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      )
+SELECT 
           'SpecialEventsPerformance' as ResultType,
           MAX(OrderDateStr) as date,
           EventName as name,
           'Campaign for ' + EventName as subject,
           'Promo' as type,
-          ISNULL(COUNT(*), 1) * 2500 + 5000 as sent,
-          ISNULL(COUNT(*), 1) * 2 as unsub,
-          ISNULL(COUNT(*), 1) * 650 + 1000 as [open],
-          CAST(((ISNULL(COUNT(*), 1) * 650.0 + 1000.0) / (ISNULL(COUNT(*), 1) * 2500.0 + 5000.0) * 100) AS DECIMAL(5,2)) as openRate,
-          ISNULL(COUNT(*), 1) * 85 + 100 as clicks,
-          CAST(((ISNULL(COUNT(*), 1) * 85.0 + 100.0) / (ISNULL(COUNT(*), 1) * 650.0 + 1000.0) * 100) AS DECIMAL(5,2)) as clickOpen
-      FROM #DateWiseBase
+          0 as sent,
+          0 as unsub,
+          0 as [open],
+          0 as openRate,
+          0 as clicks,
+          0 as clickOpen
+      FROM DateWiseBase
       WHERE EventName != 'Regular Store Item'
       GROUP BY EventName
       ORDER BY sent DESC;
 
       -- 4b. Overall Newsletter Performance
-      SELECT 
+      ;WITH DateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      )
+SELECT 
           'OverallPerformance' as ResultType,
           MAX(OrderDateStr) as date,
           EventName as name,
           'Campaign for ' + EventName as subject,
           'Promo' as type,
-          ISNULL(COUNT(*), 1) * 3500 + 7000 as sent,
-          ISNULL(COUNT(*), 1) * 3 as unsub,
-          ISNULL(COUNT(*), 1) * 850 + 1500 as [open],
-          CAST(((ISNULL(COUNT(*), 1) * 850.0 + 1500.0) / (ISNULL(COUNT(*), 1) * 3500.0 + 7000.0) * 100) AS DECIMAL(5,2)) as openRate,
-          ISNULL(COUNT(*), 1) * 120 + 200 as clicks,
-          CAST(((ISNULL(COUNT(*), 1) * 120.0 + 200.0) / (ISNULL(COUNT(*), 1) * 850.0 + 1500.0) * 100) AS DECIMAL(5,2)) as clickOpen
-      FROM #DateWiseBase
+          0 as sent,
+          0 as unsub,
+          0 as [open],
+          0 as openRate,
+          0 as clicks,
+          0 as clickOpen
+      FROM DateWiseBase
       GROUP BY EventName
       ORDER BY sent DESC;
 
@@ -2272,28 +3814,49 @@ export const getNewsletterDashboard = async (req, res) => {
       ORDER BY revenue DESC;
 
       -- 6. Types Compared with Previous Period (Real SQL Data)
-      SELECT 
-          CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-          CASE     
-              WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-              ELSE 'Regular Store Item'     
-          END AS EventName,
-          POD.USDPrice as Revenue,
-          TS.TrackingCode
-      INTO #PrevDateWiseBase
-      FROM Payment PA WITH (NOLOCK)
-      JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-      JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-      JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-      JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-      JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-      LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-      LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-      WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate
-        AND (${trackingConditions})
-        ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""};
-        
-      WITH CurrentStats AS (
+      ;WITH DateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      ),
+      PrevDateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      ),
+      CurrentStats AS (
           SELECT 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -2310,7 +3873,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM #DateWiseBase
+          FROM DateWiseBase
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -2344,7 +3907,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM #PrevDateWiseBase
+          FROM PrevDateWiseBase
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -2375,15 +3938,57 @@ export const getNewsletterDashboard = async (req, res) => {
       ORDER BY ISNULL(c.revenue, 0) DESC;
 
       -- 6b. Events Compared with Previous Period (Grouped by Event Name)
-      ;WITH CurrentEventStats AS (
+      ;WITH DateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      ),
+      PrevDateWiseBase AS (
+          SELECT 
+              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
+              CAST(GP.OrderDate AS DATE) as RawDate,
+              CASE     
+                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+                  ELSE 'Regular Store Item'     
+              END AS EventName,
+              POD.USDPrice as Revenue,
+              TS.TrackingCode
+          FROM Payment PA WITH (NOLOCK)
+          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
+          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
+          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate
+            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+      ),
+      CurrentEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM #DateWiseBase
+          FROM DateWiseBase
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       ),
       PrevEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM #PrevDateWiseBase
+          FROM PrevDateWiseBase
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       )
@@ -2444,8 +4049,8 @@ export const getNewsletterDashboard = async (req, res) => {
           MONTH(GP.OrderDate)
       ORDER BY monthNum;
 
-      DROP TABLE #PrevDateWiseBase;
-      DROP TABLE #DateWiseBase;
+      
+      
     `;
 
     const result = await request.query(query);
@@ -2558,6 +4163,9 @@ export const getNewsletterDashboard = async (req, res) => {
     res.status(500).json({ message: 'Failed to load newsletter data', error: error.message });
   }
 };
+
+// 4. SEO Dashboard
+
 
 // 4. SEO Dashboard
 export const getSEODashboard = async (req, res) => {
@@ -3141,7 +4749,7 @@ export const getMSSQLData = async (req, res) => {
     }
 
     // Fetch the TOP 10 rows from the requested table
-    const result = await pool.request().query(`SELECT TOP 10 * FROM ${table}`);
+    const result = await pool.request().query(`SELECT * FROM ${table}`);
 
     res.status(200).json({
       table: table,

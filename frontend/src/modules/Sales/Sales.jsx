@@ -7,6 +7,7 @@ import { Chart } from "react-google-charts";
 import { api } from '../../services/api';
 import DailySales from './DailySales';
 import MonthlySales from './MonthlySales';
+import { usePagination } from '../../hooks/usePagination';
 
 const salesCache = {};
 
@@ -131,6 +132,7 @@ const Sales = () => {
   // Update activeData so children components receive the dynamic currencies
   activeData.currencies = dynamicCurrencies;
   const sortedEventSales = [...(eventSales || [])].sort((a, b) => b.revenue - a.revenue);
+  const eventSalesChartPage = usePagination(sortedEventSales, 10);
   
   const categoryOption = {
     title: {
@@ -145,43 +147,20 @@ const Sales = () => {
       formatter: (params) => {
         const val = params[0];
         return `<div style="font-weight:bold;margin-bottom:4px;">${val.name}</div>
-                Revenue: <span style="color:#10b981;font-weight:bold;">$${val.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                Revenue: <span style="color:#10b981;font-weight:bold;">${val.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
       }
     },
     grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
-    dataZoom: [
-      {
-        type: 'slider',
-        show: true,
-        xAxisIndex: [0],
-        start: 0,
-        end: Math.min(100, (12 / Math.max(sortedEventSales.length, 1)) * 100), // Show first 12 items initially
-        bottom: 0,
-        height: 12,
-        borderColor: 'transparent',
-        backgroundColor: '#f1f5f9',
-        fillerColor: 'rgba(99, 102, 241, 0.2)',
-        handleStyle: { color: '#6366f1' },
-        showDetail: false,
-        moveHandleSize: 0
-      },
-      {
-        type: 'inside',
-        xAxisIndex: [0],
-        start: 0,
-        end: 100
-      }
-    ],
     xAxis: {
       type: 'category',
-      data: sortedEventSales.map(e => e.name),
+      data: eventSalesChartPage.currentData.map(e => e.name),
       axisLabel: { color: '#64748b', width: 90, overflow: 'truncate', interval: 0, rotate: 30, fontSize: 11 },
       axisLine: { lineStyle: { color: '#e2e8f0' } },
       axisTick: { show: false }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 11, formatter: (value) => value >= 1000 ? `$${value/1000}k` : `$${value}` },
+      axisLabel: { color: '#64748b', fontSize: 11, formatter: (value) => value >= 1000 ? `${value/1000}k` : `${value}` },
       splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }
     },
     series: [
@@ -193,7 +172,7 @@ const Sales = () => {
           borderRadius: [4, 4, 0, 0],
           color: '#6868f9'
         },
-        data: sortedEventSales.map(e => e.revenue)
+        data: eventSalesChartPage.currentData.map(e => e.revenue)
       }
     ]
   };
@@ -398,6 +377,7 @@ const Sales = () => {
         <>
           {activeTab === 'daily' ? (
             <DailySales
+              eventSalesChartPage={eventSalesChartPage}
               data={activeData}
               showRevenue={showRevenue}
               categoryOption={categoryOption}
@@ -409,6 +389,7 @@ const Sales = () => {
             />
           ) : (
             <MonthlySales
+              eventSalesChartPage={eventSalesChartPage}
               data={activeData}
               showRevenue={showRevenue}
               geoData={geoData}

@@ -149,7 +149,7 @@ const KPIManagementTab = ({ crud }) => {
                     </div>
 
                     {/* Bottom Metrics Section */}
-                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-4">
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 
                       {/* Target */}
                       <div className="flex flex-col items-center justify-center text-center">
@@ -235,7 +235,7 @@ const KPIManagementTab = ({ crud }) => {
                           placeholder="e.g., SUM(Sales) / SUM(Target)"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Order</label>
                           <input

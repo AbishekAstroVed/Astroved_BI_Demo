@@ -1278,7 +1278,7 @@ const Executive = () => {
 
         {/* Revenue Overview */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Revenue Overview</h4>
             <select
               value={revenueOverviewFilter}
@@ -1303,7 +1303,7 @@ const Executive = () => {
 
         {/* Revenue by Category */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Revenue by Category</h4>
             <select
               value={categoryFilter}
@@ -1328,7 +1328,7 @@ const Executive = () => {
 
         {/* Revenue by Channel */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Revenue by Channel</h4>
             <select
               value={channelFilter}
@@ -1356,7 +1356,7 @@ const Executive = () => {
 
 
       {/* ----------------- ROW 3: LISTS & COMPARISONS (Top Selling, Recent Orders, Rev vs Target) ----------------- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Top Selling Products */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
@@ -1375,8 +1375,8 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left text-[11px] border-collapse relative whitespace-nowrap">
+              <div className="overflow-x-auto w-full ">
+                <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
                       <th className="py-2 px-3 font-medium w-8">#</th>
@@ -1421,8 +1421,8 @@ const Executive = () => {
               </select>
             </div>
             <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full h-[400px] overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left text-[11px] border-collapse relative whitespace-nowrap">
+              <div className="overflow-x-auto w-full ">
+                <table className="w-full text-left text-[11px] border-collapse relative">
                   <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                     <tr>
                       <th className="py-2 px-3 font-medium">Order ID</th>
@@ -1461,7 +1461,7 @@ const Executive = () => {
         </div>
 
         {/* Revenue vs Target */}
-        <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
+        <div className="lg:col-span-2 bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
           <div className="flex justify-between items-center mb-3">
             <h4 className="text-xs font-bold text-cosmic-text">Revenue vs Target</h4>
             <select
@@ -1492,7 +1492,7 @@ const Executive = () => {
         {/* Traffic Overview */}
         <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl flex flex-col justify-between h-full">
           <div>
-            <div className="flex justify-between items-center mb-4 gap-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 gap-2">
               <h4 className="text-sm font-bold text-cosmic-text truncate tracking-tight">Traffic Overview</h4>
               <select
                 value={trafficFilter}
@@ -1505,7 +1505,7 @@ const Executive = () => {
                 <option value="This Year">This Year</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
               <div className="bg-cosmic-bg/50 border border-cosmic-border/50 rounded-lg p-3 transition-colors hover:bg-cosmic-bg">
                 <span className="text-cosmic-muted text-[10px] font-semibold uppercase tracking-wider block truncate mb-1">Organic Traffic</span>
                 <div className="flex items-end justify-between">
