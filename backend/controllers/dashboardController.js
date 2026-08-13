@@ -3081,7 +3081,8 @@ SELECT
       console.error("[Dashboard] Monthly Sales KPI Query Error:", err);
     }
 
-    if (!eventSales || eventSales.length === 0) {
+    // Inject mock data for PDF report testing if empty
+    if (req.query.isReport && (!eventSales || eventSales.length === 0)) {
       eventSales = [
         { id: 1, name: 'Premium Homa', qty: 10, revenue: 1500 },
         { id: 2, name: 'Astrology Reading', qty: 5, revenue: 800 }

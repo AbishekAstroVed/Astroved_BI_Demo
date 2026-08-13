@@ -132,7 +132,7 @@ const Sales = () => {
   activeData.currencies = dynamicCurrencies;
   const sortedEventSales = [...(eventSales || [])].sort((a, b) => b.revenue - a.revenue);
   const eventSalesChartPage = usePagination(sortedEventSales, 10);
-  
+
   const categoryOption = {
     title: {
       text: 'Event Revenue Share',
@@ -140,7 +140,7 @@ const Sales = () => {
       left: 'center',
       top: 0
     },
-    tooltip: { 
+    tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
       formatter: (params) => {
@@ -159,7 +159,7 @@ const Sales = () => {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 11, formatter: (value) => value >= 1000 ? `${value/1000}k` : `${value}` },
+      axisLabel: { color: '#64748b', fontSize: 11, formatter: (value) => value >= 1000 ? `${value / 1000}k` : `${value}` },
       splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }
     },
     series: [

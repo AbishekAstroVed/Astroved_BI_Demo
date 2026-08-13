@@ -764,21 +764,21 @@ const Newsletter = () => {
                       <td className="py-4 px-4 text-right">{typesCompared.reduce((acc, curr) => acc + curr.count, 0)}</td>
                       <td className="py-4 px-4 text-right">
                         {(() => {
-                           const totalCount = typesCompared.reduce((acc, curr) => acc + curr.count, 0);
-                           const totalPrevCount = typesCompared.reduce((acc, curr) => acc + curr.prevCount, 0);
-                           if (totalPrevCount === 0) return '-';
-                           const pct = ((totalCount - totalPrevCount) / totalPrevCount) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
+                          const totalCount = typesCompared.reduce((acc, curr) => acc + curr.count, 0);
+                          const totalPrevCount = typesCompared.reduce((acc, curr) => acc + curr.prevCount, 0);
+                          if (totalPrevCount === 0) return '-';
+                          const pct = ((totalCount - totalPrevCount) / totalPrevCount) * 100;
+                          return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
                         })()}
                       </td>
                       <td className="py-4 px-4 text-right">${typesCompared.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       <td className="py-4 px-4 text-right">
                         {(() => {
-                           const totalRev = typesCompared.reduce((acc, curr) => acc + curr.revenue, 0);
-                           const totalPrevRev = typesCompared.reduce((acc, curr) => acc + curr.prevRevenue, 0);
-                           if (totalPrevRev === 0) return '-';
-                           const pct = ((totalRev - totalPrevRev) / totalPrevRev) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
+                          const totalRev = typesCompared.reduce((acc, curr) => acc + curr.revenue, 0);
+                          const totalPrevRev = typesCompared.reduce((acc, curr) => acc + curr.prevRevenue, 0);
+                          if (totalPrevRev === 0) return '-';
+                          const pct = ((totalRev - totalPrevRev) / totalPrevRev) * 100;
+                          return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
                         })()}
                       </td>
                     </tr>

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Chart } from "react-google-charts";
 import EChartWrapper from '../../charts/EChartWrapper';
 import { DollarSign, ShoppingBag, TrendingDown, AlertCircle } from 'lucide-react';
@@ -19,14 +19,14 @@ const MonthlySales = ({ eventSalesChartPage,
   startDate,
   endDate
 }) => {
-  const monthRevenueCards = data?.salesKpiData?.monthRevenueCards || [];
+  const monthRevenueCards = data?.salesKpiData?.monthRevenueCards;
 
-  const productSales = data?.tablesData?.productSales || [];
-  const stateWiseSales = data?.tablesData?.stateWiseSales || [];
-  const specialPackageSales = data?.tablesData?.specialPackageSales || [];
+  const productSales = data?.tablesData?.productSales;
+  const stateWiseSales = data?.tablesData?.stateWiseSales;
+  const specialPackageSales = data?.tablesData?.specialPackageSales;
 
-  const revSourcePage = usePagination(data?.revenueSource || [], 10);
-  const evtSalesPage = usePagination(data?.eventSales || [], 10);
+  const revSourcePage = usePagination(data?.revenueSource, 10);
+  const evtSalesPage = usePagination(data?.eventSales, 10);
   const prodSalesPage = usePagination(productSales, 10);
   const stateSalesPage = usePagination(stateWiseSales, 10);
   const specPkgSalesPage = usePagination(specialPackageSales, 10);
@@ -45,13 +45,13 @@ const MonthlySales = ({ eventSalesChartPage,
   };
   const dateStr = formatHeaderDate(startDate, endDate);
   const {
-    eventSales = [],
-    revenueSource = [],
-    currencies = [],
-    quarterSpecials = [],
-    bestSellers = [],
-    lowPerformers = [],
-    specialsStoreItems = []
+    eventSales,
+    revenueSource,
+    currencies,
+    quarterSpecials,
+    bestSellers,
+    lowPerformers,
+    specialsStoreItems
   } = data || {};
 
   const specStorePage = usePagination(specialsStoreItems, 10);
@@ -68,11 +68,11 @@ const MonthlySales = ({ eventSalesChartPage,
       {/* Monthly Revenue Row */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-          {monthRevenueCards.map((card, index) => (
+          {monthRevenueCards?.map((card, index) => (
             <div key={index} className={`bg-cosmic-card border ${index === 3 ? 'border-2' : ''} border-cosmic-border rounded-xl ${index === 3 ? 'shadow-md' : 'shadow-sm'} p-5 flex flex-col items-center justify-center`}>
               <span className={`${index === 3 ? 'text-xs' : 'text-[13px]'} font-medium text-slate-500 dark:text-slate-400 mb-2`}>{card.title}</span>
               <span className={`text-[32px] ${index === 3 ? 'font-medium' : 'font-normal'} tracking-tight text-slate-900 dark:text-white mb-2`}>
-                {showRevenue ? card.value : 'ðŸ”’'}
+                {showRevenue ? card.value : '🔒'}
               </span>
               <span className={`text-[10px] font-medium flex items-center ${card.badgeColor}`}>
                 {card.change}
@@ -117,7 +117,7 @@ const MonthlySales = ({ eventSalesChartPage,
                         <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
                         <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
@@ -151,7 +151,7 @@ const MonthlySales = ({ eventSalesChartPage,
                     <th className="py-2 px-3 font-medium w-8">#</th>
                     <th className="py-2 px-3 font-medium">Event Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue â–¾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ▾</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -162,7 +162,7 @@ const MonthlySales = ({ eventSalesChartPage,
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right font-mono text-cosmic-muted">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-text font-medium">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
@@ -215,7 +215,7 @@ const MonthlySales = ({ eventSalesChartPage,
               </div>
             ) : (
               <div className="h-40 flex flex-col items-center justify-center text-[10px] text-cosmic-muted font-bold">
-                <span>ðŸ”’ Currency share restricted</span>
+                <span>🔒 Currency share restricted</span>
               </div>
             )}
           </div>
@@ -240,7 +240,7 @@ const MonthlySales = ({ eventSalesChartPage,
             </>
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view event revenue share.</span>
             </div>
           )}
@@ -259,9 +259,9 @@ const MonthlySales = ({ eventSalesChartPage,
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
-                    <th className="py-2 px-3 font-medium">Store Item Name â“˜ â–¾</th>
+                    <th className="py-2 px-3 font-medium">Store Item Name ⓘ ▾</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue â“˜ â–¾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ⓘ ▾</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -272,7 +272,7 @@ const MonthlySales = ({ eventSalesChartPage,
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
