@@ -965,10 +965,10 @@ const Newsletter = () => {
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">Event Name</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Prev Count</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Current Count</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Prev Revenue ($)</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Current Revenue ($)</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -982,7 +982,7 @@ const Newsletter = () => {
                           {item.countPct !== null ? (
                             <span className={`flex items-center justify-end ${item.countPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                               {Math.abs(item.countPct).toFixed(1)}%
-                              {item.countPct >= 0 ? <span className="ml-1">Ã¢â€ â€˜</span> : <span className="ml-1">Ã¢â€ â€œ</span>}
+                              {item.countPct >= 0 ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>}
                             </span>
                           ) : '-'}
                         </td>
@@ -992,7 +992,7 @@ const Newsletter = () => {
                           {item.revPct !== null ? (
                             <span className={`flex items-center justify-end ${item.revPct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                               {Math.abs(item.revPct).toFixed(1)}%
-                              {item.revPct >= 0 ? <span className="ml-1">Ã¢â€ â€˜</span> : <span className="ml-1">Ã¢â€ â€œ</span>}
+                              {item.revPct >= 0 ? <span className="ml-1">↑</span> : <span className="ml-1">↓</span>}
                             </span>
                           ) : '-'}
                         </td>
