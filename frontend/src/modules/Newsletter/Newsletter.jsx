@@ -724,9 +724,9 @@ const Newsletter = () => {
                       <th className="py-3 px-3 font-medium w-8 text-center border-b border-cosmic-border"></th>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">News Letter Type</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">News Letter Count</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In USD</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% ÃŽâ€</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -742,7 +742,7 @@ const Newsletter = () => {
                           <td className="py-2.5 px-4 text-right font-medium">
                             {item.countPct !== null && item.countPct !== undefined && item.prevCount > 0 ? (
                               <span className={item.countPct >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                {Math.abs(item.countPct).toFixed(1)}% {item.countPct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}
+                                {Math.abs(item.countPct).toFixed(1)}% {item.countPct >= 0 ? '↑' : '↓'}
                               </span>
                             ) : '-'}
                           </td>
@@ -750,7 +750,7 @@ const Newsletter = () => {
                           <td className="py-2.5 px-4 text-right font-medium">
                             {item.revPct !== null && item.revPct !== undefined && item.prevRevenue > 0 ? (
                               <span className={item.revPct >= 0 ? 'text-green-500' : 'text-red-500'}>
-                                {Math.abs(item.revPct).toFixed(1)}% {item.revPct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}
+                                {Math.abs(item.revPct).toFixed(1)}% {item.revPct >= 0 ? '↑' : '↓'}
                               </span>
                             ) : '-'}
                           </td>
@@ -768,7 +768,7 @@ const Newsletter = () => {
                            const totalPrevCount = typesCompared.reduce((acc, curr) => acc + curr.prevCount, 0);
                            if (totalPrevCount === 0) return '-';
                            const pct = ((totalCount - totalPrevCount) / totalPrevCount) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}</span>;
+                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
                         })()}
                       </td>
                       <td className="py-4 px-4 text-right">${typesCompared.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -778,7 +778,7 @@ const Newsletter = () => {
                            const totalPrevRev = typesCompared.reduce((acc, curr) => acc + curr.prevRevenue, 0);
                            if (totalPrevRev === 0) return '-';
                            const pct = ((totalRev - totalPrevRev) / totalPrevRev) * 100;
-                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ'}</span>;
+                           return <span className={pct >= 0 ? 'text-green-500' : 'text-red-500'}>{Math.abs(pct).toFixed(1)}% {pct >= 0 ? '↑' : '↓'}</span>;
                         })()}
                       </td>
                     </tr>
