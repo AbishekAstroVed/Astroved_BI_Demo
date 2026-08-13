@@ -3609,7 +3609,7 @@ export const getNewsletterDashboard = async (req, res) => {
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       )
       -- 1. KPI Data
@@ -3637,7 +3637,7 @@ export const getNewsletterDashboard = async (req, res) => {
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       )
       SELECT 
@@ -3670,7 +3670,7 @@ export const getNewsletterDashboard = async (req, res) => {
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             AND LEN(PAI.EventName) > 0
       )
       SELECT 
@@ -3707,7 +3707,7 @@ export const getNewsletterDashboard = async (req, res) => {
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       )
 SELECT 
@@ -3742,7 +3742,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       )
 SELECT 
@@ -3781,7 +3781,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       )
 SELECT 
@@ -3865,7 +3865,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       ),
       PrevDateWiseBase AS (
@@ -3886,7 +3886,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate
+          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       ),
       CurrentStats AS (
@@ -3989,7 +3989,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       ),
       PrevDateWiseBase AS (
@@ -4010,7 +4010,7 @@ SELECT
           JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate
+          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate AND (${trackingConditions})
             ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
       ),
       CurrentEventStats AS (
