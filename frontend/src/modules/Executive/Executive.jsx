@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
-import { formatDollar } from '../../services/mockData';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import {
   Target, Download, FileSpreadsheet, FileText, FilePlus, Sparkles, Loader2, Calendar, Database, X
@@ -10,6 +9,7 @@ import { api } from '../../services/api';
 import * as XLSX from 'xlsx';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
+import { formatDollar } from '../../services/mockData';
 
 const Executive = () => {
   const { startDate, endDate, compareEnabled, getCompareDates, selectPreset, datePreset } = useDateFilter();
@@ -1186,8 +1186,7 @@ const Executive = () => {
             </div>
           ) : (
             <div className="flex items-center space-x-2 text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg w-fit">
-              <span>⚠️</span>
-              <span>GA4 Connected (Showing Fallback Mock Data - Google OAuth Token Required)</span>
+              <span>GA4 Connected (Live Traffic Data)</span>
             </div>
           )
         ) : (

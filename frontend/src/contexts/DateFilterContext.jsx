@@ -7,17 +7,24 @@ export const useDateFilter = () => useContext(DateFilterContext);
 export const DateFilterProvider = ({ children }) => {
   const [datePreset, setDatePreset] = useState('mtd'); // 'today', 'yesterday', '7days', '30days', 'mtd', 'ytd', 'custom'
   
+  const getLocalDateString = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Calculate default dates (MTD)
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   
-  const [startDate, setStartDate] = useState(firstDayOfMonth.toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(getLocalDateString(firstDayOfMonth));
+  const [endDate, setEndDate] = useState(getLocalDateString(today));
   
   const [compareEnabled, setCompareEnabled] = useState(true);
   const [comparePreset, setComparePreset] = useState('previous'); // 'previous', 'lastYear'
   const [isCalendarHidden, setCalendarHidden] = useState(false);
-  const [dailyDate, setDailyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dailyDate, setDailyDate] = useState(getLocalDateString(new Date()));
 
   const selectPreset = (preset) => {
     setDatePreset(preset);
@@ -47,8 +54,8 @@ export const DateFilterProvider = ({ children }) => {
         return; // Custom does not change dates automatically
     }
 
-    setStartDate(start.toISOString().split('T')[0]);
-    setEndDate(end.toISOString().split('T')[0]);
+    setStartDate(getLocalDateString(start));
+    setEndDate(getLocalDateString(end));
   };
 
   // Helper to calculate comparison dates
@@ -71,8 +78,8 @@ export const DateFilterProvider = ({ children }) => {
     }
 
     return {
-      startDate: compStart.toISOString().split('T')[0],
-      endDate: compEnd.toISOString().split('T')[0]
+      startDate: getLocalDateString(compStart),
+      endDate: getLocalDateString(compEnd)
     };
   };
 

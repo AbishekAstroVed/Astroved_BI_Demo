@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
-import { formatCurrency } from '../../services/mockData';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import { Calendar, Download, TrendingUp, TrendingDown, DollarSign, Users, ShoppingBag, Globe, AlertCircle } from 'lucide-react';
 import { Chart } from "react-google-charts";
@@ -250,19 +249,16 @@ const Sales = () => {
     }
   }
 
-  // Ensure default fallback currency growth if not provided
-  let currencyGrowthData = activeData?.currencyGrowth;
-  if (!currencyGrowthData || !currencyGrowthData.labels || currencyGrowthData.labels.length === 0) {
-    currencyGrowthData = {
-      labels: ['W1', 'W2', 'W3', 'W4'],
-      usd: [12000, 14500, 13800, 16200],
-      inr: [18000, 21000, 22500, 24000],
-      myr: [4500, 5200, 4800, 5900],
-      usdPrev: [10500, 12000, 11800, 14000],
-      inrPrev: [16000, 18500, 19000, 21000],
-      myrPrev: [3800, 4200, 4100, 4900]
-    };
-  }
+  // Ensure currency growth has safe defaults if not provided
+  let currencyGrowthData = activeData?.currencyGrowth || {
+    labels: [],
+    usd: [],
+    inr: [],
+    myr: [],
+    usdPrev: [],
+    inrPrev: [],
+    myrPrev: []
+  };
 
   // Attach enriched properties to activeData for children & export card
   activeData.geoData = geoData;
@@ -361,7 +357,6 @@ const Sales = () => {
             )
           ) : (
             <div className="flex items-center space-x-2 text-xs text-cosmic-muted font-semibold bg-cosmic-border/10 border border-cosmic-border/20 px-3 py-1.5 rounded-lg w-fit">
-              <span>⚪</span>
               <span>GA4 Disconnected (Configure settings in Integrations tab)</span>
             </div>
           )}
