@@ -1,5 +1,5 @@
 const originalFetch = window.fetch;
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000`;
 
 const fetch = (url, options = {}) => {
   const token = localStorage.getItem('astroved_token');
@@ -18,6 +18,22 @@ const handleResponse = async (response) => {
     throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
   }
   return response.json();
+};
+
+const dashboardCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const fetchWithCache = async (url) => {
+  const now = Date.now();
+  const cached = dashboardCache.get(url);
+  
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    return cached.data;
+  }
+  
+  const data = await fetch(url).then(handleResponse);
+  dashboardCache.set(url, { data, timestamp: now });
+  return data;
 };
 
 export const api = {
@@ -151,10 +167,10 @@ export const api = {
   }).then(handleResponse),
 
   // Dashboard Metrics
-  getExecutiveDashboard: (startDate, endDate) => fetch(`/api/dashboard/executive?startDate=${startDate}&endDate=${endDate}`).then(handleResponse),
-  getDailySalesDashboard: (dailyDate) => fetch(`/api/dashboard/sales/daily?dailyDate=${dailyDate}`).then(handleResponse),
-  getMonthlySalesDashboard: (startDate, endDate) => fetch(`/api/dashboard/sales/monthly?startDate=${startDate}&endDate=${endDate}`).then(handleResponse),
-  getMarketingDashboard: (startDate, endDate) => fetch(`/api/dashboard/marketing?startDate=${startDate}&endDate=${endDate}`).then(handleResponse),
+  getExecutiveDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/executive?startDate=${startDate}&endDate=${endDate}`),
+  getDailySalesDashboard: (dailyDate) => fetchWithCache(`/api/dashboard/sales/daily?dailyDate=${dailyDate}`),
+  getMonthlySalesDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/sales/monthly?startDate=${startDate}&endDate=${endDate}`),
+  getMarketingDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/marketing?startDate=${startDate}&endDate=${endDate}`),
   syncMetaAds: () => fetch('/api/dashboard/marketing/meta/sync', { method: 'POST' }).then(handleResponse),
   syncGoogleAds: () => fetch('/api/dashboard/marketing/google/sync', { method: 'POST' }).then(handleResponse),
   updateCampaignStatus: (id, updates) => fetch(`/api/dashboard/marketing/campaigns/${id}`, {
@@ -175,11 +191,12 @@ export const api = {
     if (eventName && eventName !== 'All') {
       url += `&eventName=${encodeURIComponent(eventName)}`;
     }
-    return fetch(url).then(handleResponse);
+    return fetchWithCache(url);
   },
-  getAllEventNames: () => fetch('/api/dashboard/newsletter/events').then(handleResponse),
-  getSEODashboard: (startDate, endDate) => fetch(`/api/dashboard/seo?startDate=${startDate}&endDate=${endDate}`).then(handleResponse),
-  getCustomerDashboard: (startDate, endDate) => fetch(`/api/dashboard/customer?startDate=${startDate}&endDate=${endDate}`).then(handleResponse),
+  getAllEventNames: () => fetchWithCache('/api/dashboard/newsletter/events'),
+  getOperationalDashboard: (startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10) => fetchWithCache(`/api/dashboard/operations?startDate=${startDate}&endDate=${endDate}&period=${period}&orderPage=${orderPage}&refundPage=${refundPage}&pageSize=${pageSize}`),
+  getSEODashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/seo?startDate=${startDate}&endDate=${endDate}`),
+  getCustomerDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/customer?startDate=${startDate}&endDate=${endDate}`),
   getCustomerMetrics: (period, startDate, endDate) => {
     let url = `/api/dashboard/customer-metrics?period=${period}`;
     if (startDate && endDate) {

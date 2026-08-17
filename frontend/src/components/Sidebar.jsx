@@ -11,11 +11,8 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
   const mainMenu = [
     { id: 'executive', name: 'Executive Dashboard', icon: TrendingUp },
     { id: 'sales', name: 'Sales Dashboard', icon: ShoppingBag },
-    { id: 'marketing', name: 'Marketing Dashboard', icon: Megaphone },
     { id: 'newsletter', name: "Newsletter Performance", icon: Newspaper },
-    { id: 'seo', name: 'SEO Dashboard', icon: Search },
     { id: 'customer', name: 'Customer Dashboard', icon: Users },
-    { id: 'funnel', name: 'Funnel Dashboard', icon: Filter },
     { id: 'operations', name: 'Operations Dashboard', icon: Activity },
     { id: 'ai-insights', name: 'AI Insights', icon: Sparkles, badge: 'NEW' },
   ];

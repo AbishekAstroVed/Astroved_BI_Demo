@@ -3,6 +3,10 @@ import KPI from '../models/KPI.js';
 import TargetMetric from '../models/TargetMetric.js';
 import { connectMSSQL } from '../config/mssql.js';
 
+const dashboardCache = new Map();
+const CACHE_DURATION = 20 * 60 * 1000;
+
+
 // Helper to query live GA4 reporting data using REST API
 async function fetchGA4Data(propertyId, apiSecret, accessToken) {
   // If no token, empty token, or mock placeholder token is supplied, return null to smoothly trigger local fallback reporting
@@ -91,6 +95,13 @@ async function sendMeasurementProtocolEvent(measurementId, apiSecret, eventName,
 export const getExecutiveDashboard = async (req, res) => {
   console.log('[Dashboard] Fetching Executive Dashboard Data...');
   const { startDate, endDate } = req.query;
+
+  const cacheKey = `executive_${startDate || 'default'}_${endDate || 'default'}`;
+  const cachedData = dashboardCache.get(cacheKey);
+  if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
+    console.log('[Dashboard] Returning cached Executive Dashboard data');
+    return res.status(200).json(cachedData.data);
+  }
 
   try {
     // Load Google Analytics configuration from DB (safe offline check)
@@ -183,7 +194,32 @@ export const getExecutiveDashboard = async (req, res) => {
           
 
           -- 0. KPI Query
-          ;WITH TempBaseOrders AS (
+          ;WITH ValidOrders AS (
+              SELECT 
+                  PA.OrderId, SL.CustomerId, CAST(GP.OrderDate AS DATE) as OrderDateVal
+              FROM Payment AS PA WITH (NOLOCK)         
+              INNER JOIN SelectedList AS SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId         
+              INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+              LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+              LEFT JOIN (        
+                  SELECT DISTINCT CustomerId         
+                  FROM Vaaak.TestCustomerAccounts TCA        
+                  WHERE TCA.CustomerId IS NOT NULL        
+                  UNION         
+                  SELECT DISTINCT Sl2.CustomerId         
+                  FROM Payment P2        
+                  JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+                  JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+              ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId        
+              WHERE PA.TypeId <> 19
+              AND (ORD.OrderStatusId <> 6 OR ORD.OrderStatusId IS NULL)
+              AND Gp.Code <> '9999999999'        
+              AND TestAccounts.CustomerId IS NULL                
+              AND SL.ShopId = 1
+              AND GP.OrderDate >= @baseDataStart
+              AND GP.OrderDate <= @today
+          ),
+          TempBaseOrders AS (
 SELECT 
               GP.OrderDate,
               PA.OrderId,
@@ -249,19 +285,18 @@ SELECT
           AND GP.OrderDate <= @today
 )
 SELECT 
-              COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @today THEN NetRevenue ELSE 0 END), 0) AS dailyRevenue,
-              COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN NetRevenue ELSE 0 END), 0) AS yesterdayRevenue,
-              COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) AS mtdRevenue,
-              COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) AS lastMtdRevenue,
-              COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) AS ytdRevenue,
-              COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @lastYear AND MONTH(OrderDate) <= @thisMonth AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) AS lastYtdRevenue,
-              COUNT(DISTINCT CASE WHEN CAST(OrderDate AS DATE) = @today THEN OrderId END) AS dailyOrders,
-              COUNT(DISTINCT CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN OrderId END) AS yesterdayOrders,
-              COUNT(DISTINCT CASE WHEN CAST(OrderDate AS DATE) = @today THEN ContactId END) AS dailyCustomers,
-              COUNT(DISTINCT CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN ContactId END) AS yesterdayCustomers,
-              COUNT(DISTINCT CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN ContactId END) AS mtdCustomers,
-              COUNT(DISTINCT CASE WHEN MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear AND DAY(OrderDate) <= DAY(@today) THEN ContactId END) AS lastMtdCustomers
-          FROM TempBaseOrders;
+              (SELECT COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @today THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS dailyRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS yesterdayRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS mtdRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS lastMtdRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS ytdRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @lastYear AND MONTH(OrderDate) <= @thisMonth AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS lastYtdRevenue,
+              (SELECT COUNT(DISTINCT CASE WHEN OrderDateVal = @today THEN OrderId END) FROM ValidOrders) AS dailyOrders,
+              (SELECT COUNT(DISTINCT CASE WHEN OrderDateVal = @yesterday THEN OrderId END) FROM ValidOrders) AS yesterdayOrders,
+              (SELECT COUNT(DISTINCT CASE WHEN OrderDateVal = @today THEN CustomerId END) FROM ValidOrders WHERE CustomerId IS NOT NULL) AS dailyCustomers,
+              (SELECT COUNT(DISTINCT CASE WHEN OrderDateVal = @yesterday THEN CustomerId END) FROM ValidOrders WHERE CustomerId IS NOT NULL) AS yesterdayCustomers,
+              (SELECT COUNT(DISTINCT CASE WHEN MONTH(OrderDateVal) = @thisMonth AND YEAR(OrderDateVal) = @thisYear THEN CustomerId END) FROM ValidOrders WHERE CustomerId IS NOT NULL) AS mtdCustomers,
+              (SELECT COUNT(DISTINCT CASE WHEN MONTH(OrderDateVal) = @lastMonth AND YEAR(OrderDateVal) = @lastMonthYear AND DAY(OrderDateVal) <= DAY(@today) THEN CustomerId END) FROM ValidOrders WHERE CustomerId IS NOT NULL) AS lastMtdCustomers;
 
           -- 1. This Week Trend
           ;WITH TempBaseOrders AS (
@@ -2204,7 +2239,7 @@ SELECT ISNULL(NULLIF(CASE
     const trafficMonth = buildTrafficObj(mssqlTrendMonth, 8);
     const trafficYear = buildTrafficObj(mssqlTrendYear, 15);
 
-    res.json({
+    const responseData = {
       kpi,
       revenueTrendDay: mssqlTrendDay,
       revenueTrendWeek: mssqlTrendWeek,
@@ -2250,7 +2285,10 @@ SELECT ISNULL(NULLIF(CASE
       trafficYear,
       gaConnected,
       gaRealTime: !!gaData
-    });
+    };
+
+    dashboardCache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+    res.status(200).json(responseData);
   } catch (error) {
     res.status(500).json({ message: 'Failed to load executive data', error: error.message });
   }
@@ -4537,7 +4575,7 @@ export const getCustomerMetrics = async (req, res) => {
           LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
           LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId    
           LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-          LEFT JOIN Vaaak.UsersProfile UP WITH (NOLOCK) ON PA.ContactId = UP.CustomerId
+          LEFT JOIN Vaaak.UsersProfile UP WITH (NOLOCK) ON SL.CustomerId = UP.CustomerId
           LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
           WHERE ${topDateFilter} 
             AND ${topPeriodCondition}
@@ -4807,11 +4845,237 @@ export const getAllEventNames = async (req, res) => {
       ORDER BY EventName
     `;
     const result = await pool.request().query(query);
-
-    const eventNames = result.recordset.map(row => row.EventName);
-    res.json(eventNames);
+    res.json({
+      data: result.recordset
+    });
   } catch (error) {
-    console.error("Error fetching all event names:", error);
-    res.status(500).json({ message: 'Failed to fetch event names', error: error.message });
+    console.error("MSSQL Data Fetch Error:", error);
+    res.status(500).json({ message: 'Failed to load event names', error: error.message });
   }
 };
+
+export const getOperationalDashboard = async (req, res) => {
+  try {
+    const { startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10 } = req.query;
+    
+    const parsedOrderPage = parseInt(orderPage) || 1;
+    const parsedRefundPage = parseInt(refundPage) || 1;
+    const parsedPageSize = parseInt(pageSize) || 10;
+    
+    const orderOffset = (parsedOrderPage - 1) * parsedPageSize;
+    const refundOffset = (parsedRefundPage - 1) * parsedPageSize;
+    
+    const pool = await connectMSSQL();
+    if (!pool) return res.status(500).json({ message: 'Database connection failed' });
+
+    const request = pool.request();
+    let sDate = new Date('2023-01-01');
+    let eDate = new Date();
+    
+    if (startDate && endDate) {
+      sDate = new Date(startDate);
+      eDate = new Date(endDate);
+      request.input('startDate', startDate);
+      request.input('endDate', endDate);
+    } else {
+      request.input('startDate', '2023-01-01');
+      request.input('endDate', eDate.toISOString().split('T')[0]);
+    }
+    
+    request.input('orderOffset', orderOffset);
+    request.input('refundOffset', refundOffset);
+    request.input('pageSize', parsedPageSize);
+
+    let dateSelectSql = "CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107)";
+    let dateGroupSql = "CAST(GP.OrderDate AS DATE)";
+    let dateSortSql = "MIN(CAST(GP.OrderDate AS DATE))";
+    
+    if (period === 'yearly') {
+      dateSelectSql = "FORMAT(GP.OrderDate, 'yyyy')";
+      dateGroupSql = "FORMAT(GP.OrderDate, 'yyyy')";
+    } else if (period === 'monthly') {
+      dateSelectSql = "FORMAT(GP.OrderDate, 'MMM yyyy')";
+      dateGroupSql = "FORMAT(GP.OrderDate, 'MMM yyyy')";
+    } else if (period === 'weekly') {
+      dateSelectSql = "CONVERT(varchar, DATEADD(wk, DATEDIFF(wk, 0, GP.OrderDate), 0), 107)";
+      dateGroupSql = "DATEADD(wk, DATEDIFF(wk, 0, GP.OrderDate), 0)";
+    }
+
+    const query = `
+      -- RESULT 0: KPIs (Revenue, Orders, Completed, Pending, Cancelled, Refunds, Customers)
+      ;WITH ValidOrders AS (
+          SELECT PA.OrderId, PA.Amount, ORD.OrderStatusId, PA.TypeId, GP.OrderDate, SL.CustomerId
+          FROM Payment PA WITH (NOLOCK)
+          INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+          INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+          LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+          LEFT JOIN (        
+              SELECT DISTINCT CustomerId         
+              FROM Vaaak.TestCustomerAccounts TCA        
+              WHERE TCA.CustomerId IS NOT NULL        
+              UNION         
+              SELECT DISTINCT Sl2.CustomerId         
+              FROM Payment P2        
+              JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
+              JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
+          ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId
+          WHERE SL.ShopId = 1 
+            AND GP.Code <> '9999999999' 
+            AND TestAccounts.CustomerId IS NULL 
+            AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      )
+      SELECT 
+          (SELECT SUM(Amount) FROM ValidOrders WHERE TypeId <> 19 AND (OrderStatusId <> 6 OR OrderStatusId IS NULL)) as TotalRevenue,
+          (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE TypeId <> 19 AND (OrderStatusId <> 6 OR OrderStatusId IS NULL)) as TotalOrders,
+          (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE TypeId <> 19 AND OrderStatusId = 3) as CompletedOrders,
+          (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE TypeId <> 19 AND OrderStatusId IN (1, 2)) as PendingOrders,
+          (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE OrderStatusId = 6) as CancelledOrders,
+          (SELECT SUM(Amount) FROM ValidOrders WHERE TypeId = 19) as TotalRefunds,
+          (SELECT COUNT(DISTINCT CustomerId) FROM ValidOrders WHERE TypeId <> 19 AND (OrderStatusId <> 6 OR OrderStatusId IS NULL) AND CustomerId IS NOT NULL) as TotalCustomers;
+
+      -- RESULT 1: Revenue & Order Trend
+      SELECT 
+          ${dateSelectSql} AS DateStr,
+          SUM(PA.Amount) as Revenue,
+          COUNT(DISTINCT PA.OrderId) as Orders
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      GROUP BY ${dateGroupSql}
+      ORDER BY ${dateSortSql} ASC;
+
+      -- RESULT 2: Order Status Distribution
+      SELECT 
+          ISNULL(OS.StatusName, 'Unknown') as StatusName,
+          COUNT(DISTINCT PA.OrderId) as Count
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
+      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      GROUP BY OS.StatusName;
+
+      -- RESULT 3: Refund & Cancellation Trend
+      SELECT 
+          ${dateSelectSql} AS DateStr,
+          COUNT(DISTINCT CASE WHEN ORD.OrderStatusId = 6 THEN PA.OrderId END) as Cancellations,
+          SUM(CASE WHEN PA.TypeId = 19 THEN PA.Amount ELSE 0 END) as Refunds
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      GROUP BY ${dateGroupSql}
+      ORDER BY MIN(CAST(GP.OrderDate AS DATE)) ASC;
+
+      -- RESULT 4: Recent Activity (Orders)
+      SELECT
+          ORD.OrderId,
+          CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS DateStr,
+          PA.Amount as Revenue,
+          ISNULL(OS.StatusName, 'Unknown') as Status,
+          'Order' as ActivityType,
+          LTRIM(RTRIM(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, ''))) as UserName,
+          (
+              SELECT TOP 1 PAT.Name 
+              FROM SelectedItem SI WITH (NOLOCK)
+              LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = SI.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              WHERE SI.SelectedListId = SL.SelectedListId
+          ) as ProductName
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
+      LEFT JOIN Contact C WITH (NOLOCK) ON PA.ContactId = C.ContactId
+      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      ORDER BY CAST(GP.OrderDate AS DATE) DESC, ORD.OrderId DESC
+      OFFSET @orderOffset ROWS FETCH NEXT @pageSize ROWS ONLY;
+
+      -- RESULT 5: Order Count
+      SELECT COUNT(DISTINCT PA.OrderId) as TotalCount
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate;
+
+      -- RESULT 6: Recent Activity (Cancellations)
+      SELECT
+          PA.OrderId,
+          CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS DateStr,
+          PA.Amount as Amount,
+          'Cancelled' as Status,
+          'Cancellation' as ActivityType,
+          LTRIM(RTRIM(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, ''))) as UserName,
+          (
+              SELECT TOP 1 PAT.Name 
+              FROM SelectedItem SI WITH (NOLOCK)
+              LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = SI.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+              LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              WHERE SI.SelectedListId = SL.SelectedListId
+          ) as ProductName
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      LEFT JOIN Contact C WITH (NOLOCK) ON PA.ContactId = C.ContactId
+      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      ORDER BY CAST(GP.OrderDate AS DATE) DESC, PA.OrderId DESC
+      OFFSET @refundOffset ROWS FETCH NEXT @pageSize ROWS ONLY;
+
+      -- RESULT 7: Cancellation Count
+      SELECT COUNT(DISTINCT PA.OrderId) as TotalCount
+      FROM Payment PA WITH (NOLOCK)
+      INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
+      INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
+      INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate;
+    `;
+
+    const result = await request.query(query);
+
+    const kpis = result.recordsets[0]?.[0] || { TotalRevenue: 0, TotalOrders: 0, CompletedOrders: 0, PendingOrders: 0, CancelledOrders: 0, TotalRefunds: 0 };
+    const trends = result.recordsets[1] || [];
+    const orderStatus = result.recordsets[2] || [];
+    const refundCancelTrends = result.recordsets[3] || [];
+    const recentOrders = result.recordsets[4] || [];
+    const totalOrders = result.recordsets[5]?.[0]?.TotalCount || 0;
+    const recentCancellations = result.recordsets[6] || [];
+    const totalCancellations = result.recordsets[7]?.[0]?.TotalCount || 0;
+
+    res.json({
+      kpis: {
+        revenue: kpis.TotalRevenue || 0,
+        orders: kpis.TotalOrders || 0,
+        completed: kpis.CompletedOrders || 0,
+        pending: kpis.PendingOrders || 0,
+        cancelled: kpis.CancelledOrders || 0,
+        refunds: kpis.TotalRefunds || 0
+      },
+      charts: {
+        trends,
+        orderStatus,
+        refundCancelTrends
+      },
+      alerts: {
+        highCancellations: (kpis.CancelledOrders / Math.max(kpis.TotalOrders, 1)) > 0.05,
+        highRefunds: (kpis.TotalRefunds / Math.max(kpis.TotalRevenue, 1)) > 0.05,
+        pendingOrdersCount: kpis.PendingOrders,
+      },
+      recentActivity: {
+        orders: recentOrders,
+        cancellations: recentCancellations,
+        ordersTotal: totalOrders,
+        cancellationsTotal: totalCancellations
+      }
+    });
+
+  } catch (error) {
+    console.error("Operational Dashboard Error:", error);
+    res.status(500).json({ message: 'Failed to load operational data', error: error.message });
+  }
+};

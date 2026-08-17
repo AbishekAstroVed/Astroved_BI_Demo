@@ -5,8 +5,6 @@ const DateFilterContext = createContext();
 export const useDateFilter = () => useContext(DateFilterContext);
 
 export const DateFilterProvider = ({ children }) => {
-  const [datePreset, setDatePreset] = useState('mtd'); // 'today', 'yesterday', '7days', '30days', 'mtd', 'ytd', 'custom'
-  
   const getLocalDateString = (d) => {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -14,12 +12,49 @@ export const DateFilterProvider = ({ children }) => {
     return `${year}-${month}-${day}`;
   };
 
-  // Calculate default dates (MTD)
+  // Calculate default dates
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   
-  const [startDate, setStartDate] = useState(getLocalDateString(firstDayOfMonth));
-  const [endDate, setEndDate] = useState(getLocalDateString(today));
+  let initialPreset = 'mtd';
+  let initialStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  let initialEnd = new Date(today);
+
+  const savedPeriod = localStorage.getItem('astroved_report_period');
+  if (savedPeriod) {
+    switch(savedPeriod.toLowerCase()) {
+      case 'daily':
+        initialPreset = 'yesterday';
+        initialStart = new Date(today);
+        initialStart.setDate(initialStart.getDate() - 1);
+        initialEnd = new Date(initialStart);
+        break;
+      case 'weekly':
+        initialPreset = '7days';
+        initialEnd = new Date(today);
+        initialEnd.setDate(initialEnd.getDate() - 1);
+        initialStart = new Date(initialEnd);
+        initialStart.setDate(initialEnd.getDate() - 6);
+        break;
+      case 'monthly':
+        initialPreset = '30days';
+        initialEnd = new Date(today);
+        initialEnd.setDate(initialEnd.getDate() - 1);
+        initialStart = new Date(initialEnd);
+        initialStart.setMonth(initialEnd.getMonth() - 1);
+        break;
+      case 'yearly':
+        initialPreset = 'ytd';
+        initialEnd = new Date(today);
+        initialEnd.setDate(initialEnd.getDate() - 1);
+        initialStart = new Date(initialEnd.getFullYear(), 0, 1);
+        break;
+    }
+  }
+
+  const [datePreset, setDatePreset] = useState(initialPreset); // 'today', 'yesterday', '7days', '30days', 'mtd', 'ytd', 'custom'
+  
+  const [startDate, setStartDate] = useState(getLocalDateString(initialStart));
+  const [endDate, setEndDate] = useState(getLocalDateString(initialEnd));
   
   const [compareEnabled, setCompareEnabled] = useState(true);
   const [comparePreset, setComparePreset] = useState('previous'); // 'previous', 'lastYear'

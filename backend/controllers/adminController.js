@@ -24,7 +24,8 @@ import {
   getNewsletterDashboard,
   getSEODashboard,
   getCustomerDashboard,
-  getCustomerMetrics
+  getCustomerMetrics,
+  getOperationalDashboard
 } from './dashboardController.js';
 
 // Map collection name to Model
@@ -1173,6 +1174,54 @@ const generateChartImage = async (dashboardName, title, data) => {
   return null;
 };
 
+const getDateRangeForPeriod = (period) => {
+  const now = new Date();
+
+  // End date is always yesterday
+  const endDate = new Date(now);
+  endDate.setDate(now.getDate() - 1);
+
+  let startDate = new Date(endDate);
+
+  switch (period.toLowerCase()) {
+    case 'daily':
+      // startDate is already yesterday
+      break;
+    case 'weekly':
+      startDate.setDate(endDate.getDate() - 6);
+      break;
+    case 'monthly':
+      startDate.setMonth(endDate.getMonth() - 1);
+      break;
+    case 'yearly':
+      startDate = new Date(endDate.getFullYear(), 0, 1);
+      break;
+    default:
+      break;
+  }
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
+};
+
+const fetchDashboardDataInternal = async (controllerFn, queryParams) => {
+  return new Promise((resolve) => {
+    const req = { query: queryParams };
+    const res = {
+      json: (data) => resolve(data),
+      status: (code) => res, // ignore errors for now, return null if needed
+      send: (data) => resolve(data)
+    };
+    try {
+      controllerFn(req, res).catch(() => resolve(null));
+    } catch (e) {
+      resolve(null);
+    }
+  });
+};
+
 export const sendReportEmail = async (name, recipients, format, isAutomated = false, senderEmail = null, dashboards = [], period = 'Daily') => {
   console.log(`[Report Scheduler] Initiating ${isAutomated ? 'automated' : 'test'} report dispatch for "${name}" (Period: ${period})`);
 
@@ -1183,12 +1232,13 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const port = (config?.smtpPort || '').toString().trim() || process.env.SMTP_PORT;
   const user = (config?.smtpUser || '').trim() || process.env.SMTP_USER;
   const pass = (config?.smtpPass || '').trim() || process.env.SMTP_PASS;
+  const fromEmailEnv = process.env.SMTP_FROM;
 
   // Use the logged-in user's email as the Display Name, and the system email as the actual sender.
-  // This ensures BOTH are shown (e.g., "john@example.com <abisheknavas000@gmail.com>")
+  // This ensures BOTH are shown (e.g., "john@example.com <support@astroved.com>")
   // Ensure the display name doesn't contain weird characters that might crash Nodemailer
   const cleanSenderName = senderEmail ? senderEmail.replace(/[^a-zA-Z0-9@.\s]/g, '') : 'AstroVed BI';
-  const systemEmail = user || 'no-reply@astroved.com';
+  const systemEmail = fromEmailEnv || (user.includes('@') ? user : 'support@astroved.com');
   const from = `"${cleanSenderName}" <${systemEmail}>`;
 
   const isMock = !host || (host === 'smtp.gmail.com' && user === 'your-email@gmail.com');
@@ -1196,6 +1246,74 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   if (isMock) {
     console.log(`[Report Scheduler] Running in MOCK mode (SMTP not fully configured). Simulated send to ${recipients}.`);
     return { success: true, message: `Report sent successfully to: ${recipients}` };
+  }
+
+  const dateRange = getDateRangeForPeriod(period);
+  let extractedDataHtml = '';
+
+  if (dashboards.includes('Executive Dashboard') || dashboards.includes('All Dashboards')) {
+    const data = await fetchDashboardDataInternal(getExecutiveDashboard, dateRange);
+    if (data) {
+      const prefix = period.toLowerCase() === 'daily' ? 'today' : period.toLowerCase() === 'weekly' ? 'week' : period.toLowerCase() === 'monthly' ? 'month' : 'year';
+      extractedDataHtml += `
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Executive Dashboard</h4>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Revenue:</strong> $${data[`${prefix}Revenue`] || '0'}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data[`${prefix}Orders`] || '0'}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Customers:</strong> ${data[`${prefix}Customers`] || '0'}</p>
+        </div>
+      `;
+    }
+  }
+
+  if (dashboards.includes('Customer Dashboard') || dashboards.includes('All Dashboards')) {
+    const res = await fetchDashboardDataInternal(getCustomerDashboard, dateRange);
+    if (res && res.data) {
+      const pfx = period.toLowerCase() === 'daily' ? 'today' : period.toLowerCase() === 'weekly' ? 'week' : period.toLowerCase() === 'monthly' ? 'month' : 'year';
+      extractedDataHtml += `
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Customer Dashboard</h4>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Total Customers:</strong> ${res.data[`${pfx}Customers`] || '0'}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>New Customers:</strong> ${res.data[`${pfx}NewCustomers`] || '0'}</p>
+        </div>
+      `;
+    }
+  }
+
+  if (dashboards.includes('Newsletter Performance') || dashboards.includes('All Dashboards')) {
+    extractedDataHtml += `
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Newsletter Performance</h4>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed Newsletter metrics.</p>
+        </div>
+      `;
+  }
+
+  if (dashboards.includes('Sales Dashboard') || dashboards.includes('All Dashboards')) {
+    const data = await fetchDashboardDataInternal(period.toLowerCase() === 'monthly' || period.toLowerCase() === 'yearly' ? getMonthlySalesDashboard : getDailySalesDashboard, dateRange);
+    if (data && data.salesKpiData) {
+      extractedDataHtml += `
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Sales Dashboard</h4>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Net Sales:</strong> ${data.salesKpiData[0]?.value || '0'}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data.salesKpiData[1]?.value || '0'}</p>
+        </div>
+      `;
+    }
+  }
+
+  if (dashboards.includes('Operations Dashboard') || dashboards.includes('All Dashboards')) {
+    extractedDataHtml += `
+        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Operations Dashboard</h4>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed operational metrics.</p>
+        </div>
+      `;
   }
 
   const transporter = nodemailer.createTransport({
@@ -1224,13 +1342,19 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin: 25px 0;">
             <h3 style="margin-top: 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Dispatch Details</h3>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Report Name:</strong> ${name}</p>
+            <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Data Period:</strong> ${period}</p>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Dashboards Included:</strong> ${dashboards.join(', ') || 'None'}</p>
-            <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Formats Provided:</strong> PDF, Excel, CSV</p>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Dispatch Date:</strong> ${new Date().toLocaleString()}</p>
           </div>
           
+          <!-- Fetched Dashboard Data -->
+          <div style="margin: 20px 0;">
+            <h3 style="color: #334155; font-size: 18px; border-bottom: 2px solid #4f46e5; display: inline-block; padding-bottom: 4px; margin-bottom: 15px;">Dashboard Data</h3>
+            ${extractedDataHtml || '<p style="color: #64748b; font-size: 14px;">No dashboard data available for the selected parameters.</p>'}
+          </div>
+          
           <p style="font-size: 14px; color: #64748b; margin-top: 20px;">
-            Please find your requested data attached to this email in all available formats.
+            Please find additional requested data attached to this email (if any formats were selected).
           </p>
         </div>
         
@@ -1245,171 +1369,130 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const safeName = name.replace(/\s+/g, '_');
 
   // --- 1. GENERATE PDF ---
-  const includePDF = format === 'PDF' || format === 'All Formats';
-  const includeExcel = format === 'Excel' || format === 'All Formats';
-  const includeCSV = format === 'CSV' || format === 'All Formats';
+  const includePDF = format.includes('PDF') || format === 'All Formats';
+  const includeExcel = format.includes('EXCEL') || format.includes('Excel') || format === 'All Formats';
+  const includeCSV = format.includes('CSV') || format === 'All Formats';
   let pdfErrorMessage = null;
-  
-  if (includePDF) {
-  try {
-    let htmlContent = `
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 0; }
-            h1 { text-align: center; color: #4f46e5; margin-bottom: 5px; }
-            .header-info { text-align: center; margin-bottom: 30px; color: #666; font-size: 14px; }
-            h2.dashboard-title { color: #4f46e5; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; font-size: 24px; page-break-before: always; page-break-after: avoid; }
-            .section-title { font-size: 18px; color: #374151; margin-top: 30px; margin-bottom: 15px; font-weight: bold; page-break-after: avoid; }
-            .chart-container { text-align: center; margin: 20px 0; page-break-inside: avoid; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; page-break-inside: auto; table-layout: fixed; word-wrap: break-word; }
-            thead { display: table-header-group; }
-            tr { page-break-inside: auto; page-break-after: auto; }
-            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-            th { background-color: #f9fafb; font-weight: bold; color: #4b5563; }
-            td.right { text-align: right; }
-            th.right { text-align: right; }
-          </style>
-        </head>
-        <body>
-          <h1>AstroVed BI Enterprise Report</h1>
-          <div class="header-info">
-            <div>Schedule Name: ${name}</div>
-            <div>Generated On: ${new Date().toLocaleString()}</div>
-          </div>
-    `;
 
-    if (dashboards && dashboards.length > 0) {
-      for (const dashboard of dashboards) {
-        htmlContent += `<h2 class="dashboard-title">${dashboard}</h2>`;
-        
-        const sections = await fetchDashboardDataForReport(dashboard, period);
-        
-        if (sections && sections.length > 0) {
-          const chartPromises = sections.map(section => {
-            const isRecentOrders = section.title.toLowerCase().includes('recent order');
-            if (section.data && section.data.length >= 2 && !isRecentOrders) {
-              return generateChartImage(dashboard, section.title, section.data).catch(err => null);
-            }
-            return Promise.resolve(null);
-          });
-          const chartBuffers = await Promise.all(chartPromises);
-          
-          for (let i = 0; i < sections.length; i++) {
-            const section = sections[i];
-            if (!section.data || section.data.length === 0) continue;
-            
-            htmlContent += `<div class="section-title">${section.title}</div>`;
-            
-            const chartBuffer = chartBuffers[i];
-            if (chartBuffer) {
-              const base64Chart = chartBuffer.toString('base64');
-              htmlContent += `
-                <div class="chart-container">
-                  <img src="data:image/png;base64,${base64Chart}" width="500" height="300" />
-                </div>
-              `;
-            }
-            
-            if (section.isCards) {
-               htmlContent += `<div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; page-break-inside: avoid;">`;
-               section.data.forEach(card => {
-                  let badgeColor = '#6b7280';
-                  if (card.badgeColor && card.badgeColor.includes('emerald')) badgeColor = '#10b981';
-                  if (card.badgeColor && card.badgeColor.includes('rose')) badgeColor = '#f43f5e';
-                  
-                  htmlContent += `
-                    <div style="flex: 1 1 calc(25% - 15px); min-width: 150px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                      <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">${card.title || 'Metric'}</div>
-                      <div style="font-size: 20px; font-weight: bold; color: #111827; margin-bottom: 8px;">${card.value || ''}</div>
-                      <div style="font-size: 12px; font-weight: 500; color: ${badgeColor};">
-                        ${card.change || ''}
-                      </div>
-                    </div>
-                  `;
-               });
-               htmlContent += `</div>`;
-            } else {
-               htmlContent += `
-                 <table>
-                   <thead>
-                     <tr>
-                       <th>Metric / Product Name</th>
-                       <th class="right">Value</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-               `;
-               
-               section.data.forEach(row => {
-                 let valObj = row.Value;
-                 if (valObj !== null && typeof valObj === 'object') {
-                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-                 }
-                 const metricName = (row.Metric || 'Unknown').toString().substring(0, 80);
-                 const val = (valObj !== null && valObj !== undefined) ? (typeof valObj === 'number' ? valObj.toLocaleString() : valObj.toString()) : '0';
-                 
-                 htmlContent += `
-                   <tr>
-                     <td>${metricName}</td>
-                     <td class="right">${val}</td>
-                   </tr>
-                 `;
-               });
-               
-               htmlContent += `
-                   </tbody>
-                 </table>
-               `;
-            }
+
+  if (includePDF) {
+    try {
+      const browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+      });
+
+      const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+      let htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: white; }
+              h1 { text-align: center; color: #4f46e5; }
+              .dashboard-image { width: 100%; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+            </style>
+          </head>
+          <body>
+            <h1>AstroVed BI - ${name}</h1>
+            <p style="text-align: center; color: #64748b;">Period: ${period} | Generated: ${new Date().toLocaleString()}</p>
+      `;
+
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
+
+      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded' });
+
+      await page.evaluate((schedPeriod) => {
+        localStorage.setItem('astroved_token', 'puppeteer_token');
+        localStorage.setItem('astroved_user', JSON.stringify({ empId: 'SYSTEM', role: 'admin' }));
+        localStorage.setItem('astroved_permissions', JSON.stringify({
+          dashboard: { executive: true, sales: true, marketing: true, newsletter: true, seo: true, customer: true, funnel: true, operations: true, ai: true }
+        }));
+        localStorage.setItem('astroved_report_period', schedPeriod);
+      }, period);
+
+      const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
+
+      for (const dash of dashboardsToCapture) {
+        let dashPath = '/';
+        if (dash.includes('Sales')) dashPath = '/sales';
+        if (dash.includes('Marketing')) dashPath = '/marketing';
+        if (dash.includes('Newsletter')) dashPath = '/newsletter';
+        if (dash.includes('SEO')) dashPath = '/seo';
+        if (dash.includes('Customer')) dashPath = '/customer';
+        if (dash.includes('Funnel')) dashPath = '/funnel';
+        if (dash.includes('Operations')) dashPath = '/operations';
+        if (dash.includes('AI')) dashPath = '/ai-insights';
+
+        console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}${dashPath}`);
+
+        await page.goto(FRONTEND_URL, { waitUntil: 'networkidle0', timeout: 60000 });
+
+        await page.evaluate(async (targetDash) => {
+          const btns = Array.from(document.querySelectorAll('nav button, nav a, .sidebar button, .sidebar a'));
+          let searchStr = 'Executive';
+          if (targetDash.includes('Sales')) searchStr = 'Sales';
+          if (targetDash.includes('Marketing')) searchStr = 'Marketing';
+          if (targetDash.includes('Newsletter')) searchStr = 'Newsletter';
+          if (targetDash.includes('SEO')) searchStr = 'SEO';
+          if (targetDash.includes('Customer')) searchStr = 'Customer';
+          if (targetDash.includes('Funnel')) searchStr = 'Funnel';
+          if (targetDash.includes('Operations')) searchStr = 'Operations';
+          if (targetDash.includes('AI')) searchStr = 'AI';
+
+          const btn = btns.find(b => b.textContent.includes(searchStr) || b.innerText.includes(searchStr));
+          if (btn) btn.click();
+        }, dash);
+
+        await new Promise(r => setTimeout(r, 6000));
+
+        const scriptPath = path.resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
+        await page.addScriptTag({ path: scriptPath });
+
+        const base64Img = await page.evaluate(async () => {
+          const el = document.querySelector('.main-content-area') || document.body;
+          try {
+            const canvas = await window.html2canvas(el, { useCORS: true, scale: 1.5, logging: false });
+            return canvas.toDataURL('image/png');
+          } catch (e) {
+            return null;
           }
-        } else {
-          htmlContent += `<p style="font-size: 14px; color: #666;">No live data available for this dashboard right now.</p>`;
+        });
+
+        if (base64Img) {
+          htmlContent += `<img class="dashboard-image" src="${base64Img}" />`;
         }
       }
-    } else {
-      htmlContent += `<p style="font-size: 14px; color: #666;">No dashboards selected for this report.</p>`;
-    }
-    
-    htmlContent += `
-        </body>
-      </html>
-    `;
 
-    const browser = await puppeteer.launch({ 
-      headless: 'new', 
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] 
-    });
-    const page = await browser.newPage();
-    
-    // Write HTML to disk to completely bypass Chromium WebSocket payload limits!
-    const tempHtmlPath = path.join(process.cwd(), `temp_report_${Date.now()}.html`);
-    fs.writeFileSync(tempHtmlPath, htmlContent);
-    
-    // Use timeout: 120000 to prevent timeout on large reports with many charts
-    await page.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-    
-    const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
-    await page.pdf({ 
-      path: tempPdfPath,
-      format: 'A4', 
-      printBackground: true, 
-      displayHeaderFooter: true,
-      headerTemplate: `<div style="font-size: 10px; color: #9ca3af; text-align: center; width: 100%; padding: 0 20px;">AstroVed BI - Automated Report (${name})</div>`,
-      footerTemplate: `<div style="font-size: 10px; color: #9ca3af; text-align: center; width: 100%; padding: 0 20px;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>`,
-      margin: { top: '60px', bottom: '60px', left: '20px', right: '20px' },
-      timeout: 120000
-    });
-    await browser.close();
-    
-    attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath, _tempHtmlPath: tempHtmlPath });
-  } catch (err) {
-    console.error("Failed to attach PDF", err);
-    pdfErrorMessage = err.message;
-  }
+      htmlContent += '</body></html>';
+
+      const tempHtmlPath = path.join(process.cwd(), `temp_report_${Date.now()}.html`);
+      fs.writeFileSync(tempHtmlPath, htmlContent);
+
+      const pdfPage = await browser.newPage();
+      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'domcontentloaded' });
+
+      const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
+      await pdfPage.pdf({
+        path: tempPdfPath,
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+      });
+
+      await browser.close();
+
+      attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath, _tempHtmlPath: tempHtmlPath });
+      console.log('[Report Scheduler] PDF generated successfully using html2canvas-pro via Puppeteer.');
+    } catch (err) {
+      console.error("Failed to generate/attach PDF via Puppeteer", err);
+      pdfErrorMessage = err.message;
+    }
   }
 
   // --- 2. GENERATE EXCEL ---
+
   try {
     const wb = XLSX.utils.book_new();
     if (dashboards && dashboards.length > 0) {
@@ -1417,18 +1500,18 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         const sections = await fetchDashboardDataForReport(dashboard);
         let flatData = [];
         sections.forEach(sec => {
-           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
-           if (sec.isCards) {
-              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
-           } else if (sec.data) {
-              sec.data.forEach(row => {
-                 let valObj = row.Value;
-                 if (valObj !== null && typeof valObj === 'object') {
-                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-                 }
-                 flatData.push({ Metric: row.Metric, Value: valObj });
-              });
-           }
+          flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+          if (sec.isCards) {
+            sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+          } else if (sec.data) {
+            sec.data.forEach(row => {
+              let valObj = row.Value;
+              if (valObj !== null && typeof valObj === 'object') {
+                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+              }
+              flatData.push({ Metric: row.Metric, Value: valObj });
+            });
+          }
         });
         const wsData = flatData.length > 0 ? flatData : [{ Metric: 'No Data', Value: 0 }];
         const ws = XLSX.utils.json_to_sheet(wsData);
@@ -1452,31 +1535,31 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         const sections = await fetchDashboardDataForReport(dashboard);
         let flatData = [];
         sections.forEach(sec => {
-           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
-           if (sec.isCards) {
-              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
-           } else if (sec.data) {
-              sec.data.forEach(row => {
-                 let valObj = row.Value;
-                 if (valObj !== null && typeof valObj === 'object') {
-                   valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-                 }
-                 flatData.push({ Metric: row.Metric, Value: valObj });
-              });
-           }
+          flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+          if (sec.isCards) {
+            sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+          } else if (sec.data) {
+            sec.data.forEach(row => {
+              let valObj = row.Value;
+              if (valObj !== null && typeof valObj === 'object') {
+                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+              }
+              flatData.push({ Metric: row.Metric, Value: valObj });
+            });
+          }
         });
         if (flatData.length > 0) {
           csvString += `--- ${dashboard} ---\n`;
           csvString += Object.keys(flatData[0]).join(',') + '\n';
           flatData.forEach(row => {
-             csvString += Object.values(row).map(v => {
-                if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
-                let valStr = String(v).replace(/"/g, '""');
-                if (valStr.includes(',') || valStr.includes('\\n') || valStr.includes('"')) {
-                  return `"${valStr}"`;
-                }
-                return valStr;
-             }).join(',') + '\n';
+            csvString += Object.values(row).map(v => {
+              if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
+              let valStr = String(v).replace(/"/g, '""');
+              if (valStr.includes(',') || valStr.includes('\\n') || valStr.includes('"')) {
+                return `"${valStr}"`;
+              }
+              return valStr;
+            }).join(',') + '\n';
           });
           csvString += '\n';
         }
@@ -1493,7 +1576,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     from: from,
     replyTo: senderEmail || systemEmail,
     to: recipients,
-    subject: `[${isAutomated ? 'AUTOMATED' : 'TEST'} REPORT] - ${name}`,
+    subject: name,
     html: emailHtml,
     attachments
   });

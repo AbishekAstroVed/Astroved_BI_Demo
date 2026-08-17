@@ -1,7 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
-export const usePagination = (data, itemsPerPage = 10) => {
+export const usePagination = (data, initialItemsPerPage = 10) => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
+
+  useEffect(() => {
+    setItemsPerPage(initialItemsPerPage);
+  }, [initialItemsPerPage]);
 
   const totalPages = Math.ceil((data?.length || 0) / itemsPerPage);
 
@@ -27,5 +32,5 @@ export const usePagination = (data, itemsPerPage = 10) => {
     setCurrentPage(Math.min(pageNumber, totalPages));
   };
 
-  return { next, prev, jump, currentData, currentPage: validCurrentPage, totalPages };
+  return { next, prev, jump, currentData, currentPage: validCurrentPage, totalPages, setItemsPerPage };
 };

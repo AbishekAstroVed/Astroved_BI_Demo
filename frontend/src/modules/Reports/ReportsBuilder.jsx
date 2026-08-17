@@ -6,16 +6,10 @@ import MultiSelectDropdown from '../../components/MultiSelectDropdown';
 
 const DASHBOARD_OPTIONS = [
   { label: 'Executive Dashboard', value: 'Executive Dashboard' },
-  { label: 'Sales Dashboard', value: 'Sales Dashboard' },
-  { label: 'Daily Sales Dashboard', value: 'Daily Sales Dashboard' },
-  { label: 'Monthly Sales Dashboard', value: 'Monthly Sales Dashboard' },
-  { label: 'Marketing Dashboard', value: 'Marketing Dashboard' },
-  { label: 'Newsletter Performance', value: 'Newsletter Performance' },
-  { label: 'SEO Dashboard', value: 'SEO Dashboard' },
   { label: 'Customer Dashboard', value: 'Customer Dashboard' },
-  { label: 'Funnel Dashboard', value: 'Funnel Dashboard' },
-  { label: 'Operations Dashboard', value: 'Operations Dashboard' },
-  { label: 'AI Insights', value: 'AI Insights' }
+  { label: 'Sales Dashboard', value: 'Sales Dashboard' },
+  { label: 'Newsletter Performance', value: 'Newsletter Performance' },
+  { label: 'Operations Dashboard', value: 'Operations Dashboard' }
 ];
 
 const ReportsBuilder = () => {
@@ -31,7 +25,7 @@ const ReportsBuilder = () => {
   const [recipientEmails, setRecipientEmails] = useState([]);
   const [emailInput, setEmailInput] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
-  const [scheduleFormat, setScheduleFormat] = useState('PDF');
+  const [scheduleFormat, setScheduleFormat] = useState(['PDF']);
   const [schedulePeriod, setSchedulePeriod] = useState('Daily');
   const [selectedDashboards, setSelectedDashboards] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -121,7 +115,7 @@ const ReportsBuilder = () => {
         name: scheduleName,
         frequency: scheduleType.charAt(0).toUpperCase() + scheduleType.slice(1),
         recipients: recipientEmails,
-        format: scheduleFormat,
+        format: scheduleFormat.join(','),
         time: scheduleTime,
         period: schedulePeriod,
         senderEmail: senderEmail,
@@ -150,6 +144,7 @@ const ReportsBuilder = () => {
       setEmailInput('');
       setScheduleTime('');
       setSelectedDashboards([]);
+      setScheduleFormat(['PDF']);
     } catch (err) {
       toast.error('Failed to register schedule: ' + err.message);
     }
@@ -327,15 +322,26 @@ const ReportsBuilder = () => {
                 {/* 5. Format */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Format</label>
-                  <select
-                    value={scheduleFormat}
-                    onChange={(e) => setScheduleFormat(e.target.value)}
-                    className="w-full bg-cosmic-bg border border-cosmic-border px-4 py-2.5 rounded-xl text-sm text-cosmic-text focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
-                  >
-                    <option value="PDF">PDF</option>
-                    <option value="EXCEL">Excel</option>
-                    <option value="CSV">CSV</option>
-                  </select>
+                  <div className="flex gap-4 p-2.5 bg-cosmic-bg border border-cosmic-border rounded-xl">
+                    {['PDF', 'Excel', 'CSV'].map((fmt) => (
+                      <label key={fmt} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={fmt.toUpperCase()}
+                          checked={scheduleFormat.includes(fmt.toUpperCase())}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setScheduleFormat([...scheduleFormat, e.target.value]);
+                            } else {
+                              setScheduleFormat(scheduleFormat.filter(f => f !== e.target.value));
+                            }
+                          }}
+                          className="w-4 h-4 text-indigo-600 rounded border-cosmic-border bg-transparent focus:ring-indigo-500 focus:ring-offset-cosmic-bg"
+                        />
+                        <span className="text-sm text-cosmic-text font-medium">{fmt}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {/* 6. Send Hour (UTC) */}

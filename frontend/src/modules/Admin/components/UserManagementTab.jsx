@@ -23,7 +23,7 @@ const UserManagementTab = ({ crud }) => {
   // ----------------------------------------------------
   const [users, setUsers] = useState([]);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUser, setNewUser] = useState({ empId: '', name: '', email: '', password: '', phone: '', department: 'Analytics', designation: '', role: 'Analyst' });
+  const [newUser, setNewUser] = useState({ empId: '', name: '', email: '', password: '', department: 'Analytics', designation: '', role: 'Analyst' });
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userDeptFilter, setUserDeptFilter] = useState('All Departments');
   const [userRoleFilter, setUserRoleFilter] = useState('All Roles');
@@ -68,7 +68,7 @@ const UserManagementTab = ({ crud }) => {
         browser: navigator.userAgent
       });
 
-      setNewUser({ empId: '', name: '', email: '', password: '', phone: '', department: 'Analytics', designation: '', role: 'Analyst' });
+      setNewUser({ empId: '', name: '', email: '', password: '', department: 'Analytics', designation: '', role: 'Analyst' });
       setShowAddUserModal(false);
     } catch (err) {
       toast.error('Failed to add user');
@@ -407,10 +407,7 @@ const UserManagementTab = ({ crud }) => {
                           <label className="block text-xs text-cosmic-muted mb-1">Employee ID</label>
                           <input type="text" value={newUser.empId} onChange={e => setNewUser({...newUser, empId: e.target.value})} className="w-full bg-cosmic-bg border border-cosmic-border rounded-lg px-3 py-2 text-sm text-cosmic-text focus:border-indigo-500 focus:outline-none" placeholder="Auto-generated if empty" />
                         </div>
-                        <div>
-                          <label className="block text-xs text-cosmic-muted mb-1">Phone</label>
-                          <input type="tel" value={newUser.phone} onChange={e => setNewUser({...newUser, phone: e.target.value})} className="w-full bg-cosmic-bg border border-cosmic-border rounded-lg px-3 py-2 text-sm text-cosmic-text focus:border-indigo-500 focus:outline-none" placeholder="+1..." />
-                        </div>
+
                         <div>
                           <label className="block text-xs text-cosmic-muted mb-1">Department</label>
                           <select value={newUser.department} onChange={e => setNewUser({...newUser, department: e.target.value})} className="w-full bg-cosmic-bg border border-cosmic-border rounded-lg px-3 py-2 text-sm text-cosmic-text focus:border-indigo-500 focus:outline-none">

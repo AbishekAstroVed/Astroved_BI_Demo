@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 const AIInsights = ({ setCurrentModule }) => {
-  const { startDate, endDate } = useDateFilter();
+  const { startDate, endDate, setCalendarHidden } = useDateFilter();
   const [insights, setInsights] = useState([]);
   const [rawData, setRawData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,10 +18,16 @@ const AIInsights = ({ setCurrentModule }) => {
 
   // Keep insights empty on load so user must trigger live analysis
   useEffect(() => {
+    if (setCurrentModule) setCurrentModule('ai-insights');
+    if (setCalendarHidden) setCalendarHidden(true);
     setInsights([]);
     setRawData(null);
     setError('');
-  }, [startDate, endDate]);
+    
+    return () => {
+      if (setCalendarHidden) setCalendarHidden(false);
+    };
+  }, [startDate, endDate, setCurrentModule, setCalendarHidden]);
 
   const handleGenerateInsights = async () => {
     setIsLoading(true);
@@ -228,7 +234,7 @@ const AIInsights = ({ setCurrentModule }) => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                       <div>
                         <span className="text-xs text-cosmic-muted font-bold uppercase tracking-wider">Observation</span>

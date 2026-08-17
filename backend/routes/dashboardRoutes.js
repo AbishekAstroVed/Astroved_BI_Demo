@@ -13,7 +13,8 @@ import {
   getCustomerMetrics,
   getMSSQLData,
   getNewsletterDashboard,
-  getAllEventNames
+  getAllEventNames,
+  getOperationalDashboard
 } from '../controllers/dashboardController.js';
 
 const router = express.Router();
@@ -32,5 +33,6 @@ router.get('/customer-metrics', getCustomerMetrics);
 router.get('/mssql', getMSSQLData);
 router.get('/newsletter', getNewsletterDashboard);
 router.get('/newsletter/events', getAllEventNames);
+router.get('/operations', getOperationalDashboard);
 
 export default router;

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, FileText, FileSpreadsheet, FilePlus } from 'lucide-react';
+import html2canvasPro from 'html2canvas-pro';
+import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
-const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales', showPeriodTabs = true, className = '', onPeriodChange }) => {
+const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales', showPeriodTabs = true, className = '', onPeriodChange, onPrepareExport, onRestoreExport, exportElementId }) => {
   const [exportPeriod, setExportPeriod] = useState(defaultPeriod);
 
   React.useEffect(() => {
@@ -18,28 +20,28 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     return `${pageTitle.replace(/\s+/g, '_')}_${exportPeriod}_Report_${dateSuffix}.${ext}`;
   };
 
-  const resolveExportData = () => {
-    const todayCards = data?.salesKpiData?.todayRevenueCards || [];
-    const monthCards = data?.salesKpiData?.monthRevenueCards || [];
+  const resolveExportData = (currentData = data) => {
+    const todayCards = currentData?.salesKpiData?.todayRevenueCards || [];
+    const monthCards = currentData?.salesKpiData?.monthRevenueCards || [];
     let cards = exportPeriod === 'Daily' ? (todayCards.length > 0 ? todayCards : monthCards) : (monthCards.length > 0 ? monthCards : todayCards);
     if (cards.length === 0) {
-      cards = data?.customerKpiCards || data?.newsletterKpiCards || data?.kpiCards || [];
+      cards = currentData?.customerKpiCards || currentData?.newsletterKpiCards || currentData?.kpiCards || [];
     }
-    const revSource = data?.revenueSource || [];
-    const eventSales = data?.eventSales || [];
-    const salesByEvent = data?.salesByEventName || data?.eventSales || [];
-    const quarterSpecials = data?.quarterSpecials || data?.specialsStoreItems || [];
-    const bestSellers = data?.bestSellers || [];
-    const lowPerformers = data?.lowPerformers || [];
-    const currencies = data?.currencies || [];
-    const currencyGrowth = data?.currencyGrowth || null;
+    const revSource = currentData?.revenueSource || [];
+    const eventSales = currentData?.eventSales || [];
+    const salesByEvent = currentData?.salesByEventName || currentData?.eventSales || [];
+    const quarterSpecials = currentData?.quarterSpecials || currentData?.specialsStoreItems || [];
+    const bestSellers = currentData?.bestSellers || [];
+    const lowPerformers = currentData?.lowPerformers || [];
+    const currencies = currentData?.currencies || [];
+    const currencyGrowth = currentData?.currencyGrowth || null;
 
     const isMonthlySales = (exportPeriod === 'Monthly' || pageTitle.toLowerCase().includes('monthly')) && pageTitle.toLowerCase().includes('sales');
 
     // Resolve Geo Heat Map Data (Regional Sales Growth Map) ONLY for Monthly sales
     let geoData = [];
     if (isMonthlySales) {
-      geoData = data?.geoData;
+      geoData = currentData?.geoData;
       if (!geoData || !Array.isArray(geoData) || geoData.length <= 1) {
         const countryMap = {
           'INR Share': 'IN',
@@ -69,27 +71,27 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     // currencyGrowth has been removed as per user request
 
     // Customer Specific Datasets
-    const customerMetricsRows = data?.customerMetricsRows || [];
-    const customerMetricsLabels = data?.customerMetricsLabels || ['Older', 'Previous', 'Current'];
-    const demographics = data?.demographics || null;
-    const newCustomersByEvent = data?.newCustomersByEvent || [];
-    const newCustomersByProduct = data?.newCustomersByProduct || [];
-    const highContributors = data?.highContributors || [];
-    const newCustomersByTraffic = data?.newCustomersByTraffic || [];
-    const projectionByTraffic = data?.projectionByTraffic || [];
-    const revenueByTrafficSource = data?.revenueByTrafficSource || [];
-    const newMemberTrendByCurrency = data?.newMemberTrendByCurrency || [];
-    const comparisonOfRevenueBySource = data?.comparisonOfRevenueBySource || [];
+    const customerMetricsRows = currentData?.customerMetricsRows || [];
+    const customerMetricsLabels = currentData?.customerMetricsLabels || ['Older', 'Previous', 'Current'];
+    const demographics = currentData?.demographics || null;
+    const newCustomersByEvent = currentData?.newCustomersByEvent || [];
+    const newCustomersByProduct = currentData?.newCustomersByProduct || [];
+    const highContributors = currentData?.highContributors || [];
+    const newCustomersByTraffic = currentData?.newCustomersByTraffic || [];
+    const projectionByTraffic = currentData?.projectionByTraffic || [];
+    const revenueByTrafficSource = currentData?.revenueByTrafficSource || [];
+    const newMemberTrendByCurrency = currentData?.newMemberTrendByCurrency || [];
+    const comparisonOfRevenueBySource = currentData?.comparisonOfRevenueBySource || [];
 
     // Newsletter Specific Datasets
-    const categorySales = data?.categorySales || [];
-    const dateWisePerformance = data?.dateWisePerformance || [];
-    const overallPerformanceData = data?.overallPerformanceData || [];
-    const breakupSummary = data?.breakupSummary || [];
-    const typesCompared = data?.typesCompared || [];
-    const overallEventsData = data?.overallEventsData || [];
-    const specialEventsData = data?.specialEventsData || [];
-    const specialEventsPerformanceData = data?.specialEventsPerformanceData || [];
+    const categorySales = currentData?.categorySales || [];
+    const dateWisePerformance = currentData?.dateWisePerformance || [];
+    const overallPerformanceData = currentData?.overallPerformanceData || [];
+    const breakupSummary = currentData?.breakupSummary || [];
+    const typesCompared = currentData?.typesCompared || [];
+    const overallEventsData = currentData?.overallEventsData || [];
+    const specialEventsData = currentData?.specialEventsData || [];
+    const specialEventsPerformanceData = currentData?.specialEventsPerformanceData || [];
 
     return {
       cards,
@@ -124,7 +126,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     };
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = (exportData = data) => {
     try {
       let csv = `AstroVed BI Portal - ${pageTitle} (${exportPeriod} Report)\n`;
       csv += `Selected Period: ${exportPeriod}\n`;
@@ -159,7 +161,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         overallEventsData,
         specialEventsData,
         specialEventsPerformanceData
-      } = resolveExportData();
+      } = resolveExportData(exportData);
 
       // Calculate total revenue for Event Revenue Share percentage calculation
       const totalEventRevenue = eventSales.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
@@ -403,7 +405,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (exportData = data) => {
     try {
       const wb = XLSX.utils.book_new();
 
@@ -436,7 +438,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
         overallEventsData,
         specialEventsData,
         specialEventsPerformanceData
-      } = resolveExportData();
+      } = resolveExportData(exportData);
 
       const totalEventRevenue = eventSales.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
 
@@ -842,581 +844,55 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     }
   };
 
-  const handleExportPDF = () => {
+    const handleExportPDF = async () => {
     try {
-      const {
-        cards,
-        revSource,
-        eventSales,
-        salesByEvent,
-        quarterSpecials,
-        bestSellers,
-        lowPerformers,
-        currencies,
-        currencyGrowth,
-        geoData,
-        customerMetricsRows,
-        customerMetricsLabels,
-        demographics,
-        newCustomersByEvent,
-        newCustomersByProduct,
-        highContributors,
-        newCustomersByTraffic,
-        revenueByTrafficSource,
-        newMemberTrendByCurrency,
-        comparisonOfRevenueBySource,
-        categorySales,
-        dateWisePerformance,
-        overallPerformanceData,
-        breakupSummary,
-        typesCompared,
-        overallEventsData,
-        specialEventsData,
-        specialEventsPerformanceData
-      } = resolveExportData();
+      const elementId = exportElementId || 'dashboard-export-area';
+      const dashboardElement = document.getElementById(elementId);
 
-      const totalEventRevenue = eventSales.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
-
-      let maxSourceRev = 10000;
-      if (comparisonOfRevenueBySource && comparisonOfRevenueBySource.length > 0) {
-        comparisonOfRevenueBySource.forEach(item => {
-           const target = parseFloat(item.expected) || 0;
-           const rev = parseFloat(item.revenue) || 0;
-           const proj = parseFloat(item.projected) || 0;
-           maxSourceRev = Math.max(maxSourceRev, target, rev, proj);
-        });
-        maxSourceRev = maxSourceRev * 1.1; // Add 10% headroom
-      }
-      // Geo Heat Map Helper
-      const countryNames = {
-        'IN': 'India (IN)',
-        'US': 'United States (US)',
-        'MY': 'Malaysia (MY)',
-        'NP': 'Nepal (NP)',
-        'LK': 'Sri Lanka (LK)',
-        'SG': 'Singapore (SG)',
-        'PH': 'Philippines (PH)',
-        'CN': 'China (CN)'
-      };
-      const geoRows = (geoData.length > 1 ? geoData.slice(1) : []).map(r => ({
-        code: r[0],
-        name: countryNames[r[0]] || r[0],
-        share: r[1]
-      }));
-
-
-
-      const printContent = `
-        <html>
-        <head>
-          <title>${getExportFileName('pdf')}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #1e293b; }
-            h1 { color: #1e1b4b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-size: 22px; }
-            h2 { color: #4338ca; font-size: 15px; margin-top: 25px; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; }
-            .meta { font-size: 12px; color: #64748b; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; }
-            th, td { border: 1px solid #cbd5e1; padding: 7px 10px; text-align: left; }
-            th { background-color: #f8fafc; font-weight: 600; color: #334155; }
-            .badge-green { color: #16a34a; font-weight: bold; }
-            .badge-red { color: #dc2626; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <h1>AstroVed BI Portal - ${pageTitle}</h1>
-          <div class="meta">
-            <strong>Selected Period:</strong> ${exportPeriod}<br/>
-            <strong>Date Generated:</strong> ${new Date().toLocaleString()}
-          </div>
-          
-          <h2>1. Performance Metrics (${exportPeriod})</h2>
-          <table>
-            <thead><tr><th>Metric</th><th>Value</th><th>Change</th></tr></thead>
-            <tbody>
-              ${cards.map(c => `<tr><td>${c.title}</td><td>${c.value}</td><td>${c.change}</td></tr>`).join('')}
-            </tbody>
-          </table>
-
-          ${customerMetricsRows.length > 0 ? `
-            <h2>Customer Performance Metrics Overview (${customerMetricsLabels.join(' vs ')})</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Metric</th>
-                  <th>${customerMetricsLabels[0] || 'Older'}</th>
-                  <th>${customerMetricsLabels[1] || 'Previous'}</th>
-                  <th>${customerMetricsLabels[2] || 'Current'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${customerMetricsRows.map(r => `<tr><td>${r.metric}</td><td>${r.col1}</td><td>${r.col2}</td><td class="badge-green">${r.col3}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${demographics ? `
-            <h2>Customer Demographics Breakdown</h2>
-            <table>
-              <thead>
-                <tr><th>Cohort</th><th>Total Members</th><th>USD Members</th><th>MYR Members</th><th>INR Members</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>New Registered Members</td><td>${demographics.newTotal || 0}</td><td>${demographics.newUsd || 0}</td><td>${demographics.newMyr || 0}</td><td>${demographics.newInr || 0}</td></tr>
-                <tr><td>Returning Members</td><td>${demographics.retTotal || 0}</td><td>${demographics.retUsd || 0}</td><td>${demographics.retMyr || 0}</td><td>${demographics.retInr || 0}</td></tr>
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${highContributors.length > 0 ? `
-            <h2>High Contributor Customer Accounts</h2>
-            <table>
-              <thead>
-                <tr><th>Customer Name</th><th>Email</th><th>Country</th><th>Orders</th><th>Total Revenue ($)</th></tr>
-              </thead>
-              <tbody>
-                ${highContributors.map(c => `<tr><td>${c.customerName || c.name || ''}</td><td>${c.email || ''}</td><td>${c.country || ''}</td><td>${c.orders || 0}</td><td class="badge-green">${(c.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${newCustomersByEvent.length > 0 ? `
-            <h2>New Customers By Event Name</h2>
-            <table>
-              <thead>
-                <tr><th>Event Name</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
-              </thead>
-              <tbody>
-                ${newCustomersByEvent.map(e => `<tr><td>${e.eventName || e.name || ''}</td><td>${e.customers || e.qty || 0}</td><td>${e.countChange || '-'}</td><td class="badge-green">${(e.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${e.revChange || '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${newCustomersByProduct.length > 0 ? `
-            <h2>New Customers By Product Name</h2>
-            <table>
-              <thead>
-                <tr><th>Product Name</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
-              </thead>
-              <tbody>
-                ${newCustomersByProduct.map(p => `<tr><td>${p.productName || p.name || ''}</td><td>${p.customers || p.qty || 0}</td><td>${p.countChange || '-'}</td><td class="badge-green">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${p.revChange || '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${newCustomersByTraffic.length > 0 ? `
-            <h2>New Customers By Traffic Channel</h2>
-            <table>
-              <thead>
-                <tr><th>Traffic Source</th><th>Customer Count</th><th>Count Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
-              </thead>
-              <tbody>
-                ${newCustomersByTraffic.map(t => `<tr><td>${t.source || ''}</td><td>${t.customers || t.qty || 0}</td><td>${t.countChange || '-'}</td><td class="badge-green">${(t.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${t.revChange || '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${revenueByTrafficSource.length > 0 ? `
-            <h2>Revenue By Traffic Sources</h2>
-            <table>
-              <thead>
-                <tr><th>Traffic Source</th><th>Quantity</th><th>Qty Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
-              </thead>
-              <tbody>
-                ${revenueByTrafficSource.map(r => `<tr><td>${r.source || ''}</td><td>${r.qty || 0}</td><td>${r.qtyChange || '-'}</td><td class="badge-green">${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${newMemberTrendByCurrency.length > 0 ? `
-            <h2>New Member Trend By Currency</h2>
-            <table>
-              <thead>
-                <tr><th>Period</th><th>Total New</th><th>USD</th><th>MYR</th><th>INR</th></tr>
-              </thead>
-              <tbody>
-                ${newMemberTrendByCurrency.map(r => `<tr><td>${r.period}</td><td>${r.total}</td><td>${r.usd}</td><td>${r.myr}</td><td>${r.inr}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${comparisonOfRevenueBySource.length > 0 ? `
-            <h2>Comparison of Revenue By Source</h2>
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:12px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                📊 Comparison of Revenue by Source
-              </div>
-              <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:15px; font-size:10px; font-weight:bold;">
-                <span style="color:#3b82f6;">🟦 Target Final</span>
-                <span style="color:#22c55e;">🟩 Revenue</span>
-                <span style="color:#f59e0b;">🟧 Projected Final</span>
-              </div>
-              <svg width="680" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
-                <!-- Y-Grid lines -->
-                <line x1="60" y1="20" x2="650" y2="20" stroke="#f1f5f9" stroke-width="1" />
-                <text x="50" y="24" text-anchor="end" fill="#94a3b8" font-size="9">${Math.round(maxSourceRev).toLocaleString()}</text>
-
-                <line x1="60" y1="70" x2="650" y2="70" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3 3" />
-                <text x="50" y="74" text-anchor="end" fill="#94a3b8" font-size="9">${Math.round(maxSourceRev*0.75).toLocaleString()}</text>
-
-                <line x1="60" y1="120" x2="650" y2="120" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3 3" />
-                <text x="50" y="124" text-anchor="end" fill="#94a3b8" font-size="9">${Math.round(maxSourceRev*0.5).toLocaleString()}</text>
-
-                <line x1="60" y1="170" x2="650" y2="170" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3 3" />
-                <text x="50" y="174" text-anchor="end" fill="#94a3b8" font-size="9">${Math.round(maxSourceRev*0.25).toLocaleString()}</text>
-
-                <line x1="60" y1="220" x2="650" y2="220" stroke="#cbd5e1" stroke-width="1.5" />
-                <text x="50" y="224" text-anchor="end" fill="#94a3b8" font-size="9">0</text>
-
-                <!-- Bars and X Axis Labels -->
-                ${comparisonOfRevenueBySource.map((r, idx) => {
-                  const numItems = comparisonOfRevenueBySource.length;
-                  const groupW = 590 / Math.max(numItems, 1);
-                  const xCenter = 60 + (idx * groupW) + (groupW / 2);
-                  const barW = Math.min(10, groupW / 4); // Max width of 10 for each bar
-                  
-                  const target = parseFloat(r.expected) || 0;
-                  const rev = parseFloat(r.revenue) || 0;
-                  const proj = parseFloat(r.projected) || 0;
-                  
-                  const hTarget = maxSourceRev > 0 ? (target / maxSourceRev) * 200 : 0;
-                  const hRev = maxSourceRev > 0 ? (rev / maxSourceRev) * 200 : 0;
-                  const hProj = maxSourceRev > 0 ? (proj / maxSourceRev) * 200 : 0;
-                  
-                  // Label rotation calculation
-                  const label = (r.group || '').length > 15 ? (r.group || '').substring(0, 13) + '...' : (r.group || '');
-                  
-                  return `
-                    <g>
-                      <!-- Target Final Bar -->
-                      <rect x="${xCenter - barW * 1.5 - 1}" y="${220 - hTarget}" width="${barW}" height="${hTarget}" fill="#3b82f6" rx="1" />
-                      <!-- Revenue Bar -->
-                      <rect x="${xCenter - barW / 2}" y="${220 - hRev}" width="${barW}" height="${hRev}" fill="#22c55e" rx="1" />
-                      <!-- Projected Final Bar -->
-                      <rect x="${xCenter + barW / 2 + 1}" y="${220 - hProj}" width="${barW}" height="${hProj}" fill="#f59e0b" rx="1" />
-                      
-                      <!-- X Axis Label -->
-                      <text x="${xCenter}" y="235" text-anchor="end" fill="#64748b" font-size="9" font-weight="600" transform="rotate(-45 ${xCenter} 235)">${label}</text>
-                    </g>
-                  `;
-                }).join('')}
-              </svg>
-            </div>
-            <table>
-              <thead>
-                <tr><th>Traffic Group</th><th>Expected</th><th>Projected</th><th>Proj Δ</th><th>Revenue ($)</th><th>Rev Δ</th></tr>
-              </thead>
-              <tbody>
-                ${comparisonOfRevenueBySource.map(r => `<tr><td>${r.group}</td><td>${r.expected || 0}</td><td>${r.projected || 0}</td><td>${r.projChange || '-'}</td><td class="badge-green">${(r.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${r.revChange || '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${geoRows.length > 0 ? `
-            <h2>2. Sales Growth Stats Map (Heat Map Visual)</h2>
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:10px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                🗺️ Regional Sales Growth Heat Map Distribution (Top 15)
-              </div>
-              <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:15px; font-size:11px; color:#64748b;">
-                <span>Heat Intensity Scale:</span>
-                <span style="display:inline-block; width:140px; height:10px; border-radius:5px; background:linear-gradient(90deg, #c7d2fe 0%, #6868f9 50%, #3730a3 100%);"></span>
-                <span style="font-weight:bold; color:#3730a3;">High Volume</span>
-              </div>
-              <svg style="display: block; max-width: 100%;" width="680" height="${Math.min(geoRows.length, 15) * 38 + 20}" viewBox="0 0 680 ${Math.min(geoRows.length, 15) * 38 + 20}" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="heatGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#c7d2fe" />
-                    <stop offset="50%" stop-color="#6868f9" />
-                    <stop offset="100%" stop-color="#3730a3" />
-                  </linearGradient>
-                </defs>
-                ${geoRows.slice(0, 15).map((item, idx) => {
-                  const maxShare = Math.max(...geoRows.slice(0, 15).map(r => r.share || 0), 1);
-                  const share = item.share || 0;
-                  const barW = Math.max(15, Math.round((share / maxShare) * 360));
-                  const yPos = idx * 38 + 10;
-                  return `
-                    <g>
-                      <text x="160" y="${yPos + 16}" text-anchor="end" fill="#1e293b" font-size="11" font-weight="600" font-family="Segoe UI, sans-serif">${item.name}</text>
-                      <rect x="175" y="${yPos}" width="360" height="22" rx="5" fill="#f1f5f9" />
-                      <rect x="175" y="${yPos}" width="${barW}" height="22" rx="5" fill="url(#heatGrad)" />
-                      <text x="${185 + barW}" y="${yPos + 15}" fill="#3730a3" font-size="11" font-weight="bold" font-family="Segoe UI, sans-serif">${share}% Share</text>
-                    </g>
-                  `;
-                }).join('')}
-              </svg>
-            </div>
-          ` : ''}
-
-          ${eventSales.length > 0 ? `
-            <h2>4. Event Revenue Share Chart</h2>
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:15px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                📊 Event Revenue Share Graphic Chart (Top 15)
-              </div>
-              <svg style="display: block; max-width: 100%;" width="680" height="${Math.min(eventSales.length, 15) * 36 + 30}" viewBox="0 0 680 ${Math.min(eventSales.length, 15) * 36 + 30}" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="barGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#6868f9" />
-                    <stop offset="100%" stop-color="#3b82f6" />
-                  </linearGradient>
-                </defs>
-                ${eventSales.slice(0, 15).map((item, idx) => {
-                  const maxRev = Math.max(...eventSales.slice(0, 15).map(e => e.revenue || 0), 1);
-                  const rev = item.revenue || 0;
-                  const name = item.name || item.eventName || `Event #${idx + 1}`;
-                  const share = totalEventRevenue > 0 ? ((rev / totalEventRevenue) * 100).toFixed(1) : 0;
-                  const barW = Math.max(10, Math.round((rev / maxRev) * 320));
-                  const yPos = idx * 36 + 15;
-                  const truncatedName = name.length > 24 ? name.substring(0, 22) + '...' : name;
-
-                  return `
-                    <g>
-                      <text x="170" y="${yPos + 14}" text-anchor="end" fill="#334155" font-size="11" font-weight="600" font-family="Segoe UI, sans-serif">${truncatedName}</text>
-                      <rect x="180" y="${yPos}" width="320" height="20" rx="4" fill="#f1f5f9" />
-                      <rect x="180" y="${yPos}" width="${barW}" height="20" rx="4" fill="url(#barGrad)" />
-                      <text x="${188 + barW}" y="${yPos + 14}" fill="#16a34a" font-size="11" font-weight="bold" font-family="Segoe UI, sans-serif">${rev.toLocaleString()} (${share}%)</text>
-                    </g>
-                  `;
-                }).join('')}
-              </svg>
-            </div>
-          ` : ''}
-
-          ${revSource.length > 0 ? `
-            <h2>5. Revenue Source by Event</h2>
-            <table>
-              <thead><tr><th>Event Name</th><th>Product Name</th><th>Source</th><th>Revenue</th></tr></thead>
-              <tbody>
-                ${revSource.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.source || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${salesByEvent.length > 0 ? `
-            <h2>6. Sales by Event Name</h2>
-            <table>
-              <thead><tr><th>Event Name</th><th>Product Name</th><th>Orders</th><th>Revenue</th></tr></thead>
-              <tbody>
-                ${salesByEvent.map(item => `<tr><td>${item.eventName || item.name || ''}</td><td>${item.productName || item.name || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${(data?.specialsStoreItems && data.specialsStoreItems.length > 0) ? `
-            <h2>7. Specials Store Items</h2>
-            <table>
-              <thead><tr><th>Item Name</th><th>Quantity Sold</th><th>Total Revenue</th></tr></thead>
-              <tbody>
-                ${data.specialsStoreItems.map(item => `<tr><td>${item.name || item.eventName || ''}</td><td>${item.qty || item.quantity || item.sold || item.sales || item.orders || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-
-          ${bestSellers.length > 0 ? `
-            <h2>8. Best Selling Products</h2>
-            <table>
-              <thead><tr><th>Code</th><th>Product Name</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
-              <tbody>
-                ${bestSellers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || 0}</td><td class="badge-green">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${lowPerformers.length > 0 ? `
-            <h2>9. Low Performing Products</h2>
-            <table>
-              <thead><tr><th>Code</th><th>Product Name</th><th>Category</th><th>Units Sold</th><th>Revenue</th></tr></thead>
-              <tbody>
-                ${lowPerformers.map(p => `<tr><td>${p.id || ''}</td><td>${p.name || ''}</td><td>${p.category || ''}</td><td>${p.sales || p.orders || 0}</td><td class="badge-red">${(p.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${currencies.length > 0 ? `
-            <h2>10. Revenue by Currency Share (Chart Data)</h2>
-            <table>
-              <thead><tr><th>Currency Name</th><th>Share (%)</th></tr></thead>
-              <tbody>
-                ${currencies.map(c => `<tr><td>${c.name || ''}</td><td>${c.value || 0}%</td></tr>`).join('')}
-              </tbody>
-            </table>
-            </table>
-          ` : ''}
-
-          ${(currencyGrowth && currencyGrowth.labels && currencyGrowth.labels.length > 0) ? `
-            <h2>11. Currency Growth Chart</h2>
-            <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div style="font-size:13px; font-weight:bold; color:#1e1b4b; margin-bottom:15px; text-align:center; text-transform:uppercase; letter-spacing:0.5px;">
-                📈 Currency Growth Trend (USD, INR, MYR)
-              </div>
-              <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:15px; font-size:10px; font-weight:bold;">
-                <span style="color:#16a34a;">● USD (Current)</span>
-                <span style="color:#f97316;">● INR (Current)</span>
-                <span style="color:#eab308;">● MYR (Current)</span>
-              </div>
-              <svg style="display: block; max-width: 100%;" width="680" height="260" viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg">
-                ${(() => {
-                  const labels = currencyGrowth.labels;
-                  const usd = currencyGrowth.usd || [];
-                  const inr = currencyGrowth.inr || [];
-                  const myr = currencyGrowth.myr || [];
-                  
-                  let maxVal = 100;
-                  [...usd, ...inr, ...myr].forEach(v => { if (v > maxVal) maxVal = v; });
-                  maxVal = maxVal * 1.1;
-
-                  const chartW = 600;
-                  const chartH = 180;
-                  const leftMargin = 60;
-                  const topMargin = 20;
-
-                  const stepX = labels.length > 1 ? chartW / (labels.length - 1) : chartW;
-
-                  const getPoints = (dataArr) => {
-                    return dataArr.map((v, i) => {
-                      const x = leftMargin + (i * stepX);
-                      const y = topMargin + chartH - ((v / maxVal) * chartH);
-                      return x + ',' + y;
-                    }).join(' ');
-                  };
-
-                  const usdPoints = getPoints(usd);
-                  const inrPoints = getPoints(inr);
-                  const myrPoints = getPoints(myr);
-
-                  let grids = '';
-                  for (let i = 0; i <= 4; i++) {
-                    const y = topMargin + chartH - (i * (chartH / 4));
-                    const val = Math.round((i / 4) * maxVal);
-                    grids += '<line x1="' + leftMargin + '" y1="' + y + '" x2="' + (leftMargin + chartW) + '" y2="' + y + '" stroke="#e2e8f0" stroke-dasharray="' + (i===0 ? '' : '4,4') + '" />' +
-                             '<text x="' + (leftMargin - 10) + '" y="' + (y + 4) + '" text-anchor="end" fill="#64748b" font-size="10">' + val.toLocaleString() + '</text>';
-                  }
-
-                  let xLabels = '';
-                  const numLabels = 6;
-                  for (let i = 0; i < numLabels; i++) {
-                    const idx = Math.floor(i * (labels.length - 1) / (numLabels - 1));
-                    if (labels[idx]) {
-                      const x = leftMargin + (idx * stepX);
-                      let labelText = labels[idx];
-                      if (labelText.length > 10) labelText = labelText.substring(0, 10) + '...';
-                      xLabels += '<text x="' + x + '" y="' + (topMargin + chartH + 20) + '" text-anchor="middle" fill="#64748b" font-size="9">' + labelText + '</text>';
-                    }
-                  }
-
-                  return grids + xLabels + 
-                    '<polyline fill="none" stroke="#16a34a" stroke-width="2" points="' + usdPoints + '" />' +
-                    '<polyline fill="none" stroke="#f97316" stroke-width="2" points="' + inrPoints + '" />' +
-                    '<polyline fill="none" stroke="#eab308" stroke-width="2" points="' + myrPoints + '" />';
-                })()}
-              </svg>
-            </div>
-          ` : ''}
-
-          ${categorySales.length > 0 ? `
-            <h2>Category Wise Sales Insights</h2>
-            <table>
-              <thead><tr><th>Event Name</th><th>NetRevenue ($)</th></tr></thead>
-              <tbody>
-                ${categorySales.map(item => `<tr><td>${item.name || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${dateWisePerformance.length > 0 ? `
-            <h2>Date Wise Newsletter Performance</h2>
-            <table>
-              <thead><tr><th>News Letter Sent Date</th><th>NewsLetter Name</th><th>Net Revenue In USD</th></tr></thead>
-              <tbody>
-                ${dateWisePerformance.map(item => `<tr><td>${item.date || ''}</td><td>${item.name || ''}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${overallPerformanceData.length > 0 ? `
-            <h2>Over All NewsLetter Statistics Summary</h2>
-            <table>
-              <thead><tr><th>NL Sent Date</th><th>NewsLetter Name</th><th>Subject</th><th>Type</th><th>Sent</th><th>Unsubscribe</th><th>Open</th><th>Open Rate (%)</th><th>Clicks</th><th>Click/Open</th></tr></thead>
-              <tbody>
-                ${overallPerformanceData.map(item => `<tr><td>${item.date || ''}</td><td>${item.name || ''}</td><td>${item.subject || ''}</td><td>${item.type || ''}</td><td>${item.sent || 0}</td><td>${item.unsub || 0}</td><td>${item.open || 0}</td><td>${item.openRate || 0}%</td><td>${item.clicks || 0}</td><td>${item.clickOpen || 0}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${breakupSummary.length > 0 ? `
-            <h2>Breakup Summary of Overall Newsletters</h2>
-            <table>
-              <thead><tr><th>NewsLetter Type</th><th>NewsLetter Count</th><th>Net Revenue IN ($)</th></tr></thead>
-              <tbody>
-                ${breakupSummary.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${typesCompared.length > 0 ? `
-            <h2>Types Of NewsLetter Compared With Last Month</h2>
-            <table>
-              <thead><tr><th>News Letter Type</th><th>News Letter Count</th><th>% Δ</th><th>Net Revenue In USD</th><th>% Δ</th></tr></thead>
-              <tbody>
-                ${typesCompared.map(item => `<tr><td>${item.type || ''}</td><td>${item.count || 0}</td><td>${item.countPct !== null && item.countPct !== undefined ? item.countPct + '%' : '-'}</td><td class="badge-green">${(item.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${item.revPct !== null && item.revPct !== undefined ? item.revPct + '%' : '-'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${overallEventsData.length > 0 ? `
-            <h2>Overall Newsletters Performance</h2>
-            <table>
-              <thead><tr><th>Event Name</th><th>NLW</th><th>NLI</th><th>OML</th></tr></thead>
-              <tbody>
-                ${overallEventsData.map(item => `<tr><td>${item.name || ''}</td><td>${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${specialEventsData.length > 0 ? `
-            <h2>Special Events Newsletters Performance</h2>
-            <table>
-              <thead><tr><th>Event Name</th><th>NLW</th><th>NLI</th><th>OML</th></tr></thead>
-              <tbody>
-                ${specialEventsData.map(item => `<tr><td>${item.name || ''}</td><td>${(item.nlw || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.nli || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td>${(item.oml || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          ${specialEventsPerformanceData.length > 0 ? `
-            <h2>Special Events NewsLetter Statistics Summary</h2>
-            <table>
-              <thead><tr><th>NL Sent Date</th><th>NewsLetter Name</th><th>Subject</th><th>Type</th><th>Sent</th><th>Unsubscribe</th><th>Open</th><th>Open Rate (%)</th><th>Clicks</th><th>Click/Open</th></tr></thead>
-              <tbody>
-                ${specialEventsPerformanceData.map(item => `<tr><td>${item.date || ''}</td><td>${item.name || ''}</td><td>${item.subject || ''}</td><td>${item.type || ''}</td><td>${item.sent || 0}</td><td>${item.unsub || 0}</td><td>${item.open || 0}</td><td>${item.openRate || 0}%</td><td>${item.clicks || 0}</td><td>${item.clickOpen || 0}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          <script>
-            window.onload = function() { window.print(); window.close(); }
-          </script>
-        </body>
-        </html>
-      `;
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error("Popup blocked! Please allow popups to export PDF.");
+      if (!dashboardElement) {
+        toast.error('Could not locate dashboard area for export (' + elementId + ')');
         return;
       }
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      toast.success(`${exportPeriod} PDF report opened for printing!`);
+
+      toast.loading('Generating PDF Report...', { id: 'pdfLoad' });
+      
+      // Taking visual screenshot of current dashboard view
+      const canvas = await html2canvasPro(dashboardElement, { scale: 1.5, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      let position = 0;
+      let heightLeft = pdfHeight;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(getExportFileName('pdf'));
+      toast.dismiss('pdfLoad');
+      toast.success("PDF Report downloaded successfully!");
+      
+      if (onRestoreExport) {
+        onRestoreExport();
+      }
     } catch (err) {
       console.error("PDF Export Error:", err);
+      toast.dismiss('pdfLoad');
       toast.error("Failed to export PDF report: " + err.message);
     }
   };
 
-  const handleExportClick = (type) => {
+  const handleExportClick = async (type) => {
     const userPermissions = JSON.parse(localStorage.getItem('astroved_permissions') || '{}');
     if (userPermissions?.data?.export === false) {
       toast.error('Access Denied: Your role profile does not have permission to Export data.');
@@ -1427,91 +903,46 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       return;
     }
 
-    if (type === 'CSV') handleExportCSV();
-    else if (type === 'Excel') handleExportExcel();
-    else if (type === 'PDF') handleExportPDF();
+    if (type === 'PDF') {
+      handleExportPDF();
+      return;
+    }
+
+    let exportData = data;
+    if (onPrepareExport) {
+      toast.loading(`Fetching full data for ${type} Report...`, { id: 'prepLoad' });
+      try {
+        const result = await onPrepareExport();
+        if (result) exportData = result;
+      } catch (err) {
+        console.error(err);
+      }
+      toast.dismiss('prepLoad');
+    }
+
+    if (type === 'CSV') handleExportCSV(exportData);
+    else if (type === 'Excel') handleExportExcel(exportData);
+
+    if (onRestoreExport) {
+      onRestoreExport();
+    }
   };
 
   return (
-    <div className={`bg-white dark:bg-cosmic-card border border-gray-100 dark:border-cosmic-border p-5 rounded-xl flex flex-col space-y-4 shadow-sm max-w-lg w-full mt-6 ${className}`}>
-      <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Export Reports</h4>
-
-      {showPeriodTabs && (
-        <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700">
-          {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
-            <button
-              key={period}
-              onClick={() => {
-                setExportPeriod(period);
-                if (onPeriodChange) onPeriodChange(period);
-              }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 text-[11px] font-medium transition-all cursor-pointer ${exportPeriod === period
-                ? 'bg-[#f0f7ff] dark:bg-blue-500/20 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/30 rounded shadow-sm z-10'
-                : 'text-slate-500 dark:text-slate-400 bg-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 border-y border-transparent ' + (exportPeriod !== period && idx !== 0 && exportPeriod !== ['Daily', 'Weekly', 'Monthly', 'Yearly'][idx - 1] ? 'border-l-[1px] border-l-slate-200 dark:border-l-slate-600' : 'border-l-0')
-                }`}
-            >
-              <Calendar size={14} className={exportPeriod === period ? 'text-[#3b82f6]' : 'text-slate-400'} />
-              {period}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="space-y-2.5">
-        <button
-          onClick={() => handleExportClick('Excel')}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#f4fbf7] dark:bg-emerald-500/10 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 transition-all text-left group shadow-sm cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 transform group-hover:rotate-3 transition-transform">
-              <path d="M18 6h12a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H18V6z" fill="#22c55e" fillOpacity="0.2" />
-              <path d="M18 10h14M18 14h14M18 18h14M18 22h14M18 26h14M18 30h14" stroke="#22c55e" strokeWidth="2" />
-              <path d="M22 6v28M26 6v28" stroke="#22c55e" strokeWidth="2" />
-              <path d="M6 10h14v20H6a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="#16a34a" />
-              <path d="M9 15l6 10M15 15l-6 10" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <div>
-              <div className="font-bold text-[#16a34a] dark:text-emerald-400 text-sm">Export to Excel</div>
-              <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to Excel format</div>
-            </div>
-          </div>
-          <Download size={16} className="text-[#16a34a] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
+    <div className={`flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto relative group ${className}`}>
+      <button className="flex items-center justify-center gap-1.5 py-1.5 px-3 text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-all rounded cursor-pointer">
+        <Download size={14} className="text-indigo-500" />
+        Export Report
+      </button>
+      <div className="absolute top-full right-0 mt-1 w-36 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100]">
+        <button onClick={() => handleExportClick('PDF')} className="w-full text-left px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-t-lg flex items-center cursor-pointer">
+          <FileText size={14} className="mr-2 text-red-500" /> PDF (Visual)
         </button>
-
-        <button
-          onClick={() => handleExportClick('PDF')}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#fef2f2] dark:bg-rose-500/10 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 transition-all text-left group shadow-sm cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-8 transform group-hover:rotate-3 transition-transform">
-              <path d="M0 4a4 4 0 0 1 4-4h18l14 14v24a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4z" fill="#ef4444" />
-              <path d="M22 0v14h14" fill="#dc2626" />
-              <text x="5" y="32" fill="white" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="12">PDF</text>
-            </svg>
-            <div>
-              <div className="font-bold text-[#dc2626] dark:text-rose-400 text-sm">Export to PDF</div>
-              <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to PDF format</div>
-            </div>
-          </div>
-          <Download size={16} className="text-[#dc2626] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
+        <button onClick={() => handleExportClick('Excel')} className="w-full text-left px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-t border-slate-100 dark:border-slate-700/50 flex items-center cursor-pointer">
+          <FileSpreadsheet size={14} className="mr-2 text-emerald-500" /> Excel (Data)
         </button>
-
-        <button
-          onClick={() => handleExportClick('CSV')}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#f0f7ff] dark:bg-blue-500/10 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#e0f2fe] dark:hover:bg-blue-500/20 transition-all text-left group shadow-sm cursor-pointer"
-        >
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-8 transform group-hover:rotate-3 transition-transform">
-              <path d="M0 4a4 4 0 0 1 4-4h18l14 14v24a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4z" fill="#3b82f6" />
-              <path d="M22 0v14h14" fill="#2563eb" />
-              <text x="3" y="32" fill="white" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11">CSV</text>
-            </svg>
-            <div>
-              <div className="font-bold text-[#2563eb] dark:text-blue-400 text-sm">Export to CSV</div>
-              <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to CSV format</div>
-            </div>
-          </div>
-          <Download size={16} className="text-[#2563eb] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
+        <button onClick={() => handleExportClick('CSV')} className="w-full text-left px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-t border-slate-100 dark:border-slate-700/50 rounded-b-lg flex items-center cursor-pointer">
+          <FilePlus size={14} className="mr-2 text-blue-500" /> CSV (Raw)
         </button>
       </div>
     </div>

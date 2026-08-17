@@ -40,7 +40,6 @@ const AdminControl = ({ initialTab = 'users' }) => {
     { id: 'users', name: 'User Management', icon: Users },
     { id: 'roles', name: 'Roles & Permissions', icon: Shield },
     { id: 'audit', name: 'Audit Logs', icon: FileText },
-    { id: 'integrations', name: 'Integration Settings', icon: Cpu },
   ];
 
   const tabs = rawTabs.filter(t => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { Bell, Moon, Sun, Calendar, Menu, LogOut, X, TrendingUp, ChevronDown, BarChart3 } from 'lucide-react';
 import { useDateFilter } from '../contexts/DateFilterContext';
@@ -11,6 +11,26 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
   const [dateMenuOpen, setDateMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [fullActivityOpen, setFullActivityOpen] = useState(false);
+
+  const dateMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const notificationsMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dateMenuRef.current && !dateMenuRef.current.contains(event.target)) {
+        setDateMenuOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+      if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
 
   // Temporary states (applied on clicking 'Apply')
@@ -302,7 +322,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
         <div className="flex items-center space-x-1.5 sm:space-x-4 shrink-0 justify-end">
           
           {/* Daily Sales Calendar (Shown only when activeTab === daily) */}
-          {isCalendarHidden && (
+          {isCalendarHidden && (currentModule === 'sales' || title?.toLowerCase().includes('sales')) && (
             <div className="relative shrink-0 flex items-center">
               <div className="flex items-center bg-white dark:bg-cosmic-bg border border-gray-200 dark:border-cosmic-border rounded-lg p-1 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
                 <Calendar size={14} className="text-indigo-500 ml-2 mr-1" />
@@ -338,7 +358,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
 
           {/* Global Calendar Selector Pill (Hidden on Executive Dashboard page) */}
           {!isCalendarHidden && currentModule !== 'executive' && !title?.toLowerCase().includes('executive') && (
-            <div className="relative shrink-0">
+            <div className="relative shrink-0" ref={dateMenuRef}>
               <button
                 onClick={() => setDateMenuOpen(!dateMenuOpen)}
                 className="flex items-center space-x-1 sm:space-x-2 bg-cosmic-bg hover:bg-cosmic-card-hover border border-cosmic-border px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-cosmic-text transition-colors focus:outline-none whitespace-nowrap cursor-pointer"
@@ -440,7 +460,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
           </div>
 
           {/* Desktop Profile Info Card (Dropdown button) */}
-          <div className="relative border-l border-cosmic-border pl-1.5 sm:pl-3 shrink-0">
+          <div className="relative border-l border-cosmic-border pl-1.5 sm:pl-3 shrink-0" ref={profileMenuRef}>
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
               className="flex items-center space-x-1.5 sm:space-x-2.5 hover:bg-cosmic-bg border border-transparent hover:border-cosmic-border p-1 sm:px-2 rounded-xl transition-all focus:outline-none"

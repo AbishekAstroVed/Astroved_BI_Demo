@@ -307,10 +307,10 @@ const Sales = () => {
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-4 relative">
 
       {/* Top Navigation Tabs */}
-      <div className="flex justify-center sm:justify-start mb-8">
+      <div className="flex justify-center sm:justify-start mb-2">
         <div className="flex flex-col sm:flex-row bg-white dark:bg-cosmic-bg border border-gray-200 dark:border-cosmic-border rounded-2xl sm:rounded-full p-1 shadow-inner gap-1 sm:gap-0">
           <button
             onClick={() => setActiveTab('daily')}
@@ -333,33 +333,6 @@ const Sales = () => {
             <TrendingUp size={16} className={activeTab === 'monthly' ? 'text-white' : 'text-purple-400'} />
             <span>Monthly / Yearly Sales</span>
           </button>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        {/* GA4 Status Banners */}
-        <div>
-          {loading ? (
-            <div className="flex items-center space-x-2 text-xs text-indigo-400 font-semibold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg w-fit animate-pulse">
-              <span className="w-2.5 h-2.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
-              <span>Syncing Real-Time GA4 Metrics...</span>
-            </div>
-          ) : activeData.gaConnected ? (
-            activeData.gaRealTime ? (
-              <div className="flex items-center space-x-2 text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg w-fit">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>GA4 Live Stream Connected</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 text-xs text-indigo-400 font-semibold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg w-fit">
-                <span>GA4 Connected</span>
-              </div>
-            )
-          ) : (
-            <div className="flex items-center space-x-2 text-xs text-cosmic-muted font-semibold bg-cosmic-border/10 border border-cosmic-border/20 px-3 py-1.5 rounded-lg w-fit">
-              <span>GA4 Disconnected (Configure settings in Integrations tab)</span>
-            </div>
-          )}
         </div>
       </div>
 
