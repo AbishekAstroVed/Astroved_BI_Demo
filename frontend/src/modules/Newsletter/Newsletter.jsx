@@ -41,6 +41,22 @@ const Newsletter = () => {
   const [eventsCompared, setEventsCompared] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handlePrepareExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(true);
+      return new Promise(resolve => setTimeout(resolve, 800));
+    }
+    return Promise.resolve();
+  };
+
+  const handleRestoreExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAllEvents = async () => {
@@ -150,7 +166,7 @@ const Newsletter = () => {
     grid: { bottom: '15%', left: '15%', right: '5%', top: '15%' },
     xAxis: {
       type: 'category',
-      data: categorySalesPage.currentData.map(item => item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name),
+      data: (isExportingPDF ? (categorySales || []) : categorySalesPage.currentData).map(item => item.name.length > 15 ? item.name.substring(0, 15) + '...' : item.name),
       axisLabel: { color: 'var(--cosmic-text)', fontSize: 10, rotate: 45 }
     },
     yAxis: {
@@ -166,7 +182,7 @@ const Newsletter = () => {
         name: 'Net Revenue In USD',
         type: 'bar',
         barWidth: isMobileView ? '50%' : '60%',
-        data: categorySalesPage.currentData.map(item => ({
+        data: (isExportingPDF ? (categorySales || []) : categorySalesPage.currentData).map(item => ({
           value: Number(item.revenue.toFixed(2)),
           fullName: item.name
         })),
@@ -390,10 +406,43 @@ const Newsletter = () => {
   const overallEventsDataPage = usePagination(overallEventsData || [], 10);
   const specialEventsDataPage = usePagination(specialEventsData || [], 10);
   const specialEventsPerformanceDataPage = usePagination(specialEventsPerformanceData || [], 10);
+
   const eventsComparedPage = usePagination(eventsCompared || [], 10);
 
+
+
   return (
-    <div className="space-y-6">
+    <div id="dashboard-export-area" className="space-y-6">
+
+      
+      <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4 mb-4 z-50">
+        <div className="text-cosmic-text text-center font-bold text-base tracking-wide flex-1">
+          Newsletter Dashboard
+        </div>
+        <div className="md:absolute md:right-0">
+          <ExportReportsCard
+              data={{
+                newsletterKpiCards: [
+                  { title: 'Western Newsletter (NLW)', value: `${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
+                  { title: 'Targeted Mailers (OML)', value: `${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
+                  { title: 'India Newsletter (NLI)', value: `${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
+                  { title: 'Overall Newsletter Sales', value: `${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
+                ],
+                categorySales,
+                dateWisePerformance,
+                overallPerformanceData,
+                breakupSummary,
+                typesCompared,
+                overallEventsData,
+                specialEventsData,
+                specialEventsPerformanceData
+              }}
+              defaultPeriod="Monthly"
+              pageTitle="Newsletter Reports"
+              showPeriodTabs={false}
+             variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
+        </div>
+      </div>
 
       {/* Filters Row */}
       <div className="flex flex-wrap gap-4 items-center mb-8">
@@ -414,7 +463,7 @@ const Newsletter = () => {
           <SearchableDropdown
             options={[
               { label: 'All Events', value: 'All' },
-              ...Array.from(new Set([...allEvents, ...categorySales.map(c => c.name)])).map(e => ({ label: e, value: e }))
+              ...Array.from(new Set([...(Array.isArray(allEvents) ? allEvents : []), ...(Array.isArray(categorySales) ? categorySales : []).map(c => c?.name).filter(Boolean)])).map(e => ({ label: e, value: e }))
             ]}
             selected={eventName}
             onChange={setEventName}
@@ -477,7 +526,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {categorySalesPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (categorySales || []) : categorySalesPage.currentData).map((item, idx) => (
                       <tr
                         key={item.id}
                         className={`hover:bg-cosmic-bg transition-colors cursor-pointer ${eventName === item.name ? 'bg-indigo-500/20' : ''}`}
@@ -498,7 +547,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...categorySalesPage} />
+            {!isExportingPDF && <Pagination {...categorySalesPage} />}
           </div>
           {/* Date Wise Newsletter Performance */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
@@ -518,7 +567,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {dateWisePerformancePage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (dateWisePerformance || []) : dateWisePerformancePage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4 whitespace-nowrap">
                           <div className="flex items-center gap-4">
@@ -534,7 +583,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...dateWisePerformancePage} />
+            {!isExportingPDF && <Pagination {...dateWisePerformancePage} />}
           </div>
 
           {/* Over All NewsLetter Statistics Summary */}
@@ -563,7 +612,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {overallPerformanceDataPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (overallPerformanceData || []) : overallPerformanceDataPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-3 text-cosmic-muted text-center">{((overallPerformanceDataPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-3">{item.date}</td>
@@ -590,7 +639,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...overallPerformanceDataPage} />
+            {!isExportingPDF && <Pagination {...overallPerformanceDataPage} />}
           </div>
 
 
@@ -606,7 +655,7 @@ const Newsletter = () => {
                 option={eventConversionChartOption}
                 onEvents={{
                   click: (params) => {
-                    const match = categorySalesPage.currentData.find(c => c.name.startsWith(params.name.replace('...', '')));
+                    const match = (isExportingPDF ? (categorySales || []) : categorySalesPage.currentData).find(c => c.name.startsWith(params.name.replace('...', '')));
                     const fullName = match ? match.name : params.name;
                     setEventName(prev => prev === fullName ? 'All' : fullName);
                     setTimeout(() => document.getElementById('breakup-summary')?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -615,7 +664,7 @@ const Newsletter = () => {
               />
             </div>
             <div className="px-4 pb-4">
-              <Pagination {...categorySalesPage} />
+              {!isExportingPDF && <Pagination {...categorySalesPage} />}
             </div>
           </div>
 
@@ -679,7 +728,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {breakupSummaryPage.currentData.map((item, idx) => {
+                    {(isExportingPDF ? (breakupSummary || []) : breakupSummaryPage.currentData).map((item, idx) => {
                       const isSelected = nlCategory.length === 1 && nlCategory[0].value === item.type;
                       return (
                         <tr
@@ -706,7 +755,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...breakupSummaryPage} />
+            {!isExportingPDF && <Pagination {...breakupSummaryPage} />}
           </div>
 
           {/* Types Of NewsLetter Compared With Last Month */}
@@ -730,7 +779,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {typesComparedPage.currentData.map((item, idx) => {
+                    {(isExportingPDF ? (typesCompared || []) : typesComparedPage.currentData).map((item, idx) => {
                       return (
                         <tr
                           key={idx}
@@ -786,7 +835,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...typesComparedPage} />
+            {!isExportingPDF && <Pagination {...typesComparedPage} />}
           </div>
 
           {/* Overall Newsletters Performance */}
@@ -808,7 +857,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {overallEventsDataPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (overallEventsData || []) : overallEventsDataPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4">{item.name}</td>
                         <td className="py-2.5 px-4 text-right">${item.nlw.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -828,7 +877,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...overallEventsDataPage} />
+            {!isExportingPDF && <Pagination {...overallEventsDataPage} />}
           </div>
 
           {/* Special Events Newsletters Performance */}
@@ -850,7 +899,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {specialEventsDataPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (specialEventsData || []) : specialEventsDataPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-4">{item.name}</td>
                         <td className="py-2.5 px-4 text-right">${item.nlw.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -870,7 +919,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...specialEventsDataPage} />
+            {!isExportingPDF && <Pagination {...specialEventsDataPage} />}
           </div>
 
           {/* Special Events NewsLetter Statistics Summary */}
@@ -899,7 +948,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {specialEventsPerformanceDataPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (specialEventsPerformanceData || []) : specialEventsPerformanceDataPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-3 text-cosmic-muted text-center">{((specialEventsPerformanceDataPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-3">{item.date}</td>
@@ -926,7 +975,7 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...specialEventsPerformanceDataPage} />
+            {!isExportingPDF && <Pagination {...specialEventsPerformanceDataPage} />}
           </div>
 
           {/* NewsLetter Statistics Based On Category Wise */}
@@ -972,7 +1021,7 @@ const Newsletter = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {eventsComparedPage.currentData.map((item, idx) => (
+                    {(isExportingPDF ? (eventsCompared || []) : eventsComparedPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-bg transition-colors">
                         <td className="py-2.5 px-3 text-cosmic-muted text-center">{((eventsComparedPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2.5 px-4">{item.type}</td>
@@ -1002,33 +1051,10 @@ const Newsletter = () => {
                 </table>
               </div>
             </div>
-            <Pagination {...eventsComparedPage} />
+            {!isExportingPDF && <Pagination {...eventsComparedPage} />}
           </div>
 
-          {/* Export Reports Component */}
-          <div className="mt-8">
-            <ExportReportsCard
-              data={{
-                newsletterKpiCards: [
-                  { title: 'Western Newsletter (NLW)', value: `${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
-                  { title: 'Targeted Mailers (OML)', value: `${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
-                  { title: 'India Newsletter (NLI)', value: `${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
-                  { title: 'Overall Newsletter Sales', value: `${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
-                ],
-                categorySales,
-                dateWisePerformance,
-                overallPerformanceData,
-                breakupSummary,
-                typesCompared,
-                overallEventsData,
-                specialEventsData,
-                specialEventsPerformanceData
-              }}
-              defaultPeriod="Monthly"
-              pageTitle="Newsletter Reports"
-              showPeriodTabs={false}
-            />
-          </div>
+          
         </>
       )}
 
