@@ -931,7 +931,8 @@ export const updateSystemConfig = async (req, res) => {
 
 const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
   try {
-    const mockReq = { query: { isReport: true } };
+    const dateRange = getDateRangeForPeriod(period);
+    const mockReq = { query: { isReport: true, startDate: dateRange.startDate, endDate: dateRange.endDate } };
     let responseDataList = [];
     const mockRes = {
       json: (data) => { responseDataList.push(data); },
@@ -1174,7 +1175,7 @@ const generateChartImage = async (dashboardName, title, data) => {
   return null;
 };
 
-const getDateRangeForPeriod = (period) => {
+function getDateRangeForPeriod(period) {
   const now = new Date();
 
   // End date is always yesterday
@@ -1188,13 +1189,17 @@ const getDateRangeForPeriod = (period) => {
       // startDate is already yesterday
       break;
     case 'weekly':
-      startDate.setDate(endDate.getDate() - 6);
+      // Start of current week (Sunday)
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - now.getDay());
       break;
     case 'monthly':
-      startDate.setMonth(endDate.getMonth() - 1);
+      // Start of current month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
     case 'yearly':
-      startDate = new Date(endDate.getFullYear(), 0, 1);
+      // Start of current year
+      startDate = new Date(now.getFullYear(), 0, 1);
       break;
     default:
       break;
@@ -1497,7 +1502,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     const wb = XLSX.utils.book_new();
     if (dashboards && dashboards.length > 0) {
       for (const dashboard of dashboards) {
-        const sections = await fetchDashboardDataForReport(dashboard);
+        const sections = await fetchDashboardDataForReport(dashboard, period);
         let flatData = [];
         sections.forEach(sec => {
           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
@@ -1532,7 +1537,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     let csvString = '';
     if (dashboards && dashboards.length > 0) {
       for (const dashboard of dashboards) {
-        const sections = await fetchDashboardDataForReport(dashboard);
+        const sections = await fetchDashboardDataForReport(dashboard, period);
         let flatData = [];
         sections.forEach(sec => {
           flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
@@ -1821,6 +1826,9 @@ export const startReportCronJobs = () => {
             shouldSend = true;
           } else if (freq === 'monthly' && dateOfMonth === 1) {
             // Send monthly on the 1st
+            shouldSend = true;
+          } else if (freq === 'yearly' && dateOfMonth === 1 && now.getMonth() === 0) {
+            // Send yearly on Jan 1st
             shouldSend = true;
           }
 

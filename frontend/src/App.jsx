@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Minimize } from 'lucide-react';
 import { DateFilterProvider } from './contexts/DateFilterContext';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -60,6 +61,7 @@ function MainAppContent() {
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const handleLogin = (user, permissions, token) => {
     setCurrentUser(user);
@@ -277,39 +279,54 @@ function MainAppContent() {
       )}
 
       {/* Sidebar Navigation */}
-      <Sidebar
-        currentModule={currentModule}
-        setCurrentModule={(mod) => {
-          setCurrentModule(mod);
-          setMobileMenuOpen(false); // Close mobile drawer on selection
-        }}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        setMobileOpen={setMobileMenuOpen}
-        user={currentUser}
-        permissions={userPermissions}
-        onLogout={handleLogout}
-      />
+      {!isFullScreen && (
+        <Sidebar
+          currentModule={currentModule}
+          setCurrentModule={(mod) => {
+            setCurrentModule(mod);
+            setMobileMenuOpen(false); // Close mobile drawer on selection
+          }}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+          mobileOpen={mobileMenuOpen}
+          setMobileOpen={setMobileMenuOpen}
+          user={currentUser}
+          permissions={userPermissions}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden">
-        <Header
-          title={getModuleTitle()}
-          currentModule={currentModule}
-          onSearch={(val) => console.log('Searching for:', val)}
-          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
-          onNavigate={(targetTab) => {
-            // Map the tab target to module
-            if (targetTab === 'system-settings') {
-              setCurrentModule('system-settings');
-            }
-          }}
-          onLogout={handleLogout}
-          user={currentUser}
-        />
+      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden relative">
+        {!isFullScreen && (
+          <Header
+            title={getModuleTitle()}
+            currentModule={currentModule}
+            onSearch={(val) => console.log('Searching for:', val)}
+            onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onToggleFullScreen={() => setIsFullScreen(true)}
+            onNavigate={(targetTab) => {
+              // Map the tab target to module
+              if (targetTab === 'system-settings') {
+                setCurrentModule('system-settings');
+              }
+            }}
+            onLogout={handleLogout}
+            user={currentUser}
+          />
+        )}
 
-        <main className="p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu">
+        {isFullScreen && (
+          <button
+            onClick={() => setIsFullScreen(false)}
+            className="fixed bottom-6 right-6 z-[100] bg-indigo-600 text-white p-3 rounded-full shadow-2xl hover:bg-indigo-700 transition-all flex items-center gap-2 font-bold"
+          >
+            <Minimize size={20} />
+            <span className="hidden sm:inline">Exit Full Screen</span>
+          </button>
+        )}
+
+        <main className={`p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
           <React.Suspense fallback={<DashboardSkeleton />}>
             {renderModule()}
           </React.Suspense>

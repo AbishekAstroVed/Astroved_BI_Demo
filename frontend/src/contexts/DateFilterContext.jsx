@@ -21,32 +21,33 @@ export const DateFilterProvider = ({ children }) => {
 
   const savedPeriod = localStorage.getItem('astroved_report_period');
   if (savedPeriod) {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
     switch(savedPeriod.toLowerCase()) {
       case 'daily':
         initialPreset = 'yesterday';
-        initialStart = new Date(today);
-        initialStart.setDate(initialStart.getDate() - 1);
-        initialEnd = new Date(initialStart);
+        initialStart = new Date(yesterday);
+        initialEnd = new Date(yesterday);
         break;
       case 'weekly':
-        initialPreset = '7days';
-        initialEnd = new Date(today);
-        initialEnd.setDate(initialEnd.getDate() - 1);
-        initialStart = new Date(initialEnd);
-        initialStart.setDate(initialEnd.getDate() - 6);
+        initialPreset = 'custom';
+        initialEnd = new Date(yesterday);
+        // Start of week (Sunday)
+        initialStart = new Date(today);
+        initialStart.setDate(today.getDate() - today.getDay());
         break;
       case 'monthly':
-        initialPreset = '30days';
-        initialEnd = new Date(today);
-        initialEnd.setDate(initialEnd.getDate() - 1);
-        initialStart = new Date(initialEnd);
-        initialStart.setMonth(initialEnd.getMonth() - 1);
+        initialPreset = 'custom';
+        initialEnd = new Date(yesterday);
+        // Start of month
+        initialStart = new Date(today.getFullYear(), today.getMonth(), 1);
         break;
       case 'yearly':
-        initialPreset = 'ytd';
-        initialEnd = new Date(today);
-        initialEnd.setDate(initialEnd.getDate() - 1);
-        initialStart = new Date(initialEnd.getFullYear(), 0, 1);
+        initialPreset = 'custom';
+        initialEnd = new Date(yesterday);
+        // Start of year
+        initialStart = new Date(today.getFullYear(), 0, 1);
         break;
     }
   }
