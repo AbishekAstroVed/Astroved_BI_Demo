@@ -7,6 +7,8 @@ import {
 import { toast } from 'react-hot-toast';
 import { api } from '../../services/api';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas-pro';
+import { jsPDF } from 'jspdf';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 import { formatDollar } from '../../services/mockData';
@@ -28,6 +30,7 @@ const Executive = () => {
   const [cancellationsFilter, setCancellationsFilter] = useState('This Week');
   const [trafficFilter, setTrafficFilter] = useState('This Month');
   const [exportPeriod, setExportPeriod] = useState('Daily');
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -91,7 +94,7 @@ const Executive = () => {
           topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
             data.topProductsYear
     ) || [] : [],
-    10
+    isExportingPDF ? 9999 : 10
   );
 
   const recentOrdersPage = usePagination(
@@ -101,7 +104,7 @@ const Executive = () => {
           recentOrdersFilter === 'This Month' || recentOrdersFilter === 'Monthly' ? data.recentOrdersMonth :
             data.recentOrdersYear
     ) || [] : [],
-    10
+    isExportingPDF ? 9999 : 10
   );
 
   if (loading) {
@@ -677,202 +680,48 @@ const Executive = () => {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
-      const period = exportPeriod;
-      const safeKpi = getSafeKPI(kpi);
-      const expRevTrend = getRevenueOverviewData(period).curr || [];
-      const expCategories = getCategoryData(period) || [];
-      const expChannels = getChannelData(period) || [];
-      const expTopProducts = getTopProductsData(period) || [];
-      const expRecentOrders = getRecentOrdersData(period) || [];
-      const expTargetComp = getTargetComparisonData(period) || [];
-      const expRefunds = getRefundsData(period) || [];
-      const expCancellations = getCancellationsData(period) || [];
-      const expTraffic = getTrafficData(period) || {};
+      setIsExportingPDF(true);
+      toast.loading("Preparing dashboard for PDF...", { id: "pdf-export" });
+      
+      // Give React time to re-render the tables without pagination
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      const printContent = `
-        <html>
-        <head>
-          <title>${getExportFileName('pdf')}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; background-color: #ffffff; }
-            h1 { color: #1e1b4b; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; font-size: 24px; }
-            h2 { color: #4338ca; font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
-            .meta-info { font-size: 12px; color: #64748b; margin-bottom: 25px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 11px; }
-            th { background-color: #f8fafc; font-weight: 600; color: #334155; }
-            .footer { font-size: 10px; color: #94a3b8; margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; }
-            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 9px; }
-            .badge-paid { background-color: #d1fae5; color: #065f46; }
-            .badge-pending { background-color: #fef3c7; color: #92400e; }
-          </style>
-        </head>
-        <body>
-          <h1>AstroVed Business Intelligence (BI) Portal</h1>
-          <div class="meta-info">
-            <strong>Report:</strong> Executive Dashboard (${period} Report)<br/>
-            <strong>Selected Period:</strong> ${period}<br/>
-            <strong>Date Generated:</strong> ${new Date().toLocaleString()}
-          </div>
-          
-          <h2>Key Performance Indicators (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>KPI</th><th>Value</th><th>Comparison vs Previous Period</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>Daily Revenue</td><td>${showRevenue ? formatDollar(safeKpi.dailyRevenueCurrent) : 'Restricted'}</td><td>+${safeKpi.dailyRevenueChange}% vs Yesterday</td></tr>
-                <tr><td>MTD Revenue</td><td>${showRevenue ? formatDollar(safeKpi.mtdRevenueCurrent) : 'Restricted'}</td><td>+${safeKpi.mtdRevenueChange}% vs Last Month</td></tr>
-                <tr><td>YTD Revenue</td><td>${showRevenue ? formatDollar(safeKpi.ytdRevenueCurrent) : 'Restricted'}</td><td>+${safeKpi.ytdRevenueChange}% vs Last Year</td></tr>
-                <tr><td>Orders</td><td>${safeKpi.ordersCurrent.toLocaleString()}</td><td>+${safeKpi.ordersChange}% vs Yesterday</td></tr>
-                <tr><td>Conversion Rate</td><td>${safeKpi.conversionRateCurrent}%</td><td>+${safeKpi.conversionRateChange}% vs Yesterday</td></tr>
-                <tr><td>Forecast (This Month)</td><td>${showRevenue ? formatDollar(safeKpi.forecastCurrent) : 'Restricted'}</td><td>+${safeKpi.forecastChange}% vs Target</td></tr>
-                <tr><td>Revenue Target Progress</td><td>${showRevenue ? safeKpi.targetPct + '%' : 'Restricted'}</td><td>Target: ${showRevenue ? formatDollar(safeKpi.targetCurrent) : 'Restricted'}</td></tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <h2>Revenue Trend (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Period</th><th>Revenue ($)</th><th>Orders</th></tr>
-              </thead>
-              <tbody>
-                ${expRevTrend.map(row => `<tr><td>${row.date || ''}</td><td>${showRevenue ? formatDollar(row.revenue || 0) : 'Restricted'}</td><td>${(row.orders || 0).toLocaleString()}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Revenue by Category (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Category</th><th>Percentage</th><th>Revenue ($)</th></tr>
-              </thead>
-              <tbody>
-                ${expCategories.map(c => `<tr><td>${c.name || ''}</td><td>${c.value || 0}%</td><td>${showRevenue ? formatDollar(c.raw || 0) : 'Restricted'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Revenue by Channel (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Channel</th><th>Percentage</th><th>Revenue ($)</th></tr>
-              </thead>
-              <tbody>
-                ${expChannels.map(c => `<tr><td>${c.name || ''}</td><td>${c.value || 0}%</td><td>${showRevenue ? formatDollar(c.raw || 0) : 'Restricted'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Top Selling Products (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>ID</th><th>Product</th><th>Revenue ($)</th><th>Orders</th></tr>
-              </thead>
-              <tbody>
-                ${expTopProducts.map(prod => `<tr><td>${prod.id || ''}</td><td>${prod.name || ''}</td><td>${showRevenue ? formatDollar(prod.revenue || 0) : 'Restricted'}</td><td>${(prod.orders || 0).toLocaleString()}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Recent Orders (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Order ID</th><th>Customer</th><th>Amount ($)</th><th>Status</th><th>Time</th></tr>
-              </thead>
-              <tbody>
-                ${expRecentOrders.map(ord => `<tr><td>${ord.id || ''}</td><td>${ord.customer || ''}</td><td>${showRevenue ? formatDollar(ord.amount || 0) : 'Restricted'}</td><td><span class="badge ${ord.status === 'Paid' ? 'badge-paid' : 'badge-pending'}">${ord.status || ''}</span></td><td>${ord.time || ''}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Revenue vs Target (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Period</th><th>Revenue ($)</th><th>Target ($)</th></tr>
-              </thead>
-              <tbody>
-                ${expTargetComp.map(t => `<tr><td>${t.week || ''}</td><td>${showRevenue ? formatDollar(t.revenue || 0) : 'Restricted'}</td><td>${showRevenue ? formatDollar(t.target || 0) : 'Restricted'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Refunds Trend (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Date</th><th>Refunds ($)</th></tr>
-              </thead>
-              <tbody>
-                ${expRefunds.map(row => `<tr><td>${row.date || ''}</td><td>${showRevenue ? formatDollar(row.revenue || 0) : 'Restricted'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Cancellations Trend (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Date</th><th>Cancellations ($)</th></tr>
-              </thead>
-              <tbody>
-                ${expCancellations.map(row => `<tr><td>${row.date || ''}</td><td>${showRevenue ? formatDollar(row.revenue || 0) : 'Restricted'}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <h2>Traffic Overview (${period})</h2>
-          <div className="overflow-x-auto w-full">
-            <table>
-              <thead>
-                <tr><th>Metric</th><th>Count</th><th>Change (%)</th></tr>
-              </thead>
-              <tbody>
-                ${expTraffic && expTraffic.metrics ? `
-                  <tr><td>Organic Traffic</td><td>${(expTraffic.metrics.organic?.count || 0).toLocaleString()}</td><td>${expTraffic.metrics.organic?.change || 0}%</td></tr>
-                  <tr><td>Paid Traffic</td><td>${(expTraffic.metrics.paid?.count || 0).toLocaleString()}</td><td>${expTraffic.metrics.paid?.change || 0}%</td></tr>
-                  <tr><td>Total Visitors</td><td>${(expTraffic.metrics.total?.count || 0).toLocaleString()}</td><td>${expTraffic.metrics.total?.change || 0}%</td></tr>
-                  <tr><td>Bounce Rate</td><td>${expTraffic.metrics.bounce?.count || 0}%</td><td>${expTraffic.metrics.bounce?.change || 0}%</td></tr>
-                ` : ''}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} AstroVed. All rights reserved.</p>
-          </div>
-          
-          <script>
-            window.onload = function() {
-              window.print();
-              window.close();
-            }
-          </script>
-        </body>
-        </html>
-      `;
-
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error("Popup blocked! Please allow popups to export PDF.");
+      const element = document.getElementById('executive-dashboard-container');
+      if (!element) {
+        toast.error("Dashboard content not found.");
+        setIsExportingPDF(false);
         return;
       }
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      toast.success(`${period} PDF report opened for printing!`);
+      toast.loading("Generating PDF...", { id: "pdf-export" });
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(getExportFileName('pdf'));
+      toast.success(`${exportPeriod} PDF report downloaded!`, { id: "pdf-export" });
     } catch (err) {
       console.error("PDF Export Error:", err);
-      toast.error("Failed to export PDF report: " + err.message);
+      toast.error("Failed to export PDF report: " + err.message, { id: "pdf-export" });
+    } finally {
+      setIsExportingPDF(false);
     }
   };
 
@@ -1171,31 +1020,8 @@ const Executive = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        {loading ? (
-          <div className="flex items-center space-x-2 text-xs text-indigo-400 font-semibold bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg w-fit animate-pulse">
-            <span className="w-2.5 h-2.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></span>
-            <span>Syncing Real-Time GA4 Metrics...</span>
-          </div>
-        ) : activeData.gaConnected ? (
-          activeData.gaRealTime ? (
-            <div className="flex items-center space-x-2 text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg w-fit">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>GA4 Live Stream Connected (Real-Time Reporting Active)</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 text-xs text-amber-400 font-semibold bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg w-fit">
-              <span>GA4 Connected (Live Traffic Data)</span>
-            </div>
-          )
-        ) : (
-          <div className="flex items-center space-x-2 text-xs text-cosmic-muted font-semibold bg-cosmic-border/10 border border-cosmic-border/20 px-3 py-1.5 rounded-lg w-fit">
-            <span>⚪</span>
-            <span>GA4 Disconnected (Configure settings in Integrations tab)</span>
-          </div>
-        )}
-
+    <div id="executive-dashboard-container" className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
         <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto">
           {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
             <button
@@ -1217,6 +1043,33 @@ const Executive = () => {
             </button>
           ))}
         </div>
+
+        <div className="flex gap-2">
+            <button
+              onClick={() => handleExportClick('CSV')}
+              className="flex items-center gap-1.5 bg-[#f0f7ff] dark:bg-blue-500/10 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#dbeafe] dark:hover:bg-blue-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+              title="Export CSV"
+            >
+              <FileText size={14} />
+              <span className="hidden lg:inline">CSV</span>
+            </button>
+            <button
+              onClick={() => handleExportClick('Excel')}
+              className="flex items-center gap-1.5 bg-[#f4fbf7] dark:bg-emerald-500/10 text-[#16a34a] dark:text-emerald-400 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+              title="Export Excel"
+            >
+              <FileSpreadsheet size={14} />
+              <span className="hidden lg:inline">Excel</span>
+            </button>
+            <button
+              onClick={() => handleExportClick('PDF')}
+              className="flex items-center gap-1.5 bg-[#fef2f2] dark:bg-rose-500/10 text-[#dc2626] dark:text-rose-400 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+              title="Export PDF"
+            >
+              <Download size={14} />
+              <span className="hidden lg:inline">PDF</span>
+            </button>
+          </div>
       </div>
 
       {/* ----------------- KPI CARDS: 5 on Top, 4 on Bottom (Centered) ----------------- */}
@@ -1486,148 +1339,6 @@ const Executive = () => {
 
       </div>
 
-      {/* ----------------- ROW 4: TRAFFIC OVERVIEW, QUICK REPORTS, EXPORTS ----------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        {/* Traffic Overview */}
-        <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl flex flex-col justify-between h-full">
-          <div>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 gap-2">
-              <h4 className="text-sm font-bold text-cosmic-text truncate tracking-tight">Traffic Overview</h4>
-              <select
-                value={trafficFilter}
-                onChange={(e) => setTrafficFilter(e.target.value)}
-                className="bg-cosmic-bg border border-cosmic-border text-xs text-cosmic-muted px-2 py-1 rounded-md focus:outline-none cursor-pointer flex-shrink-0 transition-colors hover:border-blue-500/50"
-              >
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="This Year">This Year</option>
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-left">
-              <div className="bg-cosmic-bg/50 border border-cosmic-border/50 rounded-lg p-3 transition-colors hover:bg-cosmic-bg">
-                <span className="text-cosmic-muted text-[10px] font-semibold uppercase tracking-wider block truncate mb-1">Organic Traffic</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold text-cosmic-text leading-none">{currentTraffic.metrics.organic.count.toLocaleString()}</span>
-                  <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                    ↑ {currentTraffic.metrics.organic.change}%
-                  </span>
-                </div>
-              </div>
-              <div className="bg-cosmic-bg/50 border border-cosmic-border/50 rounded-lg p-3 transition-colors hover:bg-cosmic-bg">
-                <span className="text-cosmic-muted text-[10px] font-semibold uppercase tracking-wider block truncate mb-1">Paid Traffic</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold text-cosmic-text leading-none">{currentTraffic.metrics.paid.count.toLocaleString()}</span>
-                  <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                    ↑ {currentTraffic.metrics.paid.change}%
-                  </span>
-                </div>
-              </div>
-              <div className="bg-cosmic-bg/50 border border-cosmic-border/50 rounded-lg p-3 transition-colors hover:bg-cosmic-bg">
-                <span className="text-cosmic-muted text-[10px] font-semibold uppercase tracking-wider block truncate mb-1">Total Visitors</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold text-cosmic-text leading-none">{currentTraffic.metrics.total.count.toLocaleString()}</span>
-                  <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                    ↑ {currentTraffic.metrics.total.change}%
-                  </span>
-                </div>
-              </div>
-              <div className="bg-cosmic-bg/50 border border-cosmic-border/50 rounded-lg p-3 transition-colors hover:bg-cosmic-bg">
-                <span className="text-cosmic-muted text-[10px] font-semibold uppercase tracking-wider block truncate mb-1">Bounce Rate</span>
-                <div className="flex items-end justify-between">
-                  <span className="text-lg font-bold text-cosmic-text leading-none">{currentTraffic.metrics.bounce.count}%</span>
-                  <span className="text-[10px] text-rose-500 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                    ↓ {Math.abs(currentTraffic.metrics.bounce.change)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="h-20 mt-4 -mx-2 -mb-2">
-            <EChartWrapper option={trafficOverviewOption} height="100%" />
-          </div>
-        </div>
-
-        {/* Export Reports Buttons */}
-        <div className="bg-white dark:bg-cosmic-card border border-gray-100 dark:border-cosmic-border p-4 rounded-xl flex flex-col space-y-4 shadow-sm h-full w-full">
-          <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Export Reports</h4>
-
-          <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700">
-            {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
-              <button
-                key={period}
-                onClick={() => setExportPeriod(period)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-1 text-[11px] font-medium transition-all ${exportPeriod === period
-                  ? 'bg-[#f0f7ff] dark:bg-blue-500/20 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/30 rounded shadow-sm z-10'
-                  : 'text-slate-500 dark:text-slate-400 bg-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 border-y border-transparent ' + (exportPeriod !== period && idx !== 0 && exportPeriod !== ['Daily', 'Weekly', 'Monthly', 'Yearly'][idx - 1] ? 'border-l-[1px] border-l-slate-200 dark:border-l-slate-600' : 'border-l-0')
-                  }`}
-              >
-                <Calendar size={14} className={exportPeriod === period ? 'text-[#3b82f6]' : 'text-slate-400'} />
-                {period}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-2.5">
-            <button
-              onClick={() => handleExportClick('Excel')}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#f4fbf7] dark:bg-emerald-500/10 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 transition-all text-left group shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 transform group-hover:rotate-3 transition-transform">
-                  <path d="M18 6h12a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H18V6z" fill="#22c55e" fillOpacity="0.2" />
-                  <path d="M18 10h14M18 14h14M18 18h14M18 22h14M18 26h14M18 30h14" stroke="#22c55e" strokeWidth="2" />
-                  <path d="M22 6v28M26 6v28" stroke="#22c55e" strokeWidth="2" />
-                  <path d="M6 10h14v20H6a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="#16a34a" />
-                  <path d="M9 15l6 10M15 15l-6 10" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-                <div>
-                  <div className="font-bold text-[#16a34a] dark:text-emerald-400 text-sm">Export to Excel</div>
-                  <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to Excel format</div>
-                </div>
-              </div>
-              <Download size={16} className="text-[#16a34a] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
-            </button>
-
-            <button
-              onClick={() => handleExportClick('PDF')}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#fef2f2] dark:bg-rose-500/10 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 transition-all text-left group shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <svg viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-8 transform group-hover:rotate-3 transition-transform">
-                  <path d="M0 4a4 4 0 0 1 4-4h18l14 14v24a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4z" fill="#ef4444" />
-                  <path d="M22 0v14h14" fill="#dc2626" />
-                  <text x="5" y="32" fill="white" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="12">PDF</text>
-                </svg>
-                <div>
-                  <div className="font-bold text-[#dc2626] dark:text-rose-400 text-sm">Export to PDF</div>
-                  <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to PDF format</div>
-                </div>
-              </div>
-              <Download size={16} className="text-[#dc2626] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
-            </button>
-
-            <button
-              onClick={() => handleExportClick('CSV')}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#f0f7ff] dark:bg-blue-500/10 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#dbeafe] dark:hover:bg-blue-500/20 transition-all text-left group shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <svg viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-8 transform group-hover:rotate-3 transition-transform">
-                  <path d="M0 4a4 4 0 0 1 4-4h18l14 14v24a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V4z" fill="#3b82f6" />
-                  <path d="M22 0v14h14" fill="#2563eb" />
-                  <text x="3" y="32" fill="white" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="11">CSV</text>
-                </svg>
-                <div>
-                  <div className="font-bold text-[#2563eb] dark:text-blue-400 text-sm">Export to CSV</div>
-                  <div className="text-slate-500 dark:text-slate-400 text-[10px]">Export report data to CSV format</div>
-                </div>
-              </div>
-              <Download size={16} className="text-[#2563eb] group-hover:scale-110 transition-transform group-hover:translate-y-0.5" strokeWidth={2} />
-            </button>
-          </div>
-        </div>
-
-      </div>
 
       {/* Daily Revenue Query Modal */}
       {showQueryModal && (
