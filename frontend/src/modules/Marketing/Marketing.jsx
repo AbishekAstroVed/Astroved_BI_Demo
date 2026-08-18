@@ -588,7 +588,7 @@ const Marketing = ({ setCurrentModule }) => {
           </div>
 
           {/* Meta KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
               <span className="text-[10px] text-cosmic-muted font-bold uppercase block">Meta Ad Spend</span>
               <span className="text-xl font-black text-cosmic-text mt-1 block">{showCost ? formatCurrency(metaAdsData?.totalSpend || 0) : '🔒'}</span>
@@ -756,7 +756,7 @@ const Marketing = ({ setCurrentModule }) => {
           </div>
 
           {/* Google KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-cosmic-card border border-cosmic-border p-4 rounded-xl">
               <span className="text-[10px] text-cosmic-muted font-bold uppercase block">Google Ad Spend</span>
               <span className="text-xl font-black text-cosmic-text mt-1 block">{showCost ? formatCurrency(googleAdsData?.totalSpend || 0) : '🔒'}</span>

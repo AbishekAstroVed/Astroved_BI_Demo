@@ -357,7 +357,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
           )}
 
           {/* Global Calendar Selector Pill (Hidden on Executive Dashboard page) */}
-          {!isCalendarHidden && currentModule !== 'executive' && !title?.toLowerCase().includes('executive') && (
+          {!isCalendarHidden && currentModule !== 'executive' && currentModule !== 'operations' && !title?.toLowerCase().includes('executive') && (
             <div className="relative shrink-0" ref={dateMenuRef}>
               <button
                 onClick={() => setDateMenuOpen(!dateMenuOpen)}

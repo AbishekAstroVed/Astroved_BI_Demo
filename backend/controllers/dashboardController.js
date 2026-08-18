@@ -196,7 +196,7 @@ export const getExecutiveDashboard = async (req, res) => {
           -- 0. KPI Query
           ;WITH ValidOrders AS (
               SELECT 
-                  PA.OrderId, SL.CustomerId, CAST(GP.OrderDate AS DATE) as OrderDateVal
+                  PA.OrderId, SL.CustomerId, CAST(GP.OrderDate AS DATE) as OrderDateVal, PA.Amount
               FROM Payment AS PA WITH (NOLOCK)         
               INNER JOIN SelectedList AS SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId         
               INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
@@ -285,10 +285,10 @@ SELECT
           AND GP.OrderDate <= @today
 )
 SELECT 
-              (SELECT COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @today THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS dailyRevenue,
-              (SELECT COALESCE(SUM(CASE WHEN CAST(OrderDate AS DATE) = @yesterday THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS yesterdayRevenue,
-              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @thisMonth AND YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS mtdRevenue,
-              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDate) = @lastMonth AND YEAR(OrderDate) = @lastMonthYear AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS lastMtdRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN OrderDateVal = @today THEN Amount ELSE 0 END), 0) FROM ValidOrders) AS dailyRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN OrderDateVal = @yesterday THEN Amount ELSE 0 END), 0) FROM ValidOrders) AS yesterdayRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDateVal) = @thisMonth AND YEAR(OrderDateVal) = @thisYear THEN Amount ELSE 0 END), 0) FROM ValidOrders) AS mtdRevenue,
+              (SELECT COALESCE(SUM(CASE WHEN MONTH(OrderDateVal) = @lastMonth AND YEAR(OrderDateVal) = @lastMonthYear AND DAY(OrderDateVal) <= DAY(@today) THEN Amount ELSE 0 END), 0) FROM ValidOrders) AS lastMtdRevenue,
               (SELECT COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @thisYear THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS ytdRevenue,
               (SELECT COALESCE(SUM(CASE WHEN YEAR(OrderDate) = @lastYear AND MONTH(OrderDate) <= @thisMonth AND DAY(OrderDate) <= DAY(@today) THEN NetRevenue ELSE 0 END), 0) FROM TempBaseOrders) AS lastYtdRevenue,
               (SELECT COUNT(DISTINCT CASE WHEN OrderDateVal = @today THEN OrderId END) FROM ValidOrders) AS dailyOrders,
@@ -1048,7 +1048,7 @@ SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' 
         mssqlTrendWeekPrev = result.recordsets[4] || [];
         mssqlTrendMonthPrev = result.recordsets[5] || [];
         mssqlTrendYearPrev = result.recordsets[6] || [];
-        
+
         if (mssqlKpiData) {
           mssqlTrendDay = [{ date: 'Today', revenue: mssqlKpiData.dailyRevenue || 0, orders: mssqlKpiData.dailyOrders || 0 }];
         }
@@ -1111,7 +1111,7 @@ SELECT B.OrderId as id, C.CustomerId as customerId, ISNULL(C.FirstName, '') + ' 
         mssqlCancellationsWeek = cancelResult.recordsets[1] || [];
         mssqlCancellationsMonth = cancelResult.recordsets[2] || [];
         mssqlCancellationsYear = cancelResult.recordsets[3] || [];
-        
+
         mssqlRefundsDay = cancelResult.recordsets[4] || [];
         mssqlRefundsWeek = cancelResult.recordsets[5] || [];
         mssqlRefundsMonth = cancelResult.recordsets[6] || [];
@@ -2378,6 +2378,7 @@ export const getDailySalesDashboard = async (req, res) => {
                                 AND od2.SelectedItemId > 0      
                           )      
                       )      
+                          
                   )      
                 LEFT JOIN (        
                     SELECT DISTINCT CustomerId         
@@ -2619,7 +2620,7 @@ export const getDailySalesDashboard = async (req, res) => {
     } catch (err) {
       console.error("[Dashboard] Daily Sales KPI Query Error:", err);
     }
-    
+
     // Inject mock data for PDF report testing if empty
     if (req.query.isReport) {
       if (!bestSellers || bestSellers.length === 0) {
@@ -3465,7 +3466,7 @@ export const syncGoogleAds = async (req, res) => {
     } catch (e) { /* offline fallback */ }
 
     let isLiveApi = false;
-    
+
     const config = googleIntegration?.config;
     const developerToken = config?.get ? config.get('developerToken') : config?.developerToken;
     const customerId = config?.get ? config.get('customerId') : config?.customerId;
@@ -3605,7 +3606,7 @@ export const getNewsletterDashboard = async (req, res) => {
     const request = pool.request();
     let sDate = new Date('2023-01-01');
     let eDate = new Date();
-    
+
     if (startDate && endDate) {
       sDate = new Date(startDate);
       eDate = new Date(endDate);
@@ -3618,14 +3619,14 @@ export const getNewsletterDashboard = async (req, res) => {
 
     const diffTime = Math.abs(eDate - sDate);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     // Dynamic Previous Period
     const prevStartDate = new Date(sDate.getTime() - (diffDays * 24 * 60 * 60 * 1000));
     const prevEndDate = new Date(sDate.getTime() - (1 * 24 * 60 * 60 * 1000)); // 1 day before start
-    
+
     request.input('prevStartDate', prevStartDate.toISOString().split('T')[0]);
     request.input('prevEndDate', prevEndDate.toISOString().split('T')[0]);
-    
+
     if (eventName && eventName !== 'All') {
       request.input('eventName', eventName);
     }
@@ -4295,7 +4296,7 @@ export const getCustomerMetrics = async (req, res) => {
   try {
     const { period = 'Monthly' } = req.query;
     const pool = await connectMSSQL();
-    
+
     if (!pool) {
       return res.status(500).json({ message: "MSSQL connection pool is not ready" });
     }
@@ -4304,10 +4305,10 @@ export const getCustomerMetrics = async (req, res) => {
     let periodsToFetch = 7;
     let periodLabels = [];
     let dateFilter = '';
-    
+
     // Generate period labels and date filters
     const today = new Date();
-    
+
     if (period === 'Daily') {
       groupCol = 'FORMAT(GP.OrderDate, \'MMM dd\')';
       for (let i = periodsToFetch - 1; i >= 0; i--) {
@@ -4332,8 +4333,8 @@ export const getCustomerMetrics = async (req, res) => {
         const dForISO = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         const dayNum = dForISO.getUTCDay() || 7;
         dForISO.setUTCDate(dForISO.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(dForISO.getUTCFullYear(),0,1));
-        const weekNo = Math.ceil((((dForISO - yearStart) / 86400000) + 1)/7);
+        const yearStart = new Date(Date.UTC(dForISO.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((dForISO - yearStart) / 86400000) + 1) / 7);
         periodLabels.push(`${dForISO.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`);
       }
       dateFilter = `GP.OrderDate >= DATEADD(week, -${periodsToFetch}, GETDATE())`;
@@ -4394,7 +4395,7 @@ export const getCustomerMetrics = async (req, res) => {
     `;
 
     const result = await pool.request().query(query);
-    
+
     // Map results to our period labels to ensure we always return exactly 3 columns
     const mappedData = periodLabels.map(label => {
       const row = result.recordset.find(r => r.PeriodLabel === label);
@@ -4443,7 +4444,7 @@ export const getCustomerMetrics = async (req, res) => {
       const eDate = new Date(req.query.endDate);
       const diffTime = Math.abs(eDate - sDate);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
-      
+
       const prevStartDate = new Date(sDate.getTime() - (diffDays * 24 * 60 * 60 * 1000));
       const prevEndDate = new Date(sDate.getTime() - (1 * 24 * 60 * 60 * 1000));
 
@@ -4497,7 +4498,7 @@ export const getCustomerMetrics = async (req, res) => {
         GROUP BY PeriodLabel
       `;
       const demogResult = await pool.request().query(customDemogQuery);
-      
+
       const currRow = demogResult.recordset.find(r => r.PeriodLabel === currentPeriodLabel);
       const prevRow = demogResult.recordset.find(r => r.PeriodLabel === previousPeriodLabel);
 
@@ -4526,7 +4527,7 @@ export const getCustomerMetrics = async (req, res) => {
         };
       }
     }
-    
+
     const topItemsQuery = `
       WITH FirstOrders AS (
           SELECT ContactId, MIN(OrderDate) as FirstOrderDate
@@ -4642,160 +4643,160 @@ export const getCustomerMetrics = async (req, res) => {
       ) AS Aggregations;
     `;
     const result2 = await pool.request().query(topItemsQuery);
-    
+
     // Sort and slice top 10
     const newCustomersByEventName = result2.recordset
-        .filter(r => r.Type === 'Event')
-        .sort((a,b) => b.TotalRevenue - a.TotalRevenue)
-        .slice(0, 10)
-        .map((r, idx) => ({ id: idx + 1, name: r.Name, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
-        
+      .filter(r => r.Type === 'Event')
+      .sort((a, b) => b.TotalRevenue - a.TotalRevenue)
+      .slice(0, 10)
+      .map((r, idx) => ({ id: idx + 1, name: r.Name, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
+
     const newCustomersByProductName = result2.recordset
-        .filter(r => r.Type === 'Product')
-        .sort((a,b) => b.TotalRevenue - a.TotalRevenue)
-        .slice(0, 10)
-        .map((r, idx) => ({ id: idx + 1, name: r.Name, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
+      .filter(r => r.Type === 'Product')
+      .sort((a, b) => b.TotalRevenue - a.TotalRevenue)
+      .slice(0, 10)
+      .map((r, idx) => ({ id: idx + 1, name: r.Name, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
 
     const highContributors = result2.recordset
-        .filter(r => r.Type === 'HighContributor')
-        .sort((a,b) => b.TotalRevenue - a.TotalRevenue)
-        .slice(0, 50)
-        .map((r, idx) => ({ id: idx + 1, name: r.Name, currency: r.Currency, country: r.CountryCode, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
+      .filter(r => r.Type === 'HighContributor')
+      .sort((a, b) => b.TotalRevenue - a.TotalRevenue)
+      .slice(0, 50)
+      .map((r, idx) => ({ id: idx + 1, name: r.Name, currency: r.Currency, country: r.CountryCode, qty: parseInt(r.Qty) || 0, revenue: parseFloat(r.TotalRevenue) || 0 }));
 
     const trafficRaw = result2.recordset.filter(r => r.Type === 'TrafficSource');
     const trafficSourcesMap = {};
     trafficRaw.forEach(r => {
-        if (!trafficSourcesMap[r.TrafficCategory]) trafficSourcesMap[r.TrafficCategory] = { current: { qty: 0, revenue: 0 }, prev: { qty: 0, revenue: 0 } };
-        if (r.PeriodLabel === currentPeriodLabel) {
-            trafficSourcesMap[r.TrafficCategory].current.qty += parseInt(r.Qty) || 0;
-            trafficSourcesMap[r.TrafficCategory].current.revenue += parseFloat(r.TotalRevenue) || 0;
-        } else if (r.PeriodLabel === previousPeriodLabel) {
-            trafficSourcesMap[r.TrafficCategory].prev.qty += parseInt(r.Qty) || 0;
-            trafficSourcesMap[r.TrafficCategory].prev.revenue += parseFloat(r.TotalRevenue) || 0;
-        }
+      if (!trafficSourcesMap[r.TrafficCategory]) trafficSourcesMap[r.TrafficCategory] = { current: { qty: 0, revenue: 0 }, prev: { qty: 0, revenue: 0 } };
+      if (r.PeriodLabel === currentPeriodLabel) {
+        trafficSourcesMap[r.TrafficCategory].current.qty += parseInt(r.Qty) || 0;
+        trafficSourcesMap[r.TrafficCategory].current.revenue += parseFloat(r.TotalRevenue) || 0;
+      } else if (r.PeriodLabel === previousPeriodLabel) {
+        trafficSourcesMap[r.TrafficCategory].prev.qty += parseInt(r.Qty) || 0;
+        trafficSourcesMap[r.TrafficCategory].prev.revenue += parseFloat(r.TotalRevenue) || 0;
+      }
     });
 
     const newCustomersByTraffic = Object.keys(trafficSourcesMap).map((source, idx) => {
-        const current = trafficSourcesMap[source].current;
-        const prev = trafficSourcesMap[source].prev;
-        
-        let qtyChange = '-';
-        let qtyTrend = 'neutral';
-        if (prev.qty > 0) {
-            const diff = current.qty - prev.qty;
-            const pct = ((diff / prev.qty) * 100).toFixed(1);
-            qtyChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
-            qtyTrend = diff >= 0 ? 'up' : 'down';
-        } else if (current.qty > 0) {
-            qtyChange = '100.0% ↑';
-            qtyTrend = 'up';
-        }
+      const current = trafficSourcesMap[source].current;
+      const prev = trafficSourcesMap[source].prev;
 
-        let revChange = '-';
-        let revTrend = 'neutral';
-        if (prev.revenue > 0) {
-            const diff = current.revenue - prev.revenue;
-            const pct = ((diff / prev.revenue) * 100).toFixed(1);
-            revChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
-            revTrend = diff >= 0 ? 'up' : 'down';
-        } else if (current.revenue > 0) {
-            revChange = '100.0% ↑';
-            revTrend = 'up';
-        }
+      let qtyChange = '-';
+      let qtyTrend = 'neutral';
+      if (prev.qty > 0) {
+        const diff = current.qty - prev.qty;
+        const pct = ((diff / prev.qty) * 100).toFixed(1);
+        qtyChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
+        qtyTrend = diff >= 0 ? 'up' : 'down';
+      } else if (current.qty > 0) {
+        qtyChange = '100.0% ↑';
+        qtyTrend = 'up';
+      }
 
-        return {
-            id: idx + 1,
-            source,
-            qty: current.qty,
-            qtyChange,
-            qtyTrend,
-            revenue: current.revenue,
-            revChange,
-            revTrend
-        };
+      let revChange = '-';
+      let revTrend = 'neutral';
+      if (prev.revenue > 0) {
+        const diff = current.revenue - prev.revenue;
+        const pct = ((diff / prev.revenue) * 100).toFixed(1);
+        revChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
+        revTrend = diff >= 0 ? 'up' : 'down';
+      } else if (current.revenue > 0) {
+        revChange = '100.0% ↑';
+        revTrend = 'up';
+      }
+
+      return {
+        id: idx + 1,
+        source,
+        qty: current.qty,
+        qtyChange,
+        qtyTrend,
+        revenue: current.revenue,
+        revChange,
+        revTrend
+      };
     }).sort((a, b) => b.revenue - a.revenue);
 
     const trafficAllRaw = result2.recordset.filter(r => r.Type === 'TrafficSourceAll');
     const trafficAllMap = {};
     trafficAllRaw.forEach(r => {
-        if (!trafficAllMap[r.TrafficCategory]) trafficAllMap[r.TrafficCategory] = { current: { qty: 0, revenue: 0 }, prev: { qty: 0, revenue: 0 } };
-        if (r.PeriodLabel === currentPeriodLabel) {
-            trafficAllMap[r.TrafficCategory].current.qty += parseInt(r.Qty) || 0;
-            trafficAllMap[r.TrafficCategory].current.revenue += parseFloat(r.TotalRevenue) || 0;
-        } else if (r.PeriodLabel === previousPeriodLabel) {
-            trafficAllMap[r.TrafficCategory].prev.qty += parseInt(r.Qty) || 0;
-            trafficAllMap[r.TrafficCategory].prev.revenue += parseFloat(r.TotalRevenue) || 0;
-        }
+      if (!trafficAllMap[r.TrafficCategory]) trafficAllMap[r.TrafficCategory] = { current: { qty: 0, revenue: 0 }, prev: { qty: 0, revenue: 0 } };
+      if (r.PeriodLabel === currentPeriodLabel) {
+        trafficAllMap[r.TrafficCategory].current.qty += parseInt(r.Qty) || 0;
+        trafficAllMap[r.TrafficCategory].current.revenue += parseFloat(r.TotalRevenue) || 0;
+      } else if (r.PeriodLabel === previousPeriodLabel) {
+        trafficAllMap[r.TrafficCategory].prev.qty += parseInt(r.Qty) || 0;
+        trafficAllMap[r.TrafficCategory].prev.revenue += parseFloat(r.TotalRevenue) || 0;
+      }
     });
 
     const revenueByTrafficSource = Object.keys(trafficAllMap).map((source, idx) => {
-        const current = trafficAllMap[source].current;
-        const prev = trafficAllMap[source].prev;
-        
-        let qtyChange = '-';
-        let qtyTrend = 'neutral';
-        if (prev.qty > 0) {
-            const diff = current.qty - prev.qty;
-            const pct = ((diff / prev.qty) * 100).toFixed(1);
-            qtyChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
-            qtyTrend = diff >= 0 ? 'up' : 'down';
-        } else if (current.qty > 0) {
-            qtyChange = '100.0% ↑';
-            qtyTrend = 'up';
-        }
+      const current = trafficAllMap[source].current;
+      const prev = trafficAllMap[source].prev;
 
-        let revChange = '-';
-        let revTrend = 'neutral';
-        if (prev.revenue > 0) {
-            const diff = current.revenue - prev.revenue;
-            const pct = ((diff / prev.revenue) * 100).toFixed(1);
-            revChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
-            revTrend = diff >= 0 ? 'up' : 'down';
-        } else if (current.revenue > 0) {
-            revChange = '100.0% ↑';
-            revTrend = 'up';
-        }
+      let qtyChange = '-';
+      let qtyTrend = 'neutral';
+      if (prev.qty > 0) {
+        const diff = current.qty - prev.qty;
+        const pct = ((diff / prev.qty) * 100).toFixed(1);
+        qtyChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
+        qtyTrend = diff >= 0 ? 'up' : 'down';
+      } else if (current.qty > 0) {
+        qtyChange = '100.0% ↑';
+        qtyTrend = 'up';
+      }
 
-        return {
-            id: idx + 1,
-            source,
-            qty: current.qty,
-            qtyChange,
-            qtyTrend,
-            revenue: current.revenue,
-            revChange,
-            revTrend
-        };
+      let revChange = '-';
+      let revTrend = 'neutral';
+      if (prev.revenue > 0) {
+        const diff = current.revenue - prev.revenue;
+        const pct = ((diff / prev.revenue) * 100).toFixed(1);
+        revChange = diff >= 0 ? pct + '% ↑' : pct + '% ↓';
+        revTrend = diff >= 0 ? 'up' : 'down';
+      } else if (current.revenue > 0) {
+        revChange = '100.0% ↑';
+        revTrend = 'up';
+      }
+
+      return {
+        id: idx + 1,
+        source,
+        qty: current.qty,
+        qtyChange,
+        qtyTrend,
+        revenue: current.revenue,
+        revChange,
+        revTrend
+      };
     }).sort((a, b) => b.revenue - a.revenue);
 
     const projectionByTraffic = revenueByTrafficSource.map(r => {
-        // Simple projection run rate algorithm
-        let runRateMultiplier = 1;
-        // In real app, calculate days passed in period vs total days.
-        // For now, let's use a 1.25 multiplier just to show dynamic data.
-        let projected = r.revenue * 1.25; 
-        
-        return {
-            id: r.id,
-            group: r.source,
-            expected: '0.00',
-            projected: projected.toFixed(2),
-            projChange: r.revChange,
-            projTrend: r.revTrend,
-            revenue: r.revenue,
-            revChange: r.revChange,
-            revTrend: r.revTrend
-        };
+      // Simple projection run rate algorithm
+      let runRateMultiplier = 1;
+      // In real app, calculate days passed in period vs total days.
+      // For now, let's use a 1.25 multiplier just to show dynamic data.
+      let projected = r.revenue * 1.25;
+
+      return {
+        id: r.id,
+        group: r.source,
+        expected: '0.00',
+        projected: projected.toFixed(2),
+        projChange: r.revChange,
+        projTrend: r.revTrend,
+        revenue: r.revenue,
+        revChange: r.revChange,
+        revTrend: r.revTrend
+      };
     });
 
-    res.status(200).json({ 
-        data: mappedData,
-        newCustomersByEventName,
-        newCustomersByProductName,
-        highContributors,
-        newCustomersByTraffic,
-        revenueByTrafficSource,
-        projectionByTraffic
+    res.status(200).json({
+      data: mappedData,
+      newCustomersByEventName,
+      newCustomersByProductName,
+      highContributors,
+      newCustomersByTraffic,
+      revenueByTrafficSource,
+      projectionByTraffic
     });
 
   } catch (error) {
@@ -4857,21 +4858,21 @@ export const getAllEventNames = async (req, res) => {
 export const getOperationalDashboard = async (req, res) => {
   try {
     const { startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10 } = req.query;
-    
+
     const parsedOrderPage = parseInt(orderPage) || 1;
     const parsedRefundPage = parseInt(refundPage) || 1;
     const parsedPageSize = parseInt(pageSize) || 10;
-    
+
     const orderOffset = (parsedOrderPage - 1) * parsedPageSize;
     const refundOffset = (parsedRefundPage - 1) * parsedPageSize;
-    
+
     const pool = await connectMSSQL();
     if (!pool) return res.status(500).json({ message: 'Database connection failed' });
 
     const request = pool.request();
     let sDate = new Date('2023-01-01');
     let eDate = new Date();
-    
+
     if (startDate && endDate) {
       sDate = new Date(startDate);
       eDate = new Date(endDate);
@@ -4881,24 +4882,30 @@ export const getOperationalDashboard = async (req, res) => {
       request.input('startDate', '2023-01-01');
       request.input('endDate', eDate.toISOString().split('T')[0]);
     }
-    
+
     request.input('orderOffset', orderOffset);
     request.input('refundOffset', refundOffset);
     request.input('pageSize', parsedPageSize);
 
+    const diffTime = Math.abs(eDate - sDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
     let dateSelectSql = "CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107)";
     let dateGroupSql = "CAST(GP.OrderDate AS DATE)";
     let dateSortSql = "MIN(CAST(GP.OrderDate AS DATE))";
-    
-    if (period === 'yearly') {
-      dateSelectSql = "FORMAT(GP.OrderDate, 'yyyy')";
-      dateGroupSql = "FORMAT(GP.OrderDate, 'yyyy')";
-    } else if (period === 'monthly') {
-      dateSelectSql = "FORMAT(GP.OrderDate, 'MMM yyyy')";
-      dateGroupSql = "FORMAT(GP.OrderDate, 'MMM yyyy')";
-    } else if (period === 'weekly') {
-      dateSelectSql = "CONVERT(varchar, DATEADD(wk, DATEDIFF(wk, 0, GP.OrderDate), 0), 107)";
-      dateGroupSql = "DATEADD(wk, DATEDIFF(wk, 0, GP.OrderDate), 0)";
+
+    if (diffDays <= 1) {
+      dateSelectSql = "FORMAT(MIN(GP.OrderDate), 'HH:00')";
+      dateGroupSql = "FORMAT(GP.OrderDate, 'HH:00')";
+    } else if (diffDays <= 31) {
+      dateSelectSql = "FORMAT(MIN(GP.OrderDate), 'MMM dd')";
+      dateGroupSql = "CAST(GP.OrderDate AS DATE)";
+    } else if (diffDays <= 90) {
+      dateSelectSql = "CONCAT('Week ', DATEPART(iso_week, MIN(GP.OrderDate)))";
+      dateGroupSql = "DATEPART(iso_week, GP.OrderDate)";
+    } else {
+      dateSelectSql = "FORMAT(MIN(GP.OrderDate), 'MMM yyyy')";
+      dateGroupSql = "FORMAT(GP.OrderDate, 'yyyy-MM')";
     }
 
     const query = `
@@ -4922,7 +4929,7 @@ export const getOperationalDashboard = async (req, res) => {
           WHERE SL.ShopId = 1 
             AND GP.Code <> '9999999999' 
             AND TestAccounts.CustomerId IS NULL 
-            AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+            AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       )
       SELECT 
           (SELECT SUM(Amount) FROM ValidOrders WHERE TypeId <> 19 AND (OrderStatusId <> 6 OR OrderStatusId IS NULL)) as TotalRevenue,
@@ -4941,7 +4948,7 @@ export const getOperationalDashboard = async (req, res) => {
       FROM Payment PA WITH (NOLOCK)
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
-      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      WHERE SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       GROUP BY ${dateGroupSql}
       ORDER BY ${dateSortSql} ASC;
 
@@ -4954,7 +4961,7 @@ export const getOperationalDashboard = async (req, res) => {
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
       LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
-      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      WHERE SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       GROUP BY OS.StatusName;
 
       -- RESULT 3: Refund & Cancellation Trend
@@ -4966,7 +4973,7 @@ export const getOperationalDashboard = async (req, res) => {
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
       LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
-      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      WHERE SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       GROUP BY ${dateGroupSql}
       ORDER BY MIN(CAST(GP.OrderDate AS DATE)) ASC;
 
@@ -4984,14 +4991,19 @@ export const getOperationalDashboard = async (req, res) => {
               LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = SI.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
               WHERE SI.SelectedListId = SL.SelectedListId
-          ) as ProductName
+          ) as ProductName,
+          (
+              SELECT TOP 1 SI.ProductId 
+              FROM SelectedItem SI WITH (NOLOCK)
+              WHERE SI.SelectedListId = SL.SelectedListId
+          ) as ProductId
       FROM Payment PA WITH (NOLOCK)
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
       LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
       LEFT JOIN Contact C WITH (NOLOCK) ON PA.ContactId = C.ContactId
-      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      WHERE SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       ORDER BY CAST(GP.OrderDate AS DATE) DESC, ORD.OrderId DESC
       OFFSET @orderOffset ROWS FETCH NEXT @pageSize ROWS ONLY;
 
@@ -5001,7 +5013,7 @@ export const getOperationalDashboard = async (req, res) => {
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
-      WHERE SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate;
+      WHERE SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE);
 
       -- RESULT 6: Recent Activity (Cancellations)
       SELECT
@@ -5017,13 +5029,18 @@ export const getOperationalDashboard = async (req, res) => {
               LEFT JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = SI.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
               WHERE SI.SelectedListId = SL.SelectedListId
-          ) as ProductName
+          ) as ProductName,
+          (
+              SELECT TOP 1 SI.ProductId 
+              FROM SelectedItem SI WITH (NOLOCK)
+              WHERE SI.SelectedListId = SL.SelectedListId
+          ) as ProductId
       FROM Payment PA WITH (NOLOCK)
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
       LEFT JOIN Contact C WITH (NOLOCK) ON PA.ContactId = C.ContactId
-      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate
+      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       ORDER BY CAST(GP.OrderDate AS DATE) DESC, PA.OrderId DESC
       OFFSET @refundOffset ROWS FETCH NEXT @pageSize ROWS ONLY;
 
@@ -5033,7 +5050,7 @@ export const getOperationalDashboard = async (req, res) => {
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
-      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate;
+      WHERE ORD.OrderStatusId = 6 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE);
     `;
 
     const result = await request.query(query);
@@ -5078,4 +5095,5 @@ export const getOperationalDashboard = async (req, res) => {
     console.error("Operational Dashboard Error:", error);
     res.status(500).json({ message: 'Failed to load operational data', error: error.message });
   }
-};
+};
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import {
@@ -19,7 +19,10 @@ const Executive = () => {
   const [loading, setLoading] = useState(true);
   const [showQueryModal, setShowQueryModal] = useState(false);
 
-  // States for card-level dropdown filters
+  const [operationalData, setOperationalData] = useState(null);
+  const [orderPage, setOrderPage] = useState(1);
+  const [refundPage, setRefundPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);  // States for card-level dropdown filters
   const [revenueOverviewFilter, setRevenueOverviewFilter] = useState('This Week');
   const [categoryFilter, setCategoryFilter] = useState('This Month');
   const [channelFilter, setChannelFilter] = useState('This Month');
@@ -87,6 +90,42 @@ const Executive = () => {
     };
   }, [startDate, endDate]);
 
+  useEffect(() => {
+    let active = true;
+    const fetchOperationalData = async () => {
+      try {
+        const period = exportPeriod === 'Daily' ? 'daily' :
+          exportPeriod === 'Weekly' ? 'weekly' :
+            exportPeriod === 'Monthly' ? 'monthly' : 'yearly';
+        const res = await api.getOperationalDashboard(startDate, endDate, period, orderPage, refundPage, pageSize);
+        if (active) {
+          setOperationalData(res);
+        }
+      } catch (err) {
+        console.error('Failed to load operational data for executive dashboard:', err);
+      }
+    };
+    fetchOperationalData();
+    return () => {
+      active = false;
+    };
+  }, [startDate, endDate, exportPeriod, orderPage, refundPage, pageSize]);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Completed':
+      case 'Complete':
+      case 'Paid':
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-500';
+      case 'Pending':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-500';
+      case 'Cancelled':
+        return 'bg-rose-100 text-rose-800 dark:bg-rose-500/10 dark:text-rose-500';
+      default:
+        return 'bg-slate-100 text-slate-800 dark:bg-slate-500/10 dark:text-slate-400';
+    }
+  };
+
   const topProductsPage = usePagination(
     data ? (
       topProductsFilter === 'Today' || topProductsFilter === 'Daily' ? data.topProductsDay :
@@ -104,7 +143,7 @@ const Executive = () => {
           recentOrdersFilter === 'This Month' || recentOrdersFilter === 'Monthly' ? data.recentOrdersMonth :
             data.recentOrdersYear
     ) || [] : [],
-    isExportingPDF ? 9999 : 10
+    isExportingPDF ? 9999 : pageSize
   );
 
   if (loading) {
@@ -684,7 +723,7 @@ const Executive = () => {
     try {
       setIsExportingPDF(true);
       toast.loading("Preparing dashboard for PDF...", { id: "pdf-export" });
-      
+
       // Give React time to re-render the tables without pagination
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -700,7 +739,7 @@ const Executive = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       let heightLeft = pdfHeight;
       let position = 0;
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -1045,43 +1084,43 @@ const Executive = () => {
         </div>
 
         <div className="flex gap-2">
-            <button
-              onClick={() => handleExportClick('CSV')}
-              className="flex items-center gap-1.5 bg-[#f0f7ff] dark:bg-blue-500/10 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#dbeafe] dark:hover:bg-blue-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
-              title="Export CSV"
-            >
-              <FileText size={14} />
-              <span className="hidden lg:inline">CSV</span>
-            </button>
-            <button
-              onClick={() => handleExportClick('Excel')}
-              className="flex items-center gap-1.5 bg-[#f4fbf7] dark:bg-emerald-500/10 text-[#16a34a] dark:text-emerald-400 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
-              title="Export Excel"
-            >
-              <FileSpreadsheet size={14} />
-              <span className="hidden lg:inline">Excel</span>
-            </button>
-            <button
-              onClick={() => handleExportClick('PDF')}
-              className="flex items-center gap-1.5 bg-[#fef2f2] dark:bg-rose-500/10 text-[#dc2626] dark:text-rose-400 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
-              title="Export PDF"
-            >
-              <Download size={14} />
-              <span className="hidden lg:inline">PDF</span>
-            </button>
-          </div>
+          <button
+            onClick={() => handleExportClick('CSV')}
+            className="flex items-center gap-1.5 bg-[#f0f7ff] dark:bg-blue-500/10 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#dbeafe] dark:hover:bg-blue-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+            title="Export CSV"
+          >
+            <FileText size={14} />
+            <span className="hidden lg:inline">CSV</span>
+          </button>
+          <button
+            onClick={() => handleExportClick('Excel')}
+            className="flex items-center gap-1.5 bg-[#f4fbf7] dark:bg-emerald-500/10 text-[#16a34a] dark:text-emerald-400 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+            title="Export Excel"
+          >
+            <FileSpreadsheet size={14} />
+            <span className="hidden lg:inline">Excel</span>
+          </button>
+          <button
+            onClick={() => handleExportClick('PDF')}
+            className="flex items-center gap-1.5 bg-[#fef2f2] dark:bg-rose-500/10 text-[#dc2626] dark:text-rose-400 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+            title="Export PDF"
+          >
+            <Download size={14} />
+            <span className="hidden lg:inline">PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* ----------------- KPI CARDS: 5 on Top, 4 on Bottom (Centered) ----------------- */}
       <div className="space-y-4">
         {/* Top Row: 5 Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {[
             { title: 'Daily Revenue', value: showRevenue ? formatDollar(kpi.dailyRevenue.current) : 'ðŸ”’', change: `+${kpi.dailyRevenue.compChange}% vs Yesterday`, badgeColor: 'text-emerald-500', showQuery: true },
             { title: 'MTD Revenue', value: showRevenue ? formatDollar(kpi.mtdRevenue.current) : 'ðŸ”’', change: `+${kpi.mtdRevenue.compChange}% vs Last Month`, badgeColor: 'text-emerald-500' },
             { title: 'YTD Revenue', value: showRevenue ? formatDollar(kpi.ytdRevenue.current) : 'ðŸ”’', change: `+${kpi.ytdRevenue.compChange}% vs Last Year`, badgeColor: 'text-emerald-500' },
-            { title: 'Orders (Today)', value: kpi.orders.current.toLocaleString(), change: `+${kpi.orders.compChange}% vs Yesterday`, badgeColor: 'text-orange-500' },
-            { title: 'Customers (Today)', value: kpi.customers?.current?.toLocaleString() || '0', change: `+${kpi.customers?.compChange || 0}% vs Yesterday`, badgeColor: 'text-orange-500' }
+            { title: `Orders (${datePreset || 'Custom'})`, value: kpi.orders.current.toLocaleString(), change: `${kpi.orders.compChange >= 0 ? '+' : ''}${kpi.orders.compChange}% vs Prev Period`, badgeColor: 'text-orange-500' },
+            { title: `Customers (${datePreset || 'Custom'})`, value: kpi.customers?.current?.toLocaleString() || '0', change: `${(kpi.customers?.compChange || 0) >= 0 ? '+' : ''}${kpi.customers?.compChange || 0}% vs Prev Period`, badgeColor: 'text-orange-500' }
           ].map((card, index) => (
             <div key={index} className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-4 md:p-5 flex flex-col items-center justify-center text-center relative group">
               <span className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 md:mb-2">{card.title}</span>
@@ -1105,7 +1144,7 @@ const Executive = () => {
         </div>
 
         {/* Bottom Row: 4 Cards (Centered) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:w-4/5 lg:mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:w-4/5 lg:mx-auto">
           {[
             { title: 'Avg Order Value (Today)', value: showRevenue ? formatDollar(kpi.aov?.current || 0) : 'ðŸ”’', change: `+${kpi.aov?.compChange || 0}% vs Yesterday`, badgeColor: 'text-emerald-500' },
             { title: 'Avg Revenue per User (This Month)', value: showRevenue ? formatDollar(kpi.arpu?.current || 0) : 'ðŸ”’', change: `+${kpi.arpu?.compChange || 0}% vs Last Month`, badgeColor: 'text-emerald-500' },
@@ -1126,7 +1165,7 @@ const Executive = () => {
       </div>
 
       {/* ----------------- ROW 2: CHARTS ROW (Revenue line, Category donut, Channel donut) ----------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Revenue Overview */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-5">
@@ -1258,57 +1297,83 @@ const Executive = () => {
 
         {/* Recent Orders */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
-          <div>
-            <div className="bg-cosmic-bg border-b border-cosmic-border p-3 flex justify-between items-center">
+          <div className="p-3">
+            <div className="flex justify-between items-center mb-4">
               <h4 className="font-semibold text-sm text-cosmic-text">Recent Orders</h4>
-              <select
-                value={recentOrdersFilter}
-                onChange={(e) => setRecentOrdersFilter(e.target.value)}
-                className="bg-cosmic-card border border-cosmic-border text-[10px] text-cosmic-muted px-2 py-0.5 rounded focus:outline-none cursor-pointer"
-              >
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="This Year">This Year</option>
-              </select>
-            </div>
-            <div className="overflow-x-auto">
-              <div className="overflow-x-auto w-full ">
-                <table className="w-full text-left text-[11px] border-collapse relative">
-                  <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
-                    <tr>
-                      <th className="py-2 px-3 font-medium">Order ID</th>
-                      <th className="py-2 px-3 font-medium">Customer</th>
-                      <th className="py-2 px-3 font-medium text-right">Amount ($)</th>
-                      <th className="py-2 px-3 font-medium">Status</th>
-                      <th className="py-2 px-3 font-medium text-right">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                    {recentOrdersPage.currentData.map((ord, idx) => (
-                      <tr key={idx} className="hover:bg-cosmic-card-hover transition-colors">
-                        <td className="py-2 px-3 font-mono text-indigo-400">{ord.id}</td>
-                        <td className="py-2 px-3">
-                          <span className="block font-semibold text-cosmic-text truncate max-w-[120px]" title={ord.customer}>{ord.customer}</span>
-                          <span className="block text-[9px] text-cosmic-muted mt-0.5">ID: {ord.customerId}</span>
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono">
-                          {showRevenue ? formatDollar(ord.amount) : '🔒 Restricted'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${ord.status === 'Paid' || ord.status === 'Complete' || ord.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
-                            }`}>
-                            {ord.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3 text-right text-cosmic-muted text-[10px]">{ord.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="flex items-center gap-2">
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setOrderPage(1);
+                  }}
+                  className="bg-cosmic-bg border border-cosmic-border text-[10px] text-cosmic-muted px-2 py-0.5 rounded focus:outline-none cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={999999}>All</option>
+                </select>
               </div>
             </div>
-            <Pagination {...recentOrdersPage} />
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[11px] border-collapse relative">
+                <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="py-2 px-3 font-medium">Order ID</th>
+                    <th className="py-2 px-3 font-medium">Date</th>
+                    <th className="py-2 px-3 font-medium">Customer</th>
+                    <th className="py-2 px-3 font-medium">Product Name</th>
+                    <th className="py-2 px-3 font-medium text-right">Amount ($)</th>
+                    <th className="py-2 px-3 font-medium text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
+                  {operationalData?.recentActivity?.orders?.map((order, idx) => (
+                    <tr key={idx} className="hover:bg-cosmic-card-hover transition-colors">
+                      <td className="py-2 px-3 font-mono text-indigo-400">#{order.OrderId}</td>
+                      <td className="py-2 px-3 text-cosmic-muted">{order.DateStr}</td>
+                      <td className="py-2 px-3">
+                        <span className="block font-semibold text-cosmic-text truncate max-w-[120px]" title={order.UserName}>{order.UserName || '-'}</span>
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="max-w-[150px] truncate" title={order.ProductName}>
+                          {order.ProductName || '-'}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono">
+                        {showRevenue ? `$${Number(order.Revenue || 0).toLocaleString()}` : '🔒 Restricted'}
+                      </td>
+                      <td className="py-2 px-3 text-center">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${getStatusColor(order.Status)}`}>
+                          {order.Status || 'Unknown'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!operationalData?.recentActivity?.orders || operationalData.recentActivity.orders.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-cosmic-muted">No orders found for the selected period.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {operationalData?.recentActivity?.ordersTotal > pageSize && (
+              <div className="mt-4 flex justify-between items-center bg-cosmic-bg/50 p-2 rounded-lg border border-cosmic-border">
+                <div className="text-[10px] text-cosmic-muted">
+                  Showing {((orderPage - 1) * pageSize) + 1} to {Math.min(orderPage * pageSize, operationalData.recentActivity.ordersTotal)} of {operationalData.recentActivity.ordersTotal} entries
+                </div>
+                <Pagination
+                  currentPage={orderPage}
+                  totalPages={Math.ceil(operationalData.recentActivity.ordersTotal / pageSize)}
+                  prev={() => setOrderPage(p => Math.max(1, p - 1))}
+                  next={() => setOrderPage(p => Math.min(Math.ceil(operationalData.recentActivity.ordersTotal / pageSize), p + 1))}
+                  jump={(p) => setOrderPage(p)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1337,28 +1402,29 @@ const Executive = () => {
           )}
         </div>
 
-      </div>
+      </div >
 
 
       {/* Daily Revenue Query Modal */}
-      {showQueryModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 md:p-8">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center gap-2">
-                <Database className="text-blue-500" size={20} />
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Daily Revenue SQL Query</h3>
+      {
+        showQueryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 md:p-8">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center justify-between p-4 md:p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <div className="flex items-center gap-2">
+                  <Database className="text-blue-500" size={20} />
+                  <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Daily Revenue SQL Query</h3>
+                </div>
+                <button
+                  onClick={() => setShowQueryModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={() => setShowQueryModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-4 md:p-6 overflow-auto flex-1 bg-slate-900">
-              <pre className="text-sm font-mono text-emerald-400 whitespace-pre-wrap break-words">
-                {`SELECT OrderId,customerid,OrderDate,ProductName,EventName,Quantity,Currency, UsdPrice,        
+              <div className="p-4 md:p-6 overflow-auto flex-1 bg-slate-900">
+                <pre className="text-sm font-mono text-emerald-400 whitespace-pre-wrap break-words">
+                  {`SELECT OrderId,customerid,OrderDate,ProductName,EventName,Quantity,Currency, UsdPrice,        
 Cast(UsdPriceDiscount As Decimal(18,2)) As UsdPriceDiscount, OrderType,PrimaryTracking,SecondaryTracking ,TrafficCategory        
 FROM (        
 SELECT                   
@@ -1555,13 +1621,14 @@ AND SL.ShopId = 1
 AND Convert(Date,GP.OrderDate) BETWEEN '2026-07-01' AND '2026-07-22'
 )A
 Order BY OrderDate`}
-              </pre>
+                </pre>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-    </div>
+    </div >
   );
 };
 

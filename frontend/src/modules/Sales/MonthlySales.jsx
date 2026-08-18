@@ -88,7 +88,7 @@ const MonthlySales = ({ eventSalesChartPage,
 
       {/* Monthly Revenue Row */}
       <div className="flex flex-col lg:flex-row gap-4">
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {monthRevenueCards?.map((card, index) => (
             <div key={index} className={`bg-cosmic-card border ${index === 3 ? 'border-2' : ''} border-cosmic-border rounded-xl ${index === 3 ? 'shadow-md' : 'shadow-sm'} p-5 flex flex-col items-center justify-center`}>
               <span className={`${index === 3 ? 'text-xs' : 'text-[13px]'} font-medium text-slate-500 dark:text-slate-400 mb-2`}>{card.title}</span>

@@ -80,7 +80,7 @@ const GoogleAnalytics = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-5">
         <KPICard title="Total Sessions" value={mockData.kpis.sessions} compChange={15.2} formatType="number" />
         <KPICard title="Total Users" value={mockData.kpis.users} compChange={12.4} formatType="number" />
         <KPICard title="Pageviews" value={mockData.kpis.pageviews} compChange={8.7} formatType="number" />

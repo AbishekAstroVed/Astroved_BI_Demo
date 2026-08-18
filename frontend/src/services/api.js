@@ -194,7 +194,7 @@ export const api = {
     return fetchWithCache(url);
   },
   getAllEventNames: () => fetchWithCache('/api/dashboard/newsletter/events'),
-  getOperationalDashboard: (startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10) => fetchWithCache(`/api/dashboard/operations?startDate=${startDate}&endDate=${endDate}&period=${period}&orderPage=${orderPage}&refundPage=${refundPage}&pageSize=${pageSize}`),
+  getOperationalDashboard: (startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10) => fetch(`/api/dashboard/operations?startDate=${startDate}&endDate=${endDate}&period=${period}&orderPage=${orderPage}&refundPage=${refundPage}&pageSize=${pageSize}`).then(handleResponse),
   getSEODashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/seo?startDate=${startDate}&endDate=${endDate}`),
   getCustomerDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/customer?startDate=${startDate}&endDate=${endDate}`),
   getCustomerMetrics: (period, startDate, endDate) => {
