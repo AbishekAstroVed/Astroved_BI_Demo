@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Chart } from "react-google-charts";
 import EChartWrapper from '../../charts/EChartWrapper';
 import { DollarSign, ShoppingBag, TrendingDown, AlertCircle } from 'lucide-react';
@@ -58,11 +58,32 @@ const MonthlySales = ({ eventSalesChartPage,
   const bestSellersPage = usePagination(bestSellers, 5);
   const lowPerformersPage = usePagination(lowPerformers, 5);
 
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handlePrepareExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(true);
+      return new Promise(resolve => setTimeout(resolve, 800));
+    }
+    return Promise.resolve();
+  };
+
+  const handleRestoreExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col space-y-6 mb-6">
-      {/* Banner */}
-      <div className="text-cosmic-text text-center font-bold text-base tracking-wide">
-        Total Sales Insights {dateStr && <span className="text-sm font-normal ml-2">({dateStr})</span>}
+    <div id="dashboard-export-area" className="flex flex-col space-y-6 mb-6">
+      {/* Banner and Export */}
+      <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4">
+        <div className="text-cosmic-text text-center font-bold text-base tracking-wide">
+          Total Sales Insights {dateStr && <span className="text-sm font-normal ml-2">({dateStr})</span>}
+        </div>
+        <div className="md:absolute md:right-0">
+          <ExportReportsCard data={{ ...data, geoData }} defaultPeriod="Monthly" pageTitle="Monthly Sales" showPeriodTabs={false} variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
+        </div>
       </div>
 
       {/* Monthly Revenue Row */}
@@ -109,8 +130,8 @@ const MonthlySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {revSourcePage.currentData && revSourcePage.currentData.length > 0 ? (
-                    revSourcePage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (data?.revenueSource || []) : revSourcePage.currentData) && (isExportingPDF ? (data?.revenueSource || []) : revSourcePage.currentData).length > 0 ? (
+                    (isExportingPDF ? (data?.revenueSource || []) : revSourcePage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{((revSourcePage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
@@ -131,7 +152,7 @@ const MonthlySales = ({ eventSalesChartPage,
                 </tbody>
               </table>
             </div>
-            <Pagination {...revSourcePage} />
+            {!isExportingPDF && <Pagination {...revSourcePage} />}
           </div>
         </div>
       </div>
@@ -155,8 +176,8 @@ const MonthlySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {evtSalesPage.currentData && evtSalesPage.currentData.length > 0 ? (
-                    evtSalesPage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (data?.eventSales || []) : evtSalesPage.currentData) && (isExportingPDF ? (data?.eventSales || []) : evtSalesPage.currentData).length > 0 ? (
+                    (isExportingPDF ? (data?.eventSales || []) : evtSalesPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{((evtSalesPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -176,7 +197,7 @@ const MonthlySales = ({ eventSalesChartPage,
                 </tbody>
               </table>
             </div>
-            <Pagination {...evtSalesPage} />
+            {!isExportingPDF && <Pagination {...evtSalesPage} />}
           </div>
         </div>
 
@@ -236,7 +257,7 @@ const MonthlySales = ({ eventSalesChartPage,
           {showRevenue ? (
             <>
               <EChartWrapper option={categoryOption} height="400px" />
-              <div className="mt-4"><Pagination {...eventSalesChartPage} /></div>
+              <div className="mt-4">{!isExportingPDF && <Pagination {...eventSalesChartPage} />}</div>
             </>
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
@@ -265,8 +286,8 @@ const MonthlySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {specStorePage.currentData && specStorePage.currentData.length > 0 ? (
-                    specStorePage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (specialsStoreItems || []) : specStorePage.currentData) && (isExportingPDF ? (specialsStoreItems || []) : specStorePage.currentData).length > 0 ? (
+                    (isExportingPDF ? (specialsStoreItems || []) : specStorePage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{((specStorePage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -286,7 +307,7 @@ const MonthlySales = ({ eventSalesChartPage,
                 </tbody>
               </table>
             </div>
-            <Pagination {...specStorePage} />
+            {!isExportingPDF && <Pagination {...specStorePage} />}
           </div>
         </div>
       </div>
@@ -328,7 +349,7 @@ const MonthlySales = ({ eventSalesChartPage,
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                      {bestSellersPage.currentData.map((prod) => (
+                      {(isExportingPDF ? (bestSellers || []) : bestSellersPage.currentData).map((prod) => (
                         <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                           <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                           <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -343,7 +364,7 @@ const MonthlySales = ({ eventSalesChartPage,
                   </table>
                 </div>
               </div>
-              <Pagination {...bestSellersPage} />
+              {!isExportingPDF && <Pagination {...bestSellersPage} />}
             </div>
 
             {/* Low Performers */}
@@ -365,7 +386,7 @@ const MonthlySales = ({ eventSalesChartPage,
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                      {lowPerformersPage.currentData.map((prod) => (
+                      {(isExportingPDF ? (lowPerformers || []) : lowPerformersPage.currentData).map((prod) => (
                         <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                           <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                           <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -380,7 +401,7 @@ const MonthlySales = ({ eventSalesChartPage,
                   </table>
                 </div>
               </div>
-              <Pagination {...lowPerformersPage} />
+              {!isExportingPDF && <Pagination {...lowPerformersPage} />}
             </div>
           </div>
         </div>
@@ -414,8 +435,7 @@ const MonthlySales = ({ eventSalesChartPage,
         </div>
       </div>
 
-      {/* Export Reports Component */}
-      <ExportReportsCard data={{ ...data, geoData }} defaultPeriod="Monthly" pageTitle="Monthly Sales" showPeriodTabs={false} />
+
     </div>
   );
 };

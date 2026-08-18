@@ -1,11 +1,11 @@
-﻿import React from 'react';
+import React, { useState } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
-import { DollarSign, ShoppingBag, TrendingDown, AlertCircle } from 'lucide-react';
+import { DollarSign, ShoppingBag, TrendingDown, AlertCircle, Lock } from 'lucide-react';
 import ExportReportsCard from '../../components/ExportReportsCard';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
 
-const DailySales = ({ eventSalesChartPage, 
+const DailySales = ({ eventSalesChartPage,
   data,
   showRevenue,
   categoryOption,
@@ -32,13 +32,35 @@ const DailySales = ({ eventSalesChartPage,
   const bestSellersPage = usePagination(bestSellers, 5);
   const lowPerformersPage = usePagination(lowPerformers, 5);
 
+
   const displayDate = dailyDate ? dailyDate.split('-').reverse().join('-') : 'today';
 
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handlePrepareExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(true);
+      return new Promise(resolve => setTimeout(resolve, 800));
+    }
+    return Promise.resolve();
+  };
+
+  const handleRestoreExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col space-y-6 mb-6">
-      {/* Banner */}
-      <div className="text-cosmic-text text-center font-bold text-base tracking-wide">
-        Total Sales Insights {dailyDate && <span className="text-sm font-normal ml-2">({displayDate})</span>}
+    <div id="dashboard-export-area" className="flex flex-col space-y-6 mb-6">
+      {/* Banner and Export */}
+      <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4">
+        <div className="text-cosmic-text text-center font-bold text-base tracking-wide">
+          Total Sales Insights {dailyDate && <span className="text-sm font-normal ml-2">({displayDate})</span>}
+        </div>
+        <div className="md:absolute md:right-0">
+          <ExportReportsCard data={data} defaultPeriod="Daily" pageTitle="Daily Sales" showPeriodTabs={false} variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
+        </div>
       </div>
 
       {/* Daily Revenue Row */}
@@ -48,7 +70,7 @@ const DailySales = ({ eventSalesChartPage,
             <div key={index} className={`bg-cosmic-card border ${index === 3 ? 'border-2' : ''} border-cosmic-border rounded-xl ${index === 3 ? 'shadow-md' : 'shadow-sm'} p-5 flex flex-col items-center justify-center`}>
               <span className={`${index === 3 ? 'text-xs' : 'text-[13px]'} font-medium text-slate-500 dark:text-slate-400 mb-2 text-center`}>{card.title}</span>
               <span className={`text-2xl sm:text-3xl lg:text-[32px] ${index === 3 ? 'font-medium' : 'font-normal'} tracking-tight text-slate-900 dark:text-white mb-2`}>
-                {showRevenue ? card.value : 'ðŸ”’'}
+                {showRevenue ? card.value : '🔒'}
               </span>
               <span className={`text-[10px] font-medium flex items-center ${card.badgeColor}`}>
                 {card.change}
@@ -78,15 +100,15 @@ const DailySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {revenueSourcePage.currentData.length > 0 ? (
-                    revenueSourcePage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (revenueSource || []) : revenueSourcePage.currentData).length > 0 ? (
+                    (isExportingPDF ? (revenueSource || []) : revenueSourcePage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
                         <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
                         <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
@@ -101,7 +123,7 @@ const DailySales = ({ eventSalesChartPage,
               </table>
             </div>
           </div>
-          <Pagination {...revenueSourcePage} />
+          {!isExportingPDF && <Pagination {...revenueSourcePage} />}
         </div>
       </div>
 
@@ -120,18 +142,18 @@ const DailySales = ({ eventSalesChartPage,
                     <th className="py-2 px-3 font-medium w-8">#</th>
                     <th className="py-2 px-3 font-medium">Event Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue â–¾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {eventSalesPage.currentData.length > 0 ? (
-                    eventSalesPage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (eventSales || []) : eventSalesPage.currentData).length > 0 ? (
+                    (isExportingPDF ? (eventSales || []) : eventSalesPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
@@ -146,7 +168,7 @@ const DailySales = ({ eventSalesChartPage,
               </table>
             </div>
           </div>
-          <Pagination {...eventSalesPage} />
+          {!isExportingPDF && <Pagination {...eventSalesPage} />}
         </div>
 
         {/* Currency Card */}
@@ -184,7 +206,7 @@ const DailySales = ({ eventSalesChartPage,
               </div>
             ) : (
               <div className="h-40 flex flex-col items-center justify-center text-[10px] text-cosmic-muted font-bold">
-                <span>ðŸ”’ Currency share restricted</span>
+                <span>🔒 Currency share restricted</span>
               </div>
             )}
           </div>
@@ -205,11 +227,11 @@ const DailySales = ({ eventSalesChartPage,
           {showRevenue ? (
             <>
               <EChartWrapper option={categoryOption} height="400px" />
-              <div className="mt-4"><Pagination {...eventSalesChartPage} /></div>
+              <div className="mt-4">{!isExportingPDF && <Pagination {...eventSalesChartPage} />}</div>
             </>
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view event revenue share.</span>
             </div>
           )}
@@ -228,20 +250,20 @@ const DailySales = ({ eventSalesChartPage,
                 <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
                   <tr>
                     <th className="py-2 px-3 font-medium w-8">#</th>
-                    <th className="py-2 px-3 font-medium">Store Item Name â“˜ â–¾</th>
+                    <th className="py-2 px-3 font-medium">Store Item Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue â“˜ â–¾</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {specialsStoreItemsPage.currentData.length > 0 ? (
-                    specialsStoreItemsPage.currentData.map((item, idx) => (
+                  {(isExportingPDF ? (specialsStoreItems || []) : specialsStoreItemsPage.currentData).length > 0 ? (
+                    (isExportingPDF ? (specialsStoreItems || []) : specialsStoreItemsPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’'}
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
                         </td>
                       </tr>
                     ))
@@ -256,7 +278,7 @@ const DailySales = ({ eventSalesChartPage,
               </table>
             </div>
           </div>
-          <Pagination {...specialsStoreItemsPage} />
+          {!isExportingPDF && <Pagination {...specialsStoreItemsPage} />}
         </div>
       </div>
 
@@ -281,21 +303,21 @@ const DailySales = ({ eventSalesChartPage,
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {bestSellersPage.currentData.map((prod) => (
+                {(isExportingPDF ? (bestSellers || []) : bestSellersPage.currentData).map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>
                     <td className="py-2.5 px-3 text-cosmic-muted">{prod.category}</td>
                     <td className="py-2.5 px-3 text-right font-medium">{prod.sales}</td>
                     <td className="py-2.5 px-3 text-right font-bold text-cosmic-success">
-                      {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’ Restricted'}
+                      {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒 Restricted'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Pagination {...bestSellersPage} />
+          {!isExportingPDF && <Pagination {...bestSellersPage} />}
         </div>
 
         {/* Low Performers Card */}
@@ -316,26 +338,24 @@ const DailySales = ({ eventSalesChartPage,
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {lowPerformersPage.currentData.map((prod) => (
+                {(isExportingPDF ? (lowPerformers || []) : lowPerformersPage.currentData).map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>
                     <td className="py-2.5 px-3 text-cosmic-muted">{prod.category}</td>
                     <td className="py-2.5 px-3 text-right font-medium">{prod.sales || prod.orders || 0}</td>
                     <td className="py-2.5 px-3 text-right font-bold text-cosmic-danger">
-                      {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'ðŸ”’ Restricted'}
+                      {showRevenue ? `${prod.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒 Restricted'}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <Pagination {...lowPerformersPage} />
+          {!isExportingPDF && <Pagination {...lowPerformersPage} />}
         </div>
       </div>
 
-      {/* Export Reports Component */}
-      <ExportReportsCard data={data} defaultPeriod="Daily" pageTitle="Daily Sales" showPeriodTabs={false} />
     </div>
   );
 };

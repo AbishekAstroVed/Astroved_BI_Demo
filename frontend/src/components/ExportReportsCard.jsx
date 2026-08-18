@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 
-const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales', showPeriodTabs = true, className = '', onPeriodChange, onPrepareExport, onRestoreExport, exportElementId }) => {
+const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales', showPeriodTabs = true, className = '', onPeriodChange, onPrepareExport, onRestoreExport, exportElementId, variant = 'dropdown' }) => {
   const [exportPeriod, setExportPeriod] = useState(defaultPeriod);
 
   React.useEffect(() => {
@@ -927,6 +927,37 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       onRestoreExport();
     }
   };
+
+  if (variant === 'inline') {
+    return (
+      <div className={`flex gap-2 ${className}`}>
+        <button
+          onClick={() => handleExportClick('CSV')}
+          className="flex items-center gap-1.5 bg-[#f0f7ff] dark:bg-blue-500/10 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/20 hover:bg-[#dbeafe] dark:hover:bg-blue-500/30 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+          title="Export CSV"
+        >
+          <FileText size={14} />
+          <span className="hidden lg:inline">CSV</span>
+        </button>
+        <button
+          onClick={() => handleExportClick('Excel')}
+          className="flex items-center gap-1.5 bg-[#f4fbf7] dark:bg-emerald-500/10 text-[#16a34a] dark:text-emerald-400 border border-[#bbf7d0] dark:border-emerald-500/20 hover:bg-[#eaf8f0] dark:hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+          title="Export Excel"
+        >
+          <FileSpreadsheet size={14} />
+          <span className="hidden lg:inline">Excel</span>
+        </button>
+        <button
+          onClick={() => handleExportClick('PDF')}
+          className="flex items-center gap-1.5 bg-[#fef2f2] dark:bg-rose-500/10 text-[#dc2626] dark:text-rose-400 border border-[#fecaca] dark:border-rose-500/20 hover:bg-[#fee2e2] dark:hover:bg-rose-500/20 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shadow-sm"
+          title="Export PDF"
+        >
+          <Download size={14} />
+          <span className="hidden lg:inline">PDF</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto relative group ${className}`}>
