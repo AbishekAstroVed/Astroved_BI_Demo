@@ -314,9 +314,9 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       }
 
       if (comparisonOfRevenueBySource.length > 0) {
-        csv += "Comparison of Revenue By Source\nTraffic Group,Expected,Projected,Proj Change,Revenue ($),Rev Change\n";
+        csv += "Comparison of Revenue By Source\nTraffic Group,Projected,Proj Change,Revenue ($),Rev Change\n";
         comparisonOfRevenueBySource.forEach(r => {
-          csv += `"${r.group}",${r.expected || 0},${r.projected || 0},"${r.projChange || ''}",${r.revenue || 0},"${r.revChange || ''}"\n`;
+          csv += `"${r.group}",${r.projected || 0},"${r.projChange || ''}",${r.revenue || 0},"${r.revChange || ''}"\n`;
         });
         csv += "\n";
       }
@@ -619,8 +619,8 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       if (comparisonOfRevenueBySource.length > 0) {
         summaryRows.push(
           ["--- COMPARISON OF REVENUE BY SOURCE ---"],
-          ["Traffic Group", "Expected", "Projected", "Proj Change", "Revenue ($)", "Rev Change"],
-          ...comparisonOfRevenueBySource.map(r => [r.group, r.expected || 0, r.projected || 0, r.projChange || '', r.revenue || 0, r.revChange || '']),
+          ["Traffic Group", "Projected", "Proj Change", "Revenue ($)", "Rev Change"],
+          ...comparisonOfRevenueBySource.map(r => [r.group, r.projected || 0, r.projChange || '', r.revenue || 0, r.revChange || '']),
           []
         );
       }

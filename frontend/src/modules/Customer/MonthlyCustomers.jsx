@@ -249,9 +249,10 @@ const MonthlyCustomers = () => {
   const revByTrafficPage = usePagination(revenueByTrafficSource, 10);
 
   return (
-    <div className="space-y-6">
-      {/* Global Metrics Period Toggle */}
-      <div className="flex justify-start mb-2">
+    <div id="dashboard-export-area" className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
+        {/* Global Metrics Period Toggle */}
+        <div className="flex justify-start">
         <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto">
           {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
             <button
@@ -269,6 +270,42 @@ const MonthlyCustomers = () => {
               {period}
             </button>
           ))}
+        </div>
+        </div>
+
+        {/* Export Reports Component */}
+        <div className="flex justify-end">
+          <ExportReportsCard
+            data={{
+              customerKpiCards: [
+                { title: 'Total Registered Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('Total Customers'))?.col3 || '0'), change: '+ Active Cohort' },
+                { title: 'New Purchasing Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('New Registered'))?.col3 || '0'), change: '+ Monthly Growth' },
+                { title: 'Repeat Purchase Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('Repeat Purchase'))?.col3 || '0'), change: '+ Loyalty Metric' },
+                { title: 'High Contributor Accounts', value: String(highContributors.length || '0'), change: 'Top Tier Spenders' }
+              ],
+              customerMetricsRows: liveMetrics.rows || [],
+              customerMetricsLabels: liveMetrics.labels || ['Older', 'Previous', 'Current'],
+              demographics: liveMetrics.demographics || null,
+              newCustomersByEvent,
+              newCustomersByProduct,
+              highContributors,
+              newCustomersByTraffic,
+              projectionByTraffic,
+              revenueByTrafficSource,
+              newMemberTrendByCurrency: liveMetrics.raw?.map(r => ({
+                period: r.period,
+                total: r.demographics?.newTotal || 0,
+                usd: r.demographics?.newUsd || 0,
+                myr: r.demographics?.newMyr || 0,
+                inr: r.demographics?.newInr || 0
+              })) || [],
+              comparisonOfRevenueBySource: projectionByTraffic
+            }}
+            defaultPeriod={metricsPeriod}
+            pageTitle="Customer Reports"
+            showPeriodTabs={false}
+            variant="inline"
+          />
         </div>
       </div>
 
@@ -566,7 +603,6 @@ const MonthlyCustomers = () => {
                       <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                         <tr>
                           <th className="py-2 px-3 font-medium border-b border-white/20">Traffic Group</th>
-                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Expected</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">Projected</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">% Δ</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ▾</th>
@@ -580,7 +616,6 @@ const MonthlyCustomers = () => {
                               <span className="text-cosmic-muted w-4">{((projByTrafficPage.currentPage - 1) * 10) + idx + 1}.</span>
                               <span>{item.group}</span>
                             </td>
-                            <td className="py-2 px-3 text-right">{item.expected}</td>
                             <td className="py-2 px-3 text-right">{item.projected}</td>
                             <td className={`py-2 px-3 text-right ${item.projTrend === 'up' ? 'text-green-500' : item.projTrend === 'down' ? 'text-red-500' : ''}`}>
                               {item.projChange}
@@ -641,38 +676,7 @@ const MonthlyCustomers = () => {
             </div>
           </div>
 
-          {/* Export Reports Component */}
-          <ExportReportsCard
-            data={{
-              customerKpiCards: [
-                { title: 'Total Registered Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('Total Customers'))?.col3 || '0'), change: '+ Active Cohort' },
-                { title: 'New Purchasing Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('New Registered'))?.col3 || '0'), change: '+ Monthly Growth' },
-                { title: 'Repeat Purchase Customers', value: String(liveMetrics.rows.find(r => r.metric.includes('Repeat Purchase'))?.col3 || '0'), change: '+ Loyalty Metric' },
-                { title: 'High Contributor Accounts', value: String(highContributors.length || '0'), change: 'Top Tier Spenders' }
-              ],
-              customerMetricsRows: liveMetrics.rows || [],
-              customerMetricsLabels: liveMetrics.labels || ['Older', 'Previous', 'Current'],
-              demographics: liveMetrics.demographics || null,
-              newCustomersByEvent,
-              newCustomersByProduct,
-              highContributors,
-              newCustomersByTraffic,
-              projectionByTraffic,
-              revenueByTrafficSource,
-              newMemberTrendByCurrency: liveMetrics.raw?.map(r => ({
-                period: r.period,
-                total: r.demographics?.newTotal || 0,
-                usd: r.demographics?.newUsd || 0,
-                myr: r.demographics?.newMyr || 0,
-                inr: r.demographics?.newInr || 0
-              })) || [],
-              comparisonOfRevenueBySource: projectionByTraffic
-            }}
-            defaultPeriod={metricsPeriod}
-            onPeriodChange={setMetricsPeriod}
-            pageTitle="Customer Reports"
-            showPeriodTabs={true}
-          />
+
         </>
       )}
     </div>
