@@ -11,7 +11,13 @@ import { jsPDF } from 'jspdf';
 
 const Operations = () => {
   const { selectPreset, startDate, endDate, setCalendarHidden } = useDateFilter();
-  const [exportPeriod, setExportPeriod] = useState('Daily');
+  const [exportPeriod, setExportPeriod] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPeriod = localStorage.getItem('astroved_report_period');
+      return savedPeriod || 'Daily';
+    }
+    return 'Daily';
+  });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orderPage, setOrderPage] = useState(1);

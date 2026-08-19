@@ -7,7 +7,7 @@ const fetch = (url, options = {}) => {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   const fullUrl = url.startsWith('/api') ? `${BASE_URL}${url}` : url;
   return originalFetch(fullUrl, { ...options, headers });
 };
@@ -26,13 +26,19 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const fetchWithCache = async (url) => {
   const now = Date.now();
   const cached = dashboardCache.get(url);
-  
+
   if (cached && (now - cached.timestamp < CACHE_TTL)) {
     return cached.data;
   }
-  
+
   const data = await fetch(url).then(handleResponse);
   dashboardCache.set(url, { data, timestamp: now });
+
+  // Automatically clear the cache data after 5 minutes
+  setTimeout(() => {
+    dashboardCache.delete(url);
+  }, CACHE_TTL);
+
   return data;
 };
 
@@ -194,7 +200,7 @@ export const api = {
     return fetchWithCache(url);
   },
   getAllEventNames: () => fetchWithCache('/api/dashboard/newsletter/events'),
-  getOperationalDashboard: (startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10) => fetch(`/api/dashboard/operations?startDate=${startDate}&endDate=${endDate}&period=${period}&orderPage=${orderPage}&refundPage=${refundPage}&pageSize=${pageSize}`).then(handleResponse),
+  getOperationalDashboard: (startDate, endDate, period = 'daily', orderPage = 1, refundPage = 1, pageSize = 10) => fetchWithCache(`/api/dashboard/operations?startDate=${startDate}&endDate=${endDate}&period=${period}&orderPage=${orderPage}&refundPage=${refundPage}&pageSize=${pageSize}`),
   getSEODashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/seo?startDate=${startDate}&endDate=${endDate}`),
   getCustomerDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/customer?startDate=${startDate}&endDate=${endDate}`),
   getCustomerMetrics: (period, startDate, endDate) => {
@@ -202,7 +208,7 @@ export const api = {
     if (startDate && endDate) {
       url += `&startDate=${startDate}&endDate=${endDate}`;
     }
-    return fetch(url).then(handleResponse);
+    return fetchWithCache(url);
   },
 
   // Import / Export

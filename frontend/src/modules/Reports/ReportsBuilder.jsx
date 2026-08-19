@@ -231,6 +231,7 @@ const ReportsBuilder = () => {
         recipients: sch.recipients,
         format: sch.format,
         senderEmail: senderEmail,
+        period: sch.period,
         dashboards: sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards : DASHBOARD_OPTIONS.map(d => d.value)
       });
       toast.dismiss(loadingToast);

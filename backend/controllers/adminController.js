@@ -1207,7 +1207,8 @@ function getDateRangeForPeriod(period) {
 
   return {
     startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0]
+    endDate: endDate.toISOString().split('T')[0],
+    dailyDate: endDate.toISOString().split('T')[0]
   };
 };
 
@@ -1239,12 +1240,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const pass = (config?.smtpPass || '').trim() || process.env.SMTP_PASS;
   const fromEmailEnv = process.env.SMTP_FROM;
 
-  // Use the logged-in user's email as the Display Name, and the system email as the actual sender.
-  // This ensures BOTH are shown (e.g., "john@example.com <support@astroved.com>")
-  // Ensure the display name doesn't contain weird characters that might crash Nodemailer
-  const cleanSenderName = senderEmail ? senderEmail.replace(/[^a-zA-Z0-9@.\s]/g, '') : 'AstroVed BI';
+  // Use the SMTP user as the Display Name, and the system email as the actual sender.
+  const smtpUser = process.env.SMTP_USER || 'Astrovedpepi';
   const systemEmail = fromEmailEnv || (user.includes('@') ? user : 'support@astroved.com');
-  const from = `"${cleanSenderName}" <${systemEmail}>`;
+  const from = `"${smtpUser}" <${systemEmail}>`;
 
   const isMock = !host || (host === 'smtp.gmail.com' && user === 'your-email@gmail.com');
 
@@ -1432,23 +1431,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}${dashPath}`);
 
-        await page.goto(FRONTEND_URL, { waitUntil: 'networkidle0', timeout: 60000 });
-
-        await page.evaluate(async (targetDash) => {
-          const btns = Array.from(document.querySelectorAll('nav button, nav a, .sidebar button, .sidebar a'));
-          let searchStr = 'Executive';
-          if (targetDash.includes('Sales')) searchStr = 'Sales';
-          if (targetDash.includes('Marketing')) searchStr = 'Marketing';
-          if (targetDash.includes('Newsletter')) searchStr = 'Newsletter';
-          if (targetDash.includes('SEO')) searchStr = 'SEO';
-          if (targetDash.includes('Customer')) searchStr = 'Customer';
-          if (targetDash.includes('Funnel')) searchStr = 'Funnel';
-          if (targetDash.includes('Operations')) searchStr = 'Operations';
-          if (targetDash.includes('AI')) searchStr = 'AI';
-
-          const btn = btns.find(b => b.textContent.includes(searchStr) || b.innerText.includes(searchStr));
-          if (btn) btn.click();
-        }, dash);
+        await page.goto(`${FRONTEND_URL}${dashPath}`, { waitUntil: 'networkidle0', timeout: 60000 });
 
         await new Promise(r => setTimeout(r, 6000));
 
@@ -1457,8 +1440,27 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         const base64Img = await page.evaluate(async () => {
           const el = document.querySelector('.main-content-area') || document.body;
+          
+          const originalOverflow = el.style.overflow;
+          const originalHeight = el.style.height;
+          el.style.overflow = 'visible';
+          el.style.height = 'auto';
+
           try {
-            const canvas = await window.html2canvas(el, { useCORS: true, scale: 1.5, logging: false });
+            const canvas = await window.html2canvas(el, { 
+              useCORS: true, 
+              scale: 1.5, 
+              logging: false,
+              width: el.scrollWidth,
+              height: el.scrollHeight,
+              windowWidth: el.scrollWidth,
+              windowHeight: el.scrollHeight,
+              scrollY: 0
+            });
+            
+            el.style.overflow = originalOverflow;
+            el.style.height = originalHeight;
+            
             return canvas.toDataURL('image/png');
           } catch (e) {
             return null;

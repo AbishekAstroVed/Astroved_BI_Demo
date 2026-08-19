@@ -32,7 +32,13 @@ const Executive = () => {
   const [refundsFilter, setRefundsFilter] = useState('This Week');
   const [cancellationsFilter, setCancellationsFilter] = useState('This Week');
   const [trafficFilter, setTrafficFilter] = useState('This Month');
-  const [exportPeriod, setExportPeriod] = useState('Daily');
+  const [exportPeriod, setExportPeriod] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPeriod = localStorage.getItem('astroved_report_period');
+      return savedPeriod || 'Daily';
+    }
+    return 'Daily';
+  });
   const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
@@ -375,10 +381,13 @@ const Executive = () => {
   const getRecentOrdersData = (filterOverride) => {
     const filter = filterOverride || recentOrdersFilter;
     if (filter === 'Today' || filter === 'Daily') {
-      return recentOrdersDay || [];
+      if (recentOrdersDay && recentOrdersDay.length > 0) return recentOrdersDay;
+      if (recentOrdersWeek && recentOrdersWeek.length > 0) return recentOrdersWeek;
+      return recentOrdersMonth || [];
     }
     if (filter === 'This Week' || filter === 'Weekly') {
-      return recentOrdersWeek || [];
+      if (recentOrdersWeek && recentOrdersWeek.length > 0) return recentOrdersWeek;
+      return recentOrdersMonth || [];
     }
     if (filter === 'This Month' || filter === 'Monthly') {
       return recentOrdersMonth || [];

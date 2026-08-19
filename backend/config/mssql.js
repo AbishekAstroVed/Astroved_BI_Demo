@@ -19,7 +19,7 @@ const mssqlConfig = {
     encrypt: false,
     trustServerCertificate: true,
     instanceName: mssqlInstance,
-    requestTimeout: 120000
+    requestTimeout: 600000
   },
   pool: {
     max: 10,

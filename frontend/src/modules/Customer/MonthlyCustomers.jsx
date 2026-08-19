@@ -32,7 +32,13 @@ const MonthlyCustomers = () => {
     );
   }
 
-  const [metricsPeriod, setMetricsPeriod] = useState('Daily');
+  const [metricsPeriod, setMetricsPeriod] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPeriod = localStorage.getItem('astroved_report_period');
+      return savedPeriod || 'Daily';
+    }
+    return 'Daily';
+  });
   const [useCustomDates, setUseCustomDates] = useState(false);
   const [prevDates, setPrevDates] = useState({ startDate, endDate });
 
