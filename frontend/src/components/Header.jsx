@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Bell, Moon, Sun, Calendar, Menu, LogOut, X, TrendingUp, ChevronDown, BarChart3, Maximize } from 'lucide-react';
+import { Bell, Moon, Sun, Calendar, Menu, LogOut, X, TrendingUp, ChevronDown, BarChart3, Maximize, RefreshCw } from 'lucide-react';
 import { useDateFilter } from '../contexts/DateFilterContext';
 import { useTheme } from '../contexts/ThemeContext';
 
-const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout, user, onToggleFullScreen }) => {
+const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout, user, onToggleFullScreen, onRefresh }) => {
   const { startDate, endDate, selectPreset, datePreset, setStartDate, setEndDate, isCalendarHidden, dailyDate, setDailyDate } = useDateFilter();
   const { theme, toggleTheme } = useTheme();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -450,6 +450,16 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+
+            <button
+              onClick={() => {
+                if (onRefresh) onRefresh();
+              }}
+              title="Refresh Dashboard"
+              className="p-1.5 sm:p-2 rounded-lg text-cosmic-muted hover:text-cosmic-text bg-cosmic-bg border border-cosmic-border transition-colors group"
+            >
+              <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+            </button>
 
             <button
               onClick={onToggleFullScreen}

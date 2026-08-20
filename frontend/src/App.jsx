@@ -62,6 +62,14 @@ function MainAppContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSoftRefresh = async () => {
+    try {
+      await api.clearDashboardCache();
+    } catch(e) {}
+    setRefreshKey(prev => prev + 1);
+  };
 
   const handleLogin = (user, permissions, token) => {
     setCurrentUser(user);
@@ -305,6 +313,7 @@ function MainAppContent() {
             onSearch={(val) => console.log('Searching for:', val)}
             onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
             onToggleFullScreen={() => setIsFullScreen(true)}
+            onRefresh={handleSoftRefresh}
             onNavigate={(targetTab) => {
               // Map the tab target to module
               if (targetTab === 'system-settings') {
@@ -328,7 +337,9 @@ function MainAppContent() {
 
         <main className={`p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
           <React.Suspense fallback={<DashboardSkeleton />}>
-            {renderModule()}
+            <div key={refreshKey} className="w-full h-full">
+              {renderModule()}
+            </div>
           </React.Suspense>
         </main>
       </div>

@@ -23,6 +23,8 @@ const handleResponse = async (response) => {
 const dashboardCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+const isReload = performance.getEntriesByType && performance.getEntriesByType('navigation')[0]?.type === 'reload';
+
 const fetchWithCache = async (url) => {
   const now = Date.now();
   const cached = dashboardCache.get(url);
@@ -31,7 +33,13 @@ const fetchWithCache = async (url) => {
     return cached.data;
   }
 
-  const data = await fetch(url).then(handleResponse);
+  let finalUrl = url;
+  if (isReload) {
+    const separator = url.includes('?') ? '&' : '?';
+    finalUrl = `${url}${separator}refresh=true`;
+  }
+
+  const data = await fetch(finalUrl).then(handleResponse);
   dashboardCache.set(url, { data, timestamp: now });
 
   // Automatically clear the cache data after 5 minutes
@@ -43,6 +51,14 @@ const fetchWithCache = async (url) => {
 };
 
 export const api = {
+  clearDashboardCache: async () => {
+    dashboardCache.clear();
+    try {
+      await fetch('/api/dashboard/clear-cache', { method: 'POST' });
+    } catch (e) {
+      console.warn('Failed to clear backend cache', e);
+    }
+  },
   // Auth
   login: (username, password) => fetch('/api/auth/login', {
     method: 'POST',

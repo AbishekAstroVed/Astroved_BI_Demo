@@ -540,9 +540,9 @@ const Executive = () => {
     csv += "\n";
 
     // Recent Orders
-    csv += `Recent Orders (${period})\nOrder ID,Customer,Amount ($),Status,Time\n`;
+    csv += `Recent Orders (${period})\nOrder ID,Customer,Product Name,Amount ($),Status,Time\n`;
     expRecentOrders.forEach(ord => {
-      csv += `${ord.id || ''},"${ord.customer || ''}",${showRevenue ? (ord.amount || 0) : 'Restricted'},"${ord.status || ''}","${ord.time || ''}"\n`;
+      csv += `${ord.id || ''},"${ord.customer || ''}","${ord.productName || ''}",${showRevenue ? (ord.amount || 0) : 'Restricted'},"${ord.status || ''}","${ord.time || ''}"\n`;
     });
     csv += "\n";
 
@@ -651,8 +651,8 @@ const Executive = () => {
         ...expTopProducts.map(prod => [prod.id || '', prod.name || '', showRevenue ? (prod.revenue || 0) : 'Restricted', prod.orders || 0]),
         [],
         ["--- RECENT ORDERS ---"],
-        ["Order ID", "Customer", "Amount ($)", "Status", "Time"],
-        ...expRecentOrders.map(ord => [ord.id || '', ord.customer || '', showRevenue ? (ord.amount || 0) : 'Restricted', ord.status || '', ord.time || '']),
+        ["Order ID", "Customer", "Product Name", "Amount ($)", "Status", "Time"],
+        ...expRecentOrders.map(ord => [ord.id || '', ord.customer || '', ord.productName || '', showRevenue ? (ord.amount || 0) : 'Restricted', ord.status || '', ord.time || '']),
         [],
         ["--- REVENUE VS TARGET ---"],
         ["Period", "Revenue ($)", "Target ($)"],
@@ -712,6 +712,7 @@ const Executive = () => {
         const wsOrders = XLSX.utils.json_to_sheet(expRecentOrders.map(o => ({
           "Order ID": o.id || '',
           "Customer": o.customer || '',
+          "Product Name": o.productName || '',
           "Amount ($)": showRevenue ? (o.amount || 0) : 'Restricted',
           "Status": o.status || '',
           "Time": o.time || ''

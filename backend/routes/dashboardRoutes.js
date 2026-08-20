@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  clearDashboardCache,
   getExecutiveDashboard,
   getDailySalesDashboard,
   getMonthlySalesDashboard,
@@ -19,6 +20,7 @@ import {
 
 const router = express.Router();
 
+router.post('/clear-cache', clearDashboardCache);
 router.get('/executive', getExecutiveDashboard);
 router.get('/sales/daily', getDailySalesDashboard);
 router.get('/sales/monthly', getMonthlySalesDashboard);
