@@ -834,17 +834,18 @@ SELECT
           AND CAST(GP.OrderDate AS DATE) <= @today
 )
 SELECT TOP 10 B.OrderId as id, C.CustomerId as customerId, MAX(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '')) as customer, SUM(B.NetRevenue) as amount, MAX(OS.StatusName) as status, MAX(B.OrderDate) as time,
-          MAX((
+          (
               SELECT TOP 1 PAT.Name 
-              FROM ProductTranslation PT WITH (NOLOCK)
+              FROM TempBaseOrders TB
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = TB.ProductId
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-              WHERE PT.ProductId = MAX(B.ProductId) AND PT.ShopId = 1 AND PT.LocaleId = 1    
-          )) as productName
+              WHERE TB.OrderId = B.OrderId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          ) as productName
           FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
           LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
-          WHERE CAST(B.OrderDate AS DATE) >= DATEADD(day, -6, @today) AND B.NetRevenue > 0
+          WHERE B.OrderDate >= DATEADD(day, -7, @today) AND B.NetRevenue > 0
           GROUP BY B.OrderId, C.CustomerId
           ORDER BY time DESC, B.OrderId DESC;
 
@@ -917,12 +918,13 @@ SELECT
           AND CAST(GP.OrderDate AS DATE) <= @today
 )
 SELECT TOP 10 B.OrderId as id, C.CustomerId as customerId, MAX(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '')) as customer, SUM(B.NetRevenue) as amount, MAX(OS.StatusName) as status, MAX(B.OrderDate) as time,
-          MAX((
+          (
               SELECT TOP 1 PAT.Name 
-              FROM ProductTranslation PT WITH (NOLOCK)
+              FROM TempBaseOrders TB
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = TB.ProductId
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-              WHERE PT.ProductId = MAX(B.ProductId) AND PT.ShopId = 1 AND PT.LocaleId = 1    
-          )) as productName
+              WHERE TB.OrderId = B.OrderId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          ) as productName
           FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
@@ -1000,12 +1002,13 @@ SELECT
           AND CAST(GP.OrderDate AS DATE) <= @today
 )
 SELECT TOP 10 B.OrderId as id, C.CustomerId as customerId, MAX(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '')) as customer, SUM(B.NetRevenue) as amount, MAX(OS.StatusName) as status, MAX(B.OrderDate) as time,
-          MAX((
+          (
               SELECT TOP 1 PAT.Name 
-              FROM ProductTranslation PT WITH (NOLOCK)
+              FROM TempBaseOrders TB
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = TB.ProductId
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-              WHERE PT.ProductId = MAX(B.ProductId) AND PT.ShopId = 1 AND PT.LocaleId = 1    
-          )) as productName
+              WHERE TB.OrderId = B.OrderId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          ) as productName
           FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
@@ -1083,12 +1086,13 @@ SELECT
           AND CAST(GP.OrderDate AS DATE) <= @today
 )
 SELECT TOP 10 B.OrderId as id, C.CustomerId as customerId, MAX(ISNULL(C.FirstName, '') + ' ' + ISNULL(C.LastName, '')) as customer, SUM(B.NetRevenue) as amount, MAX(OS.StatusName) as status, MAX(B.OrderDate) as time,
-          MAX((
+          (
               SELECT TOP 1 PAT.Name 
-              FROM ProductTranslation PT WITH (NOLOCK)
+              FROM TempBaseOrders TB
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = TB.ProductId
               LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-              WHERE PT.ProductId = MAX(B.ProductId) AND PT.ShopId = 1 AND PT.LocaleId = 1    
-          )) as productName
+              WHERE TB.OrderId = B.OrderId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          ) as productName
           FROM TempBaseOrders B
           LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
           LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
