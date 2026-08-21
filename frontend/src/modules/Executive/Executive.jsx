@@ -1126,11 +1126,11 @@ const Executive = () => {
         {/* Top Row: 5 Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {[
-            { title: 'Daily Revenue', value: showRevenue ? formatDollar(kpi.dailyRevenue.current) : 'ðŸ”’', change: `+${kpi.dailyRevenue.compChange}% vs Yesterday`, badgeColor: 'text-emerald-500', showQuery: true },
+            { title: 'Daily Revenue', value: showRevenue ? formatDollar(kpi.dailyRevenue.current) : 'ðŸ”’', change: `+${kpi.dailyRevenue.compChange}% vs Yesterday`, badgeColor: 'text-emerald-500' },
             { title: 'MTD Revenue', value: showRevenue ? formatDollar(kpi.mtdRevenue.current) : 'ðŸ”’', change: `+${kpi.mtdRevenue.compChange}% vs Last Month`, badgeColor: 'text-emerald-500' },
             { title: 'YTD Revenue', value: showRevenue ? formatDollar(kpi.ytdRevenue.current) : 'ðŸ”’', change: `+${kpi.ytdRevenue.compChange}% vs Last Year`, badgeColor: 'text-emerald-500' },
-            { title: `Orders (${datePreset || 'Custom'})`, value: kpi.orders.current.toLocaleString(), change: `${kpi.orders.compChange >= 0 ? '+' : ''}${kpi.orders.compChange}% vs Prev Period`, badgeColor: 'text-orange-500' },
-            { title: `Customers (${datePreset || 'Custom'})`, value: kpi.customers?.current?.toLocaleString() || '0', change: `${(kpi.customers?.compChange || 0) >= 0 ? '+' : ''}${kpi.customers?.compChange || 0}% vs Prev Period`, badgeColor: 'text-orange-500' }
+            { title: `Orders (today)`, value: kpi.orders.current.toLocaleString(), change: `${kpi.orders.compChange >= 0 ? '+' : ''}${kpi.orders.compChange}% vs Yesterday`, badgeColor: 'text-orange-500' },
+            { title: `Customers (today)`, value: kpi.customers?.current?.toLocaleString() || '0', change: `${(kpi.customers?.compChange || 0) >= 0 ? '+' : ''}${kpi.customers?.compChange || 0}% vs Yesterday`, badgeColor: 'text-orange-500' }
           ].map((card, index) => (
             <div key={index} className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-4 md:p-5 flex flex-col items-center justify-center text-center relative group">
               <span className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 md:mb-2">{card.title}</span>

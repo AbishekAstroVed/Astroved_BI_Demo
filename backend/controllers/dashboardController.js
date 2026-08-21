@@ -5326,3 +5326,261 @@ export const getOperationalDashboard = async (req, res) => {
   }
 };
 
+
+
+// --- NEW SPLIT EXECUTIVE DASHBOARD APIS ---
+
+export const getExecutiveKPIs = async (req, res) => {
+  const { startDate, endDate, filter } = req.query;
+  const cacheKey = `exec_kpi_${startDate || 'default'}_${endDate || 'default'}_${filter || 'default'}`;
+  const cachedData = dashboardCache.get(cacheKey);
+  if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
+    return res.status(200).json(cachedData.data);
+  }
+
+  try {
+    const pool = await connectMSSQL();
+    const request = pool.request();
+    if (startDate) request.input('p_startDate', startDate);
+    if (endDate) request.input('p_endDate', endDate);
+
+    // Determine the period for Orders & Customers based on filter or dates
+    let currentCondition = "CAST(OrderDateVal AS DATE) = @today";
+    let prevCondition = "CAST(OrderDateVal AS DATE) = @yesterday";
+
+    if (filter === 'Weekly' || filter === 'This Week') {
+      currentCondition = "OrderDateVal >= DATEADD(day, -7, @today) AND OrderDateVal <= @today";
+      prevCondition = "OrderDateVal >= DATEADD(day, -14, @today) AND OrderDateVal < DATEADD(day, -7, @today)";
+    } else if (filter === 'Monthly' || filter === 'This Month') {
+      currentCondition = "MONTH(OrderDateVal) = @thisMonth AND YEAR(OrderDateVal) = @thisYear";
+      prevCondition = "MONTH(OrderDateVal) = @lastMonth AND YEAR(OrderDateVal) = @lastMonthYear";
+    } else if (filter === 'Yearly' || filter === 'This Year') {
+      currentCondition = "YEAR(OrderDateVal) = @thisYear";
+      prevCondition = "YEAR(OrderDateVal) = @lastYear";
+    } else if (startDate && endDate) {
+      currentCondition = "OrderDateVal >= @startDate AND OrderDateVal <= @today";
+      // Approximate previous period as same number of days before startDate
+      prevCondition = "OrderDateVal >= DATEADD(day, -DATEDIFF(day, @startDate, @today), @startDate) AND OrderDateVal < @startDate";
+    }
+
+    const result = await request.query(`
+      DECLARE @today DATE = ${endDate ? 'CAST(@p_endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+      DECLARE @startDate DATE = ${startDate ? 'CAST(@p_startDate AS DATE)' : 'NULL'};
+      DECLARE @yesterday DATE = DATEADD(day, -1, @today);
+      DECLARE @thisMonth INT = MONTH(@today);
+      DECLARE @thisYear INT = YEAR(@today);
+      DECLARE @lastMonth INT = CASE WHEN @thisMonth = 1 THEN 12 ELSE @thisMonth - 1 END;
+      DECLARE @lastMonthYear INT = CASE WHEN @thisMonth = 1 THEN @thisYear - 1 ELSE @thisYear END;
+      DECLARE @lastYear INT = @thisYear - 1;
+      DECLARE @minRequiredDate DATE = DATEADD(day, -365, @today);
+      DECLARE @baseDataStart DATE = CASE 
+          WHEN @startDate IS NOT NULL AND @startDate < @minRequiredDate THEN DATEADD(day, -365, @startDate)
+          ELSE @minRequiredDate
+      END;
+
+      ;WITH ValidOrders AS (
+          SELECT 
+              PA.OrderId, SL.CustomerId, CAST(GP.OrderDate AS DATE) as OrderDateVal, PA.Amount
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId         
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId       
+          WHERE PA.TypeId <> 19
+          AND (ORD.OrderStatusId <> 6 OR ORD.OrderStatusId IS NULL)
+          AND SL.ShopId = 1
+          AND GP.OrderDate >= @baseDataStart
+          AND CAST(GP.OrderDate AS DATE) <= @today
+      )
+      SELECT 
+        (SELECT SUM(Amount) FROM ValidOrders WHERE CAST(OrderDateVal AS DATE) = @today) as dailyRevenue,
+        (SELECT SUM(Amount) FROM ValidOrders WHERE CAST(OrderDateVal AS DATE) = @yesterday) as yesterdayRevenue,
+        (SELECT SUM(Amount) FROM ValidOrders WHERE MONTH(OrderDateVal) = @thisMonth AND YEAR(OrderDateVal) = @thisYear) as mtdRevenue,
+        (SELECT SUM(Amount) FROM ValidOrders WHERE MONTH(OrderDateVal) = @lastMonth AND YEAR(OrderDateVal) = @lastMonthYear) as lastMonthRevenue,
+        (SELECT SUM(Amount) FROM ValidOrders WHERE YEAR(OrderDateVal) = @thisYear) as ytdRevenue,
+        (SELECT SUM(Amount) FROM ValidOrders WHERE YEAR(OrderDateVal) = @lastYear) as lastYtdRevenue,
+        
+        -- Dynamic Orders
+        (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE ${currentCondition}) as currentOrders,
+        (SELECT COUNT(DISTINCT OrderId) FROM ValidOrders WHERE ${prevCondition}) as prevOrders,
+        
+        -- Dynamic Customers
+        (SELECT COUNT(DISTINCT CustomerId) FROM ValidOrders WHERE ${currentCondition}) as currentCustomers,
+        (SELECT COUNT(DISTINCT CustomerId) FROM ValidOrders WHERE ${prevCondition}) as prevCustomers;
+    `);
+
+    const sqlData = result.recordsets[0] ? result.recordsets[0][0] : {};
+
+    const calcChange = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Number((((current - previous) / previous) * 100).toFixed(1));
+    };
+
+    const data = {
+      kpi: {
+        dailyRevenue: {
+          current: sqlData.dailyRevenue || 0,
+          compChange: calcChange(sqlData.dailyRevenue || 0, sqlData.yesterdayRevenue || 0)
+        },
+        mtdRevenue: {
+          current: sqlData.mtdRevenue || 0,
+          compChange: calcChange(sqlData.mtdRevenue || 0, sqlData.lastMonthRevenue || 0)
+        },
+        ytdRevenue: {
+          current: sqlData.ytdRevenue || 0,
+          compChange: calcChange(sqlData.ytdRevenue || 0, sqlData.lastYtdRevenue || 0)
+        },
+        orders: {
+          current: sqlData.currentOrders || 0,
+          compChange: calcChange(sqlData.currentOrders || 0, sqlData.prevOrders || 0)
+        },
+        customers: {
+          current: sqlData.currentCustomers || 0,
+          compChange: calcChange(sqlData.currentCustomers || 0, sqlData.prevCustomers || 0)
+        }
+      }
+    };
+
+    dashboardCache.set(cacheKey, { timestamp: Date.now(), data });
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('[Dashboard Controller] Exec KPI fetch failed:', error);
+    res.status(500).json({ error: 'Failed to fetch KPIs' });
+  }
+};
+
+export const getExecutiveRecentOrders = async (req, res) => {
+  const { startDate, endDate, filter, page = 1, limit = 10 } = req.query;
+  try {
+    const pool = await connectMSSQL();
+    const request = pool.request();
+    if (startDate) request.input('p_startDate', startDate);
+    if (endDate) request.input('p_endDate', endDate);
+    request.input('offset', (parseInt(page) - 1) * parseInt(limit));
+    request.input('limit', parseInt(limit));
+
+    let dateCondition = "CAST(B.OrderDate AS DATE) = @today";
+    if (filter === 'Weekly' || filter === 'This Week') {
+      dateCondition = "B.OrderDate >= DATEADD(day, -7, @today)";
+    } else if (filter === 'Monthly' || filter === 'This Month') {
+      dateCondition = "MONTH(B.OrderDate) = @thisMonth AND YEAR(B.OrderDate) = @thisYear";
+    } else if (filter === 'Yearly' || filter === 'This Year') {
+      dateCondition = "YEAR(B.OrderDate) = @thisYear";
+    }
+
+    const result = await request.query(`
+      DECLARE @today DATE = ${endDate ? 'CAST(@p_endDate AS DATE)' : 'CAST(GETDATE() AS DATE)'};
+      DECLARE @thisMonth INT = MONTH(@today);
+      DECLARE @thisYear INT = YEAR(@today);
+
+      ;WITH TempBaseOrders AS (
+          SELECT 
+              GP.OrderDate,
+              PA.OrderId,
+              PA.ContactId,
+              PA.TypeId,
+              ORD.OrderStatusId,
+              ODE.OrderDetailStatusId,
+              SI.ProductId,
+              SI.SelectedItemId,
+              (POD.USDPrice - ISNULL(CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1      
+                      FROM Vaaak.OrderDiscounts od2      
+                      WHERE od2.OrderId = pod.SelectedListId      
+                      AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END, 0)) AS NetRevenue
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE WITH (NOLOCK) ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP WITH (NOLOCK) ON GP.PaymentId = PA.PaymentId    
+          WHERE POD.USDPrice <> 0
+          AND PA.TypeId <> 19
+          AND ODE.OrderDetailStatusId <> 6        
+          AND ORD.OrderStatusId <> 6        
+          AND SL.ShopId = 1
+      )
+      SELECT 
+          B.OrderId as id, 
+          C.CustomerId as customerId, 
+          MAX(ISNULL(C.FirstName, '')) + ' ' + MAX(ISNULL(C.LastName, '')) as customer, 
+          SUM(B.NetRevenue) as amount, 
+          MAX(OS.StatusName) as status, 
+          MAX(B.OrderDate) as time,
+          (
+              SELECT TOP 1 PAT.Name 
+              FROM TempBaseOrders TB
+              JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = TB.ProductId
+              LEFT JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+              WHERE TB.OrderId = B.OrderId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          ) as productName,
+          COUNT(*) OVER() as totalCount
+      FROM TempBaseOrders B
+      LEFT JOIN Contact C WITH (NOLOCK) ON B.ContactId = C.ContactId
+      LEFT JOIN [Order] ORD WITH (NOLOCK) ON B.OrderId = ORD.OrderId
+      LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
+      WHERE ${dateCondition} AND B.NetRevenue > 0
+      GROUP BY B.OrderId, C.CustomerId
+      ORDER BY time DESC, B.OrderId DESC
+      OFFSET @offset ROWS
+      FETCH NEXT @limit ROWS ONLY;
+    `);
+
+    const rows = result.recordsets[0] || [];
+    const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
+
+    const formatRecentOrders = (rows) => {
+      return rows.map(row => {
+        const orderDate = new Date(row.time);
+        const now = new Date();
+        const diffMs = now - orderDate;
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHrs / 24);
+        let timeStr = `${diffHrs} hr ago`;
+        if (diffHrs < 1) timeStr = 'Just now';
+        else if (diffDays >= 1) timeStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+        return {
+          id: '#' + row.id,
+          customerId: row.customerId || 'Unknown',
+          customer: row.customer || 'Guest',
+          amount: row.amount,
+          status: row.status || 'New',
+          time: timeStr,
+          productName: row.productName || 'Unknown'
+        };
+      });
+    };
+
+    res.status(200).json({
+      data: formatRecentOrders(rows),
+      totalCount,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
+  } catch (error) {
+    console.error('[Dashboard Controller] Exec Recent Orders fetch failed:', error);
+    res.status(500).json({ error: 'Failed to fetch recent orders' });
+  }
+};
+
+export const getExecutiveTrends = async (req, res) => {
+  res.status(200).json({ data: [] }); // TODO: implement trends
+};
+
+export const getExecutiveDemographics = async (req, res) => {
+  res.status(200).json({ data: [] }); // TODO: implement demographics
+};
+
+export const getExecutiveTopProducts = async (req, res) => {
+  res.status(200).json({ data: [] }); // TODO: implement top products
+};

@@ -67,7 +67,7 @@ function MainAppContent() {
   const handleSoftRefresh = async () => {
     try {
       await api.clearDashboardCache();
-    } catch(e) {}
+    } catch (e) { }
     setRefreshKey(prev => prev + 1);
   };
 

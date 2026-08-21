@@ -51,6 +51,8 @@ const fetchWithCache = async (url) => {
 };
 
 export const api = {
+  getExecutiveRecentOrders: (params) => apiClient.get('/dashboard/executive/recent-orders', { params }),
+  getExecutiveKPIs: (params) => apiClient.get('/dashboard/executive/kpis', { params }),
   clearDashboardCache: async () => {
     dashboardCache.clear();
     try {
