@@ -13,8 +13,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
     { id: 'sales', name: 'Sales Dashboard', icon: ShoppingBag },
     { id: 'newsletter', name: "Newsletter Performance", icon: Newspaper },
     { id: 'customer', name: 'Customer Dashboard', icon: Users },
-    { id: 'operations', name: 'Operations Dashboard', icon: Activity },
-    { id: 'ai-insights', name: 'AI Insights', icon: Sparkles, badge: 'NEW' },
+    { id: 'operations', name: 'Operations Dashboard', icon: Activity }
   ];
 
   const permissionMap = {

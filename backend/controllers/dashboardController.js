@@ -2524,6 +2524,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 INNER JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
                 INNER JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
                 INNER JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+                LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON P.ProductId = PAI.ProductId 
                 LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
@@ -2558,6 +2559,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 INNER JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
                 INNER JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
                 INNER JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+                LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON P.ProductId = PAI.ProductId 
                 LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
@@ -2578,7 +2580,7 @@ export const getDailySalesDashboard = async (req, res) => {
               DECLARE @targetDate DATE = CAST(@dailyDate AS DATE);
               WITH BaseData AS (
                 SELECT 
-                  ORD.OrderId, PAT.Name AS ProductName,
+                  ORD.OrderId, PAT.Name AS ProductName, CASE WHEN PAI.EventName IS NOT NULL AND LEN(LTRIM(RTRIM(PAI.EventName))) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
                   (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue
                 FROM Payment AS PA WITH (NOLOCK)         
                 INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
@@ -2590,6 +2592,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 INNER JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
                 INNER JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
                 INNER JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+                LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON P.ProductId = PAI.ProductId 
                 LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
@@ -2611,7 +2614,7 @@ export const getDailySalesDashboard = async (req, res) => {
               DECLARE @targetDate DATE = CAST(@dailyDate AS DATE);
               WITH BaseData AS (
                 SELECT 
-                  ORD.OrderId, PAT.Name AS ProductName,
+                  ORD.OrderId, PAT.Name AS ProductName, CASE WHEN PAI.EventName IS NOT NULL AND LEN(LTRIM(RTRIM(PAI.EventName))) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName,
                   (POD.USDPrice - ISNULL(CASE WHEN NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId) THEN 0 WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0) WHEN od.SelectedItemId = 0 THEN CAST(ROUND(pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) * MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId), 2) AS DECIMAL(18, 2)) END, 0)) AS NetRevenue
                 FROM Payment AS PA WITH (NOLOCK)         
                 INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
@@ -2623,14 +2626,15 @@ export const getDailySalesDashboard = async (req, res) => {
                 INNER JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
                 INNER JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
                 INNER JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+                LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON P.ProductId = PAI.ProductId 
                 LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
                 -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
               )
-              SELECT ProductName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
-              FROM BaseData GROUP BY ProductName ORDER BY revenue DESC
+              SELECT EventName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
+              FROM BaseData GROUP BY EventName ORDER BY revenue DESC
             `);
             eventSales = result.recordset.map((r, idx) => ({ id: idx + 1, name: r.name, qty: r.quantity, revenue: r.revenue || 0 }));
             salesByEventName = eventSales;
@@ -2644,7 +2648,7 @@ export const getDailySalesDashboard = async (req, res) => {
               DECLARE @targetDate DATE = CAST(@dailyDate AS DATE);
               WITH BaseData AS (
                 SELECT 
-                  ORD.OrderId, PAT.Name AS ProductName, 
+                  ORD.OrderId, PAT.Name AS ProductName, CASE WHEN PAI.EventName IS NOT NULL AND LEN(LTRIM(RTRIM(PAI.EventName))) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END AS EventName, 
                   CASE 
                     WHEN TS.TrackingCode LIKE '%NLW%' THEN 'Newsletter'
                     WHEN TS.TrackingCode LIKE 'NLI%' THEN 'Newsletter India'
@@ -2675,6 +2679,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 INNER JOIN Product P WITH (NOLOCK) On P.ProductId = POD.ProductId
                 INNER JOIN ProductTranslation PT WITH (NOLOCK) ON PT.ProductId = POD.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
                 INNER JOIN Vaaak.ProductAdditionalTranslation PAT WITH (NOLOCK) ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+                LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON P.ProductId = PAI.ProductId 
                 LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
                 LEFT JOIN Vaaak.OrderDiscounts od WITH (NOLOCK) ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
@@ -2682,11 +2687,11 @@ export const getDailySalesDashboard = async (req, res) => {
                 AND CAST(GP.OrderDate AS DATE) = @targetDate
                 -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
               )
-              SELECT ProductName as event, TrafficCategory as source, SUM(NetRevenue) as revenue 
+              SELECT EventName as event, ProductName as productName, TrafficCategory as source, SUM(NetRevenue) as revenue 
               FROM BaseData 
-              GROUP BY ProductName, TrafficCategory ORDER BY revenue DESC
+              GROUP BY EventName, ProductName, TrafficCategory ORDER BY revenue DESC
             `);
-            revenueSource = result.recordset.map((r, idx) => ({ id: idx + 1, name: r.event, source: r.source, revenue: r.revenue || 0 }));
+            revenueSource = result.recordset.map((r, idx) => ({ id: idx + 1, name: r.event, eventName: r.event, productName: r.productName, source: r.source, revenue: r.revenue || 0 }));
           })()
         ]);
       }

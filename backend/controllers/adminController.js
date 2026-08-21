@@ -1372,7 +1372,6 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const attachments = [];
   const safeName = name.replace(/\s+/g, '_');
 
-  // --- 1. GENERATE PDF ---
   const includePDF = format.includes('PDF') || format === 'All Formats';
   const includeExcel = format.includes('EXCEL') || format.includes('Excel') || format === 'All Formats';
   const includeCSV = format.includes('CSV') || format === 'All Formats';
@@ -1389,18 +1388,21 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
       let htmlContent = `
-        <html>
-          <head>
-            <style>
-              body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: white; }
-              h1 { text-align: center; color: #4f46e5; }
-              .dashboard-image { width: 100%; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-            </style>
-          </head>
-          <body>
-            <h1>AstroVed BI - ${name}</h1>
-            <p style="text-align: center; color: #64748b;">Period: ${period} | Generated: ${new Date().toLocaleString()}</p>
-      `;
+            <html>
+              <head>
+                <style>
+                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: white; }
+                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; }
+                  h1 { text-align: center; color: #4f46e5; font-size: 3rem; margin-bottom: 20px; }
+                  .dashboard-image { width: 100%; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+                </style>
+              </head>
+              <body>
+                <div class="title-page">
+                  <h1>AstroVed BI - ${name}</h1>
+                  <p style="text-align: center; color: #64748b; font-size: 1.5rem;">Period: ${period} | Generated: ${new Date().toLocaleString()}</p>
+                </div>
+          `;
 
       const page = await browser.newPage();
       await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
@@ -1419,19 +1421,19 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
 
       for (const dash of dashboardsToCapture) {
-        let dashPath = '/';
-        if (dash.includes('Sales')) dashPath = '/sales';
-        if (dash.includes('Marketing')) dashPath = '/marketing';
-        if (dash.includes('Newsletter')) dashPath = '/newsletter';
-        if (dash.includes('SEO')) dashPath = '/seo';
-        if (dash.includes('Customer')) dashPath = '/customer';
-        if (dash.includes('Funnel')) dashPath = '/funnel';
-        if (dash.includes('Operations')) dashPath = '/operations';
-        if (dash.includes('AI')) dashPath = '/ai-insights';
+        let dashPath = '?module=executive';
+        if (dash.includes('Sales')) dashPath = '?module=sales';
+        if (dash.includes('Marketing')) dashPath = '?module=marketing';
+        if (dash.includes('Newsletter')) dashPath = '?module=newsletter';
+        if (dash.includes('SEO')) dashPath = '?module=seo';
+        if (dash.includes('Customer')) dashPath = '?module=customer';
+        if (dash.includes('Funnel')) dashPath = '?module=funnel';
+        if (dash.includes('Operations')) dashPath = '?module=operations';
+        if (dash.includes('AI')) dashPath = '?module=ai-insights';
 
-        console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}${dashPath}`);
+        console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 
-        await page.goto(`${FRONTEND_URL}${dashPath}`, { waitUntil: 'networkidle0', timeout: 60000 });
+        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle0', timeout: 60000 });
 
         await new Promise(r => setTimeout(r, 6000));
 
@@ -1439,17 +1441,18 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         await page.addScriptTag({ path: scriptPath });
 
         const base64Img = await page.evaluate(async () => {
-          const el = document.querySelector('.main-content-area') || document.body;
-          
+          // Target main to avoid sidebar
+          const el = document.querySelector('main') || document.querySelector('.main-content-area') || document.body;
+
           const originalOverflow = el.style.overflow;
           const originalHeight = el.style.height;
           el.style.overflow = 'visible';
           el.style.height = 'auto';
 
           try {
-            const canvas = await window.html2canvas(el, { 
-              useCORS: true, 
-              scale: 1.5, 
+            const canvas = await window.html2canvas(el, {
+              useCORS: true,
+              scale: 1.5,
               logging: false,
               width: el.scrollWidth,
               height: el.scrollHeight,
@@ -1457,10 +1460,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
               windowHeight: el.scrollHeight,
               scrollY: 0
             });
-            
+
             el.style.overflow = originalOverflow;
             el.style.height = originalHeight;
-            
+
             return canvas.toDataURL('image/png');
           } catch (e) {
             return null;
@@ -1478,12 +1481,21 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       fs.writeFileSync(tempHtmlPath, htmlContent);
 
       const pdfPage = await browser.newPage();
-      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'domcontentloaded' });
+      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'networkidle0' });
+
+      const maxScrollHeight = await pdfPage.evaluate(() => {
+        let maxH = 1000;
+        document.querySelectorAll('.dashboard-image').forEach(img => {
+          if (img.offsetHeight > maxH) maxH = img.offsetHeight;
+        });
+        return maxH + 100;
+      });
 
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
         path: tempPdfPath,
-        format: 'A4',
+        width: '1440px',
+        height: maxScrollHeight + 'px',
         printBackground: true,
         margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
       });

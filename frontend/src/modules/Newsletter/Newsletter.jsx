@@ -41,7 +41,7 @@ const Newsletter = () => {
   const [eventsCompared, setEventsCompared] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const handlePrepareExport = (type) => {
@@ -414,33 +414,33 @@ const Newsletter = () => {
   return (
     <div id="dashboard-export-area" className="space-y-6">
 
-      
+
       <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4 mb-4 z-50">
         <div className="text-cosmic-text text-center font-bold text-base tracking-wide flex-1">
           Newsletter Dashboard
         </div>
         <div className="md:absolute md:right-0">
           <ExportReportsCard
-              data={{
-                newsletterKpiCards: [
-                  { title: 'Western Newsletter (NLW)', value: `${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
-                  { title: 'Targeted Mailers (OML)', value: `${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
-                  { title: 'India Newsletter (NLI)', value: `${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
-                  { title: 'Overall Newsletter Sales', value: `${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
-                ],
-                categorySales,
-                dateWisePerformance,
-                overallPerformanceData,
-                breakupSummary,
-                typesCompared,
-                overallEventsData,
-                specialEventsData,
-                specialEventsPerformanceData
-              }}
-              defaultPeriod="Monthly"
-              pageTitle="Newsletter Reports"
-              showPeriodTabs={false}
-             variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
+            data={{
+              newsletterKpiCards: [
+                { title: 'Western Newsletter (NLW)', value: `${kpiData.western?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLW Revenue' },
+                { title: 'Targeted Mailers (OML)', value: `${kpiData.targeted?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'OML Revenue' },
+                { title: 'India Newsletter (NLI)', value: `${kpiData.india?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'NLI Revenue' },
+                { title: 'Overall Newsletter Sales', value: `${kpiData.overall?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}`, change: 'Total Revenue' }
+              ],
+              categorySales,
+              dateWisePerformance,
+              overallPerformanceData,
+              breakupSummary,
+              typesCompared,
+              overallEventsData,
+              specialEventsData,
+              specialEventsPerformanceData
+            }}
+            defaultPeriod="Monthly"
+            pageTitle="Newsletter Reports"
+            showPeriodTabs={false}
+            variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
         </div>
       </div>
 
@@ -587,7 +587,7 @@ const Newsletter = () => {
           </div>
 
           {/* Over All NewsLetter Statistics Summary */}
-          <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
+          {/* <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
             <div className="bg-gray-500 p-3 flex justify-between items-center text-white px-4">
               <div className="flex-1"></div>
               <h4 className="font-semibold text-sm mx-auto">Over All NewsLetter Statistics Summary</h4>
@@ -640,7 +640,7 @@ const Newsletter = () => {
               </div>
             </div>
             {!isExportingPDF && <Pagination {...overallPerformanceDataPage} />}
-          </div>
+          </div> */}
 
 
 
@@ -923,7 +923,7 @@ const Newsletter = () => {
           </div>
 
           {/* Special Events NewsLetter Statistics Summary */}
-          <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
+          {/* <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
             <div className="bg-gray-500 p-3 flex justify-between items-center text-white px-4">
               <div className="flex-1"></div>
               <h4 className="font-semibold text-sm mx-auto">Special Events NewsLetter Statistics Summary</h4>
@@ -976,7 +976,7 @@ const Newsletter = () => {
               </div>
             </div>
             {!isExportingPDF && <Pagination {...specialEventsPerformanceDataPage} />}
-          </div>
+          </div> */}
 
           {/* NewsLetter Statistics Based On Category Wise */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
@@ -1054,7 +1054,7 @@ const Newsletter = () => {
             {!isExportingPDF && <Pagination {...eventsComparedPage} />}
           </div>
 
-          
+
         </>
       )}
 
