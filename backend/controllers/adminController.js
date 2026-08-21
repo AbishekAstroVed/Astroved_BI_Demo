@@ -1588,6 +1588,16 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     attachments
   });
 
+  // Clean up temporary HTML and PDF files after email is sent
+  try {
+    attachments.forEach(att => {
+      if (att._tempPath && fs.existsSync(att._tempPath)) fs.unlinkSync(att._tempPath);
+      if (att._tempHtmlPath && fs.existsSync(att._tempHtmlPath)) fs.unlinkSync(att._tempHtmlPath);
+    });
+  } catch (cleanupErr) {
+    console.error('[Report Scheduler] Failed to cleanup temp files:', cleanupErr);
+  }
+
   console.log(`[Report Scheduler] SUCCESS: Real email sent with ${format} attachment to ${recipients}`);
 
   // Send a Slack Notification if it's an automated trigger
