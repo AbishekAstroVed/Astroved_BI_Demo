@@ -2456,8 +2456,8 @@ export const getDailySalesDashboard = async (req, res) => {
                 AND PA.TypeId <> 19
                 AND ODE.OrderDetailStatusId <> 6        
                 AND ORD.OrderStatusId <> 6        
-                -- -- AND GP.Code <> '9999999999'        
-                -- AND TestAccounts.CustomerId IS NULL                
+                AND GP.Code <> '9999999999'        
+                AND TestAccounts.CustomerId IS NULL                
                 AND SL.ShopId = 1
                 AND CAST(GP.OrderDate AS DATE) IN (@targetDate, @prevDate)
               )
@@ -2529,7 +2529,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+               AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               )
               SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
               FROM BaseData GROUP BY ProductId, ProductName HAVING SUM(NetRevenue) > 0 ORDER BY revenue DESC
@@ -2564,7 +2564,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               )
               SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
               FROM BaseData GROUP BY ProductId, ProductName HAVING SUM(NetRevenue) > 0 ORDER BY revenue ASC
@@ -2597,7 +2597,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
                 AND (PAT.Name LIKE '%Package%' OR PAT.Name LIKE '%Program%' OR PAT.Name LIKE '%Special%' OR PAT.Name LIKE '%Reading%')
               )
               SELECT ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
@@ -2631,7 +2631,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 AND CAST(GP.OrderDate AS DATE) = @targetDate
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999'  AND TestAccounts.CustomerId IS NULL
               )
               SELECT EventName as name, COUNT(DISTINCT OrderId) as quantity, SUM(NetRevenue) as revenue 
               FROM BaseData GROUP BY EventName ORDER BY revenue DESC
@@ -2685,7 +2685,7 @@ export const getDailySalesDashboard = async (req, res) => {
                 LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
                 WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND CAST(GP.OrderDate AS DATE) = @targetDate
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               )
               SELECT EventName as event, ProductName as productName, TrafficCategory as source, SUM(NetRevenue) as revenue 
               FROM BaseData 
@@ -2817,7 +2817,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
@@ -2860,7 +2860,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, 'Active' as status
@@ -2897,7 +2897,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 'P' + CAST(ProductId AS VARCHAR(50)) as id, ProductName as name, 'Products' as category, COUNT(DISTINCT OrderId) as sales, SUM(NetRevenue) as revenue, CASE WHEN SUM(NetRevenue) > 1000 THEN 'Warning' ELSE 'Critical' END as status
@@ -2934,7 +2934,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT ProductName as name, COUNT(DISTINCT OrderId) as qty, SUM(NetRevenue) as revenue
@@ -2971,7 +2971,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
@@ -3008,7 +3008,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
@@ -3065,7 +3065,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
@@ -3106,7 +3106,7 @@ SELECT
               LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA WITH (NOLOCK) Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 WITH (NOLOCK) JOIN SelectedList Sl2 WITH (NOLOCK) ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 WITH (NOLOCK) ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
-                -- AND GP.Code <> '9999999999' -- AND TestAccounts.CustomerId IS NULL
+                AND GP.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL
               AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
@@ -5021,8 +5021,8 @@ export const getOperationalDashboard = async (req, res) => {
               JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
           ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId
           WHERE SL.ShopId = 1 
-            -- -- AND GP.Code <> '9999999999' 
-            -- AND TestAccounts.CustomerId IS NULL 
+          AND GP.Code <> '9999999999' 
+         AND TestAccounts.CustomerId IS NULL 
             AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
       )
       SELECT 
