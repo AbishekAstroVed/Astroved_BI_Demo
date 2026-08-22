@@ -1369,7 +1369,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const safeName = name.replace(/\s+/g, '_');
 
   const formatStr = Array.isArray(format) ? format.join(',') : String(format);
-  const includePDF = formatStr.toUpperCase().includes('PDF') || formatStr === 'All Formats';
+  const includePDF = true; // Always include PDF regardless of what is selected in the UI
   const includeExcel = formatStr.toUpperCase().includes('EXCEL') || formatStr === 'All Formats';
   const includeCSV = formatStr.toUpperCase().includes('CSV') || formatStr === 'All Formats';
   let pdfErrorMessage = null;
@@ -1379,7 +1379,8 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     try {
       const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+        timeout: 120000
       });
 
       const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -1388,11 +1389,11 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
             <html>
               <head>
                 <style>
-                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: white; display: flex; flex-direction: column; align-items: center; }
-                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; width: 100%; }
+                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: white; }
+                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; }
                   h1 { text-align: center; color: #4f46e5; font-size: 3rem; margin-bottom: 20px; }
-                  .dashboard-image { max-width: none; width: auto; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-                  .section-title { text-align: left; color: #1e293b; font-size: 2rem; margin: 20px 0 15px 0; font-weight: 700; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; align-self: flex-start; }
+                  .dashboard-image { display: block; margin: 0 auto 20px auto; max-width: none; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+                  .section-title { text-align: left; color: #1e293b; font-size: 2rem; margin: 20px 20px 15px 20px; font-weight: 700; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; display: block; }
                 </style>
               </head>
               <body>
@@ -1403,9 +1404,11 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           `;
 
       const page = await browser.newPage();
+      page.setDefaultNavigationTimeout(120000);
+      page.setDefaultTimeout(120000);
       await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
 
-      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded' });
+      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
       await page.evaluate((schedPeriod) => {
         localStorage.setItem('astroved_token', 'puppeteer_token');
@@ -1431,7 +1434,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 
-        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle0', timeout: 60000 });
+        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 120000 });
 
         await new Promise(r => setTimeout(r, 6000));
 
@@ -1488,23 +1491,25 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       fs.writeFileSync(tempHtmlPath, htmlContent);
 
       const pdfPage = await browser.newPage();
-      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'networkidle0' });
+      pdfPage.setDefaultNavigationTimeout(120000);
+      pdfPage.setDefaultTimeout(120000);
+      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 120000 });
 
-      const dimensions = await pdfPage.evaluate(() => {
+      const dims = await pdfPage.evaluate(() => {
         let maxH = 1000;
-        let maxW = 1000;
+        let maxW = 1440;
         document.querySelectorAll('.dashboard-image').forEach(img => {
           if (img.naturalHeight > maxH) maxH = img.naturalHeight;
           if (img.naturalWidth > maxW) maxW = img.naturalWidth;
         });
-        return { maxH: maxH + 150, maxW: maxW + 40 };
+        return { w: maxW, h: maxH };
       });
 
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
         path: tempPdfPath,
-        width: dimensions.maxW + 'px',
-        height: dimensions.maxH + 'px',
+        width: (dims.w + 40) + 'px',
+        height: (dims.h + 150) + 'px',
         printBackground: true,
         margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
       });
