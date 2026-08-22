@@ -1389,17 +1389,35 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
             <html>
               <head>
                 <style>
-                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: white; }
-                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; }
-                  h1 { text-align: center; color: #4f46e5; font-size: 3rem; margin-bottom: 20px; }
-                  .dashboard-image { display: block; margin: 0 auto 20px auto; max-width: none; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
-                  .section-title { text-align: left; color: #1e293b; font-size: 2rem; margin: 20px 20px 15px 20px; font-weight: 700; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; display: block; }
+                  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
+                  body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
+                  .title-page { 
+                    display: flex; flex-direction: column; justify-content: center; align-items: center; 
+                    width: 100%; padding: 50px 20px; box-sizing: border-box;
+                    background: linear-gradient(135deg, #0f172a 0%, #3730a3 100%);
+                    color: white; text-align: center;
+                  }
+                  .title-page .icon { display: none; }
+                  .title-page h1 { font-size: 3.5rem; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px; }
+                  .title-page .subtitle { font-size: 2rem; color: #818cf8; font-weight: 500; margin-bottom: 25px; }
+                  .title-page .meta { 
+                    font-size: 1.2rem; color: #f1f5f9; background: rgba(255,255,255,0.1); 
+                    padding: 12px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); 
+                  }
+                  .title-page .meta strong { color: #fff; }
+                  .dashboard-image { display: block; margin: 0; padding: 0; width: 100%; height: auto; page-break-after: always; }
+                  .section-title { 
+                    text-align: left; color: #1e293b; font-size: 3rem; margin: 40px 20px 20px 20px; 
+                    font-weight: 800; border-left: 10px solid #4f46e5; padding-left: 20px; display: block; 
+                  }
                 </style>
               </head>
               <body>
                 <div class="title-page">
-                  <h1>AstroVed BI - ${name}</h1>
-                  <p style="text-align: center; color: #64748b; font-size: 1.5rem;">Period: ${period} | Generated: ${new Date().toLocaleString()}</p>
+                  <div class="icon">✨</div>
+                  <h1>AstroVed BI Analytics</h1>
+                  <div class="subtitle">${name}</div>
+                  <div class="meta">Data Period: <strong>${period}</strong> &nbsp;&nbsp;|&nbsp;&nbsp; Generated: ${new Date().toLocaleDateString()}</div>
                 </div>
           `;
 
@@ -1436,7 +1454,17 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 120000 });
 
-        await new Promise(r => setTimeout(r, 6000));
+        // Wait for the React loading spinner to disappear
+        try {
+          await page.waitForFunction(() => {
+            return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
+          }, { timeout: 120000 });
+        } catch (e) {
+          console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
+        }
+
+        // Extra wait for chart animations to complete after data fetches
+        await new Promise(r => setTimeout(r, 10000));
 
         // Try local path first, fallback to CDN if it fails
         try {
@@ -1495,23 +1523,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       pdfPage.setDefaultTimeout(120000);
       await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 120000 });
 
-      const dims = await pdfPage.evaluate(() => {
-        let maxH = 1000;
-        let maxW = 1440;
-        document.querySelectorAll('.dashboard-image').forEach(img => {
-          if (img.naturalHeight > maxH) maxH = img.naturalHeight;
-          if (img.naturalWidth > maxW) maxW = img.naturalWidth;
-        });
-        return { w: maxW, h: maxH };
-      });
-
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
         path: tempPdfPath,
-        width: (dims.w + 40) + 'px',
-        height: (dims.h + 150) + 'px',
+        format: 'A4',
         printBackground: true,
-        margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+        margin: { top: '0', bottom: '0', left: '0', right: '0' }
       });
 
       await browser.close();
