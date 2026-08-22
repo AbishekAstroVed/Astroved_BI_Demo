@@ -18,6 +18,7 @@ export const DateFilterProvider = ({ children }) => {
   let initialPreset = 'mtd';
   let initialStart = new Date(today.getFullYear(), today.getMonth(), 1);
   let initialEnd = new Date(today);
+  let initialDailyDate = new Date(today);
 
   const savedPeriod = localStorage.getItem('astroved_report_period');
   if (savedPeriod) {
@@ -29,6 +30,7 @@ export const DateFilterProvider = ({ children }) => {
         initialPreset = 'yesterday';
         initialStart = new Date(yesterday);
         initialEnd = new Date(yesterday);
+        initialDailyDate = new Date(yesterday);
         break;
       case 'weekly':
         initialPreset = 'custom';
@@ -60,7 +62,7 @@ export const DateFilterProvider = ({ children }) => {
   const [compareEnabled, setCompareEnabled] = useState(true);
   const [comparePreset, setComparePreset] = useState('previous'); // 'previous', 'lastYear'
   const [isCalendarHidden, setCalendarHidden] = useState(false);
-  const [dailyDate, setDailyDate] = useState(getLocalDateString(new Date()));
+  const [dailyDate, setDailyDate] = useState(getLocalDateString(initialDailyDate));
 
   const selectPreset = (preset) => {
     setDatePreset(preset);

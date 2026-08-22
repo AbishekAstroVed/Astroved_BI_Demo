@@ -551,7 +551,7 @@ export const generateAIInsights = async (req, res) => {
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
 
-    let execData = null, salesData = null, marketingData = null, newsletterData = null, seoData = null, customerData = null;
+    let execData = null, salesData = null, newsletterData = null, opsData = null, customerData = null;
     const mockReq = { query: { period: period, startDate, endDate } };
 
     if (isDbConnected) {
@@ -560,9 +560,8 @@ export const generateAIInsights = async (req, res) => {
         await Promise.all([
           getExecutiveDashboard(mockReq, createMockRes(d => { execData = d; })),
           getMonthlySalesDashboard(mockReq, createMockRes(d => { salesData = d; })),
-          getMarketingDashboard(mockReq, createMockRes(d => { marketingData = d; })),
           getNewsletterDashboard(mockReq, createMockRes(d => { newsletterData = d; })),
-          getSEODashboard(mockReq, createMockRes(d => { seoData = d; })),
+          getOperationalDashboard(mockReq, createMockRes(d => { opsData = d; })),
           getCustomerDashboard(mockReq, createMockRes(d => { customerData = d; }))
         ]);
       } catch (err) {
@@ -584,15 +583,12 @@ export const generateAIInsights = async (req, res) => {
         bestSellers: salesData.bestSellers,
         lowPerformers: salesData.lowPerformers
       } : null,
-      marketing: marketingData ? {
-        kpi: marketingData.kpiData,
-        topCampaigns: marketingData.campaigns
-      } : null,
       newsletter: newsletterData ? {
         kpi: newsletterData.kpiData
       } : null,
-      seo: seoData ? {
-        kpi: seoData.kpiData
+      operations: opsData ? {
+        kpi: opsData.kpis,
+        trends: opsData.trends
       } : null,
       customer: customerData ? {
         kpi: customerData.kpiData,
@@ -601,7 +597,7 @@ export const generateAIInsights = async (req, res) => {
     };
 
     // Ignore the prompt from settings as per user request to force a detailed analysis
-    const userPrompt = 'Perform a comprehensive, detailed, and highly analytical deep-dive into ALL provided dashboard metrics (Executive, Sales, Marketing, Newsletter, SEO, Customer). You MUST generate exactly 6 unique, diverse, and completely novel insights. Ensure you generate at least one insight for different dashboards. Explicitly categorize them into Positives, Negatives, and areas for Improvement.';
+    const userPrompt = 'Perform a comprehensive, detailed, and highly analytical deep-dive into ALL provided dashboard metrics (Executive, Sales, Newsletter, Operations, Customer). You MUST generate exactly 6 unique, diverse, and completely novel insights. Ensure you generate at least one insight for different dashboards. Explicitly categorize them into Positives, Negatives, and areas for Improvement.';
 
     const systemPrompt = `You are an advanced business intelligence AI analyst specialized in the AstroVed platform.
 You perform deeply comprehensive and detailed analysis of all dashboard data including user behavior, traffic performance, purchase trends, and operational checkouts.
@@ -612,7 +608,7 @@ Random Seed: ${Math.random()}
 
 For each insight, output:
 1. id: unique string ID like AI-001, AI-002, etc.
-2. dashboard: The name of the dashboard this insight primarily relates to (e.g., 'Executive', 'Sales', 'Marketing', 'Newsletter', 'SEO', 'Customer').
+2. dashboard: The name of the dashboard this insight primarily relates to (e.g., 'Executive', 'Sales', 'Newsletter', 'Operations', 'Customer').
 3. type: 'positive' (for successes/increases), 'negative' (for drops/failures), or 'improvement' (for anomalies or areas that need fixing).
 4. title: A concise, impactful title (e.g., "Consultation Revenue Spike in US market").
 5. summary: A clear, detailed 2-3 sentence business description of the observation, citing specific numbers from the data.
@@ -1372,9 +1368,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const attachments = [];
   const safeName = name.replace(/\s+/g, '_');
 
-  const includePDF = format.includes('PDF') || format === 'All Formats';
-  const includeExcel = format.includes('EXCEL') || format.includes('Excel') || format === 'All Formats';
-  const includeCSV = format.includes('CSV') || format === 'All Formats';
+  const formatStr = Array.isArray(format) ? format.join(',') : String(format);
+  const includePDF = formatStr.toUpperCase().includes('PDF') || formatStr === 'All Formats';
+  const includeExcel = formatStr.toUpperCase().includes('EXCEL') || formatStr === 'All Formats';
+  const includeCSV = formatStr.toUpperCase().includes('CSV') || formatStr === 'All Formats';
   let pdfErrorMessage = null;
 
 
@@ -1391,10 +1388,11 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
             <html>
               <head>
                 <style>
-                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: white; }
-                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; }
+                  body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; background: white; display: flex; flex-direction: column; align-items: center; }
+                  .title-page { display: flex; flex-direction: column; justify-content: center; align-items: center; page-break-after: always; height: 90vh; width: 100%; }
                   h1 { text-align: center; color: #4f46e5; font-size: 3rem; margin-bottom: 20px; }
-                  .dashboard-image { width: 100%; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+                  .dashboard-image { max-width: none; width: auto; height: auto; margin-bottom: 20px; page-break-after: always; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 8px; }
+                  .section-title { text-align: left; color: #1e293b; font-size: 2rem; margin: 20px 0 15px 0; font-weight: 700; border-bottom: 3px solid #4f46e5; padding-bottom: 8px; align-self: flex-start; }
                 </style>
               </head>
               <body>
@@ -1437,8 +1435,14 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         await new Promise(r => setTimeout(r, 6000));
 
-        const scriptPath = path.resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
-        await page.addScriptTag({ path: scriptPath });
+        // Try local path first, fallback to CDN if it fails
+        try {
+          const scriptPath = path.resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
+          await page.addScriptTag({ path: scriptPath });
+        } catch (scriptErr) {
+          console.warn("Local html2canvas failed to load, falling back to CDN", scriptErr);
+          await page.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.3/dist/html2canvas-pro.min.js' });
+        }
 
         const base64Img = await page.evaluate(async () => {
           // Target main to avoid sidebar
@@ -1471,7 +1475,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         });
 
         if (base64Img) {
-          htmlContent += `<img class="dashboard-image" src="${base64Img}" />`;
+          htmlContent += `
+            <div class="section-title">${dash}</div>
+            <img class="dashboard-image" src="${base64Img}" />
+          `;
         }
       }
 
@@ -1483,19 +1490,21 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const pdfPage = await browser.newPage();
       await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'networkidle0' });
 
-      const maxScrollHeight = await pdfPage.evaluate(() => {
+      const dimensions = await pdfPage.evaluate(() => {
         let maxH = 1000;
+        let maxW = 1000;
         document.querySelectorAll('.dashboard-image').forEach(img => {
-          if (img.offsetHeight > maxH) maxH = img.offsetHeight;
+          if (img.naturalHeight > maxH) maxH = img.naturalHeight;
+          if (img.naturalWidth > maxW) maxW = img.naturalWidth;
         });
-        return maxH + 100;
+        return { maxH: maxH + 150, maxW: maxW + 40 };
       });
 
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
         path: tempPdfPath,
-        width: '1440px',
-        height: maxScrollHeight + 'px',
+        width: dimensions.maxW + 'px',
+        height: dimensions.maxH + 'px',
         printBackground: true,
         margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
       });

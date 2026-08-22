@@ -56,6 +56,10 @@ function MainAppContent() {
     localStorage.getItem('astroved_permissions') ? JSON.parse(localStorage.getItem('astroved_permissions')) : null
   );
   const [currentModule, setCurrentModule] = useState(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const moduleFromUrl = queryParams.get('module');
+    if (moduleFromUrl) return moduleFromUrl;
+
     const perms = localStorage.getItem('astroved_permissions') ? JSON.parse(localStorage.getItem('astroved_permissions')) : null;
     return getFirstPermittedModule(perms);
   });
