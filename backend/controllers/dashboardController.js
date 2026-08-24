@@ -5083,7 +5083,8 @@ export const getOperationalDashboard = async (req, res) => {
       FROM Payment PA WITH (NOLOCK)
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
-      
+      INNER JOIN SelectedItem SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId
+      INNER JOIN Vaaak.ProductwiseOrderDetail POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId
       LEFT JOIN (        
           SELECT DISTINCT CustomerId         
           FROM Vaaak.TestCustomerAccounts TCA        
@@ -5094,7 +5095,7 @@ export const getOperationalDashboard = async (req, res) => {
           JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
           JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
       ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId
-      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
+      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE) AND POD.USDPrice <> 0
       GROUP BY ${dateGroupSql}
       ORDER BY ${dateSortSql} ASC;
 
@@ -5106,6 +5107,8 @@ export const getOperationalDashboard = async (req, res) => {
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      INNER JOIN SelectedItem SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId
+      INNER JOIN Vaaak.ProductwiseOrderDetail POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId
       LEFT JOIN OrderStatus OS WITH (NOLOCK) ON ORD.OrderStatusId = OS.OrderStatusId
       LEFT JOIN (        
           SELECT DISTINCT CustomerId         
@@ -5117,7 +5120,7 @@ export const getOperationalDashboard = async (req, res) => {
           JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
           JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
       ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId
-      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
+      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE) AND POD.USDPrice <> 0
       GROUP BY OS.StatusName;
 
       -- RESULT 3: Refund & Cancellation Trend
@@ -5128,6 +5131,8 @@ export const getOperationalDashboard = async (req, res) => {
       FROM Payment PA WITH (NOLOCK)
       INNER JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
       INNER JOIN SelectedList SL WITH (NOLOCK) ON PA.OrderId = SL.SelectedListId
+      INNER JOIN SelectedItem SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId
+      INNER JOIN Vaaak.ProductwiseOrderDetail POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId
       LEFT JOIN [Order] ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId
       LEFT JOIN (        
           SELECT DISTINCT CustomerId         
@@ -5139,7 +5144,7 @@ export const getOperationalDashboard = async (req, res) => {
           JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL        
           JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999'        
       ) TestAccounts ON SL.CustomerId = TestAccounts.CustomerId
-      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE)
+      WHERE SL.ShopId = 1  AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL AND CAST(GP.OrderDate AS DATE) >= CAST(@startDate AS DATE) AND CAST(GP.OrderDate AS DATE) <= CAST(@endDate AS DATE) AND POD.USDPrice <> 0
       GROUP BY ${dateGroupSql}
       ORDER BY MIN(CAST(GP.OrderDate AS DATE)) ASC;
 
@@ -5499,6 +5504,7 @@ export const getExecutiveKPIs = async (req, res) => {
           AND CAST(GP.OrderDate AS DATE) <= @today
           AND (GP.Code <> '9999999999' OR GP.Code IS NULL)
           AND TestAccounts.CustomerId IS NULL
+          AND EXISTS (SELECT 1 FROM Vaaak.ProductwiseOrderDetail POD WITH (NOLOCK) WHERE POD.SelectedListId = PA.OrderId AND ISNULL(POD.USDPrice, 0) <> 0)
       )
       SELECT 
         (SELECT SUM(Amount) FROM ValidOrders WHERE CAST(OrderDateVal AS DATE) = @today) as dailyRevenue,

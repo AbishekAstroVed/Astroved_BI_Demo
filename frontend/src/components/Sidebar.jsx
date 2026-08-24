@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   TrendingUp, ShoppingBag, Megaphone, Search, Users,
   Filter, Activity, Sparkles, User, Calendar,
-  Headphones, LogOut,
+  LogOut,
   ChevronsLeft, ChevronsRight, ChevronRight,
   Newspaper
 } from 'lucide-react';
@@ -155,21 +155,6 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
       <div className="pt-6 shrink-0 space-y-3">
         {!collapsed ? (
           <>
-            <a
-              href="mailto:support@astroved.com?subject=AstroVed%20BI%20Enterprise%20Support%20Request"
-              className="flex items-center justify-between p-4 rounded-2xl bg-[#6868f9]/5 dark:bg-[#6868f9]/10 border border-[#6868f9]/10 dark:border-[#6868f9]/20 cursor-pointer hover:bg-[#6868f9]/10 dark:hover:bg-[#6868f9]/20 transition-colors no-underline group"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-full bg-[#6868f9]/10 dark:bg-[#6868f9]/20 flex items-center justify-center text-[#6868f9]">
-                  <Headphones size={18} strokeWidth={2.5} />
-                </div>
-                <div className="leading-tight">
-                  <p className="text-[13px] font-bold text-slate-900 dark:text-white group-hover:text-[#6868f9] transition-colors">Need Help?</p>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">Contact Support</p>
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-[#6868f9]" strokeWidth={2.5} />
-            </a>
             <button
               onClick={onLogout}
               className="w-full flex items-center space-x-3 px-4 py-4 rounded-2xl text-[13px] font-bold border border-rose-100 dark:border-rose-500/20 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/30 transition-all duration-200 cursor-pointer"
@@ -180,13 +165,6 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
           </>
         ) : (
           <div className="flex flex-col items-center space-y-3">
-            <a
-              href="mailto:support@astroved.com?subject=AstroVed%20BI%20Enterprise%20Support%20Request"
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#6868f9]/10 dark:bg-[#6868f9]/20 text-[#6868f9] hover:bg-[#6868f9]/20 dark:hover:bg-[#6868f9]/30 transition-colors cursor-pointer"
-              title="Contact Support"
-            >
-              <Headphones size={18} strokeWidth={2.5} />
-            </a>
             <button
               onClick={onLogout}
               className="w-10 h-10 flex items-center justify-center rounded-xl border border-rose-100 dark:border-rose-500/20 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:border-rose-200 dark:hover:border-rose-500/30 transition-all duration-200 cursor-pointer"

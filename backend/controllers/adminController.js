@@ -1334,7 +1334,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         </div>
         
         <div style="padding: 30px;">
-          <p style="font-size: 16px;">Hello,</p>
+          <p style="font-size: 16px;">Hello Team,</p>
           <p style="font-size: 15px; color: #475569; line-height: 1.6;">
             This is a${isAutomated ? 'n automated' : ' manually triggered test'} dispatch for your scheduled report: <strong style="color: #0f172a;">${name}</strong>.
           </p>
@@ -1344,22 +1344,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Report Name:</strong> ${name}</p>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Data Period:</strong> ${period}</p>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Dashboards Included:</strong> ${dashboards.join(', ') || 'None'}</p>
-            <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Dispatch Date:</strong> ${new Date().toLocaleString()}</p>
           </div>
-          
-          <!-- Fetched Dashboard Data -->
-          <div style="margin: 20px 0;">
-            <h3 style="color: #334155; font-size: 18px; border-bottom: 2px solid #4f46e5; display: inline-block; padding-bottom: 4px; margin-bottom: 15px;">Dashboard Data</h3>
-            ${extractedDataHtml || '<p style="color: #64748b; font-size: 14px;">No dashboard data available for the selected parameters.</p>'}
-          </div>
-          
-          <p style="font-size: 14px; color: #64748b; margin-top: 20px;">
-            Please find additional requested data attached to this email (if any formats were selected).
-          </p>
-        </div>
-        
-        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px; text-align: center;">
-          <p style="font-size: 12px; color: #94a3b8; margin: 0;">&copy; ${new Date().getFullYear()} AstroVed BI Portal. All rights reserved.</p>
         </div>
       </div>
     </div>
@@ -1380,7 +1365,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const browser = await puppeteer.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-        timeout: 120000
+        timeout: 300000
       });
 
       const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -1391,42 +1376,18 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
                 <style>
                   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
                   body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
-                  .title-page { 
-                    display: flex; flex-direction: column; justify-content: center; align-items: center; 
-                    width: 100%; padding: 50px 20px; box-sizing: border-box;
-                    background: linear-gradient(135deg, #0f172a 0%, #3730a3 100%);
-                    color: white; text-align: center;
-                  }
-                  .title-page .icon { display: none; }
-                  .title-page h1 { font-size: 3.5rem; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px; }
-                  .title-page .subtitle { font-size: 2rem; color: #818cf8; font-weight: 500; margin-bottom: 25px; }
-                  .title-page .meta { 
-                    font-size: 1.2rem; color: #f1f5f9; background: rgba(255,255,255,0.1); 
-                    padding: 12px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); 
-                  }
-                  .title-page .meta strong { color: #fff; }
                   .dashboard-image { display: block; margin: 0; padding: 0; width: 100%; height: auto; page-break-after: always; }
-                  .section-title { 
-                    text-align: left; color: #1e293b; font-size: 3rem; margin: 40px 20px 20px 20px; 
-                    font-weight: 800; border-left: 10px solid #4f46e5; padding-left: 20px; display: block; 
-                  }
                 </style>
               </head>
-              <body>
-                <div class="title-page">
-                  <div class="icon">✨</div>
-                  <h1>AstroVed BI Analytics</h1>
-                  <div class="subtitle">${name}</div>
-                  <div class="meta">Data Period: <strong>${period}</strong> &nbsp;&nbsp;|&nbsp;&nbsp; Generated: ${new Date().toLocaleDateString()}</div>
-                </div>
+              <body>  
           `;
 
       const page = await browser.newPage();
-      page.setDefaultNavigationTimeout(120000);
-      page.setDefaultTimeout(120000);
+      page.setDefaultNavigationTimeout(300000);
+      page.setDefaultTimeout(300000);
       await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
 
-      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 240000 });
 
       await page.evaluate((schedPeriod) => {
         localStorage.setItem('astroved_token', 'puppeteer_token');
@@ -1452,19 +1413,19 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 
-        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 120000 });
+        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 360000 });
 
         // Wait for the React loading spinner to disappear
         try {
           await page.waitForFunction(() => {
             return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
-          }, { timeout: 120000 });
+          }, { timeout: 360000 });
         } catch (e) {
           console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
         }
 
         // Extra wait for chart animations to complete after data fetches
-        await new Promise(r => setTimeout(r, 10000));
+        await new Promise(r => setTimeout(r, 120000));
 
         // Try local path first, fallback to CDN if it fails
         try {
@@ -1507,7 +1468,6 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         if (base64Img) {
           htmlContent += `
-            <div class="section-title">${dash}</div>
             <img class="dashboard-image" src="${base64Img}" />
           `;
         }
@@ -1519,9 +1479,9 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       fs.writeFileSync(tempHtmlPath, htmlContent);
 
       const pdfPage = await browser.newPage();
-      pdfPage.setDefaultNavigationTimeout(120000);
-      pdfPage.setDefaultTimeout(120000);
-      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 120000 });
+      pdfPage.setDefaultNavigationTimeout(480000);
+      pdfPage.setDefaultTimeout(480000);
+      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 480000 });
 
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
@@ -1889,7 +1849,16 @@ export const startReportCronJobs = () => {
 
           if (shouldSend) {
             console.log(`[Report Cron] Triggering automated report: "${schedule.name}"`);
-            await sendReportEmail(schedule.name, schedule.recipients, schedule.format, true, schedule.senderEmail, schedule.dashboards, schedule.period || 'Daily');
+            try {
+              await sendReportEmail(schedule.name, schedule.recipients, schedule.format, true, schedule.senderEmail, schedule.dashboards, schedule.period || 'Daily');
+              schedule.lastRunStatus = 'Success';
+              schedule.lastRunAt = new Date();
+            } catch (err) {
+              console.error(`[Report Cron] Failed to send report "${schedule.name}":`, err);
+              schedule.lastRunStatus = 'Failed';
+              schedule.lastRunAt = new Date();
+            }
+            await schedule.save();
           }
         }
       }

@@ -506,10 +506,17 @@ const ReportsBuilder = () => {
                     </td>
                     <td className="py-3.5 font-mono text-cosmic-muted max-w-[120px] truncate" title={sch.recipients}>{sch.recipients}</td>
                     <td className="py-3.5 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-                        {sch.status || 'Active'}
-                      </span>
+                      <div className="flex flex-col items-center space-y-1.5">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+                          {sch.status || 'Active'}
+                        </span>
+                        {sch.lastRunStatus && (
+                          <span className={`text-[9px] font-bold ${sch.lastRunStatus === 'Success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            Last: {sch.lastRunStatus} ({new Date(sch.lastRunAt).toLocaleDateString()})
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 text-center">
                       <div className="flex items-center justify-center space-x-2">
