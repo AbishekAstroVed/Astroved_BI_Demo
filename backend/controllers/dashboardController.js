@@ -3695,7 +3695,7 @@ export const getNewsletterDashboard = async (req, res) => {
     if (categoryArray.length === 0) {
       categoryArray = ['NLW', 'NLI', 'OML'];
     }
-    const trackingConditions = categoryArray.map(c => `TS.TrackingCode LIKE '%${c}%'`).join(' OR ');
+    const trackingConditions = categoryArray.map(c => `TrackingCode LIKE '%${c}%'`).join(' OR ');
 
     const request = pool.request();
     let sDate = new Date('2023-01-01');
@@ -3726,71 +3726,70 @@ export const getNewsletterDashboard = async (req, res) => {
     }
 
     const query = `
-      WITH CoreData AS (
-          SELECT 
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              TS.TrackingCode,
-              GP.OrderDate,
-              POD.USDPrice,
-              CASE      
-                  WHEN NOT EXISTS (      
-                      SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId      
-                  ) THEN 0      
-                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
-                  WHEN od.SelectedItemId = 0  THEN      
-                      CAST(ROUND(      
-                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
-                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
-                      2) AS DECIMAL(18, 2))      
-              END AS USDPriceDiscount
-          FROM Payment AS PA WITH (NOLOCK)         
-          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          INNER JOIN SelectedItem AS SI ON SI.SelectedListId = SL.SelectedListId         
-          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          INNER JOIN OrderDetail AS ODE ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
-          INNER JOIN GenericPayment AS GP ON GP.PaymentId = PA.PaymentId    
-          JOIN Product P On P.ProductId=POD.ProductId
-          JOIN ProductTranslation PT ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
-          JOIN Vaaak.ProductAdditionalInfo PAI ON Pod.ProductId = PAI.ProductId    
-          JOIN Vaaak.ProductAdditionalTranslation PAT ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
-          LEFT JOIN vaaak.ManualOrderPayment MOP ON MOP.SelectedListId = ORD.OrderId  
-          LEFT JOIN Vaaak.TrackingStatistics TS On Ts.OrderId=Ord.OrderId
-          LEFT JOIN Vaaak.OrderDiscounts od ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
-          LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
-          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
-      ),
-      BaseData AS (
-          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
-          FROM CoreData
-          WHERE CAST(OrderDate AS DATE) >= @startDate AND CAST(OrderDate AS DATE) <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
-      ),
-      PrevBaseData AS (
-          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate, CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate
-          FROM CoreData
-          WHERE CAST(OrderDate AS DATE) >= @prevStartDate AND CAST(OrderDate AS DATE) <= @prevEndDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
-      ),
-      CurrYearBase AS (
-          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
-          FROM CoreData
-          WHERE YEAR(OrderDate) = YEAR(@startDate) AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
-      ),
-      PrevYearBase AS (
-          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
-          FROM CoreData
-          WHERE YEAR(OrderDate) = YEAR(@startDate) - 1 AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
-      ),
-      DateWiseBase AS (
-          SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate, EventName, Revenue, TrackingCode
-          FROM BaseData
-      )
+      SELECT 
+          CASE     
+              WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
+              ELSE 'Regular Store Item'     
+          END AS EventName,
+          TS.TrackingCode,
+          GP.OrderDate,
+          POD.USDPrice,
+          CASE      
+              WHEN NOT EXISTS (      
+                  SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId      
+              ) THEN 0      
+              WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+              WHEN od.SelectedItemId = 0  THEN      
+                  CAST(ROUND(      
+                      pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                      MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                  2) AS DECIMAL(18, 2))      
+          END AS USDPriceDiscount
+      INTO #CoreData
+      FROM Payment AS PA WITH (NOLOCK)         
+      INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+      INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+      INNER JOIN SelectedItem AS SI ON SI.SelectedListId = SL.SelectedListId         
+      INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+      INNER JOIN OrderDetail AS ODE ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+      INNER JOIN GenericPayment AS GP ON GP.PaymentId = PA.PaymentId    
+      JOIN Product P On P.ProductId=POD.ProductId
+      JOIN ProductTranslation PT ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+      JOIN Vaaak.ProductAdditionalInfo PAI ON Pod.ProductId = PAI.ProductId    
+      JOIN Vaaak.ProductAdditionalTranslation PAT ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+      LEFT JOIN vaaak.ManualOrderPayment MOP ON MOP.SelectedListId = ORD.OrderId  
+      LEFT JOIN Vaaak.TrackingStatistics TS On Ts.OrderId=Ord.OrderId
+      LEFT JOIN Vaaak.OrderDiscounts od ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+      LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+      WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1;
+
+      SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+      INTO #BaseData
+      FROM #CoreData
+      WHERE CAST(OrderDate AS DATE) >= @startDate AND CAST(OrderDate AS DATE) <= @endDate AND (${trackingConditions})
+        ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""};
+
+      SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate, CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate
+      INTO #PrevBaseData
+      FROM #CoreData
+      WHERE CAST(OrderDate AS DATE) >= @prevStartDate AND CAST(OrderDate AS DATE) <= @prevEndDate AND (${trackingConditions})
+        ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""};
+
+      SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+      INTO #CurrYearBase
+      FROM #CoreData
+      WHERE YEAR(OrderDate) = YEAR(@startDate) AND (${trackingConditions})
+        ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""};
+
+      SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+      INTO #PrevYearBase
+      FROM #CoreData
+      WHERE YEAR(OrderDate) = YEAR(@startDate) - 1 AND (${trackingConditions})
+        ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""};
+
+      SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate, EventName, Revenue, TrackingCode
+      INTO #DateWiseBase
+      FROM #BaseData;
 
       -- 1. KPI Data
       SELECT 
@@ -3798,7 +3797,7 @@ export const getNewsletterDashboard = async (req, res) => {
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
           SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
-      FROM BaseData;
+      FROM #BaseData;
 
       -- 1b. Overall Events Data
       SELECT 
@@ -3807,7 +3806,7 @@ export const getNewsletterDashboard = async (req, res) => {
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
           SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
-      FROM BaseData
+      FROM #BaseData
       GROUP BY EventName
       HAVING SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
           OR SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
@@ -3821,7 +3820,7 @@ export const getNewsletterDashboard = async (req, res) => {
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
           SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
-      FROM BaseData
+      FROM #BaseData
       WHERE EventName != 'Regular Store Item'
       GROUP BY EventName
       HAVING SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
@@ -3839,7 +3838,7 @@ export const getNewsletterDashboard = async (req, res) => {
               ELSE EventName 
           END AS name,
           SUM(ISNULL(Revenue, 0)) AS revenue
-      FROM DateWiseBase
+      FROM #DateWiseBase
       GROUP BY OrderDateStr, RawDate, CASE WHEN LEN(ISNULL(TrackingCode, '')) > 0 THEN TrackingCode ELSE EventName END
       ORDER BY RawDate DESC, revenue DESC;
 
@@ -3856,7 +3855,7 @@ export const getNewsletterDashboard = async (req, res) => {
           0 as openRate,
           0 as clicks,
           0 as clickOpen
-      FROM DateWiseBase
+      FROM #DateWiseBase
       WHERE EventName != 'Regular Store Item'
       GROUP BY EventName
       ORDER BY sent DESC;
@@ -3874,7 +3873,7 @@ export const getNewsletterDashboard = async (req, res) => {
           0 as openRate,
           0 as clicks,
           0 as clickOpen
-      FROM DateWiseBase
+      FROM #DateWiseBase
       GROUP BY EventName
       ORDER BY sent DESC;
 
@@ -3897,7 +3896,7 @@ export const getNewsletterDashboard = async (req, res) => {
           END as type,
           COUNT(*) as count,
           SUM(ISNULL(Revenue, 0)) as revenue
-      FROM BaseData
+      FROM #BaseData
       GROUP BY 
           CASE 
               WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -3933,7 +3932,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM BaseData
+          FROM #BaseData
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -3947,6 +3946,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+                  ELSE 'Others'
               END
       ),
       PrevStats AS (
@@ -3966,7 +3966,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM PrevBaseData
+          FROM #PrevBaseData
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -3980,6 +3980,7 @@ export const getNewsletterDashboard = async (req, res) => {
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+                  ELSE 'Others'
               END
       )
       SELECT 
@@ -3998,13 +3999,13 @@ export const getNewsletterDashboard = async (req, res) => {
       -- 6b. Events Compared with Previous Period
       ;WITH CurrentEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM BaseData
+          FROM #BaseData
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       ),
       PrevEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM PrevBaseData
+          FROM #PrevBaseData
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       )
@@ -4027,7 +4028,7 @@ export const getNewsletterDashboard = async (req, res) => {
           FORMAT(OrderDate, 'MMM yyyy') as monthYear,
           MONTH(OrderDate) as monthNum,
           SUM(ISNULL(Revenue, 0)) as revenue
-      FROM CurrYearBase
+      FROM #CurrYearBase
       GROUP BY 
           FORMAT(OrderDate, 'MMM yyyy'),
           MONTH(OrderDate)
@@ -4039,7 +4040,7 @@ export const getNewsletterDashboard = async (req, res) => {
           FORMAT(OrderDate, 'MMM yyyy') as monthYear,
           MONTH(OrderDate) as monthNum,
           SUM(ISNULL(Revenue, 0)) as revenue
-      FROM PrevYearBase
+      FROM #PrevYearBase
       GROUP BY 
           FORMAT(OrderDate, 'MMM yyyy'),
           MONTH(OrderDate)
