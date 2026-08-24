@@ -158,9 +158,9 @@ const MonthlySales = ({ eventSalesChartPage,
       </div>
 
       {/* Event Revenue Summary Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className={isExportingPDF ? "flex w-full justify-between items-start mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"}>
         {/* Month Total Sales By Event Name */}
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
+        <div className={`bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <div className="bg-cosmic-bg border-b border-cosmic-border p-3 flex justify-between items-center">
             <h4 className="text-cosmic-text font-semibold text-sm">Total Sales By Event Name</h4>
           </div>
@@ -202,7 +202,7 @@ const MonthlySales = ({ eventSalesChartPage,
         </div>
 
         {/* Currency Card */}
-        <div className="bg-cosmic-card border border-cosmic-border p-6 rounded-2xl flex flex-col justify-between h-full">
+        <div className={`bg-cosmic-card border border-cosmic-border p-5 rounded-xl flex flex-col justify-between h-full ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <div>
             <h4 className="text-cosmic-text font-semibold text-sm mb-4 flex items-center">
               <DollarSign size={16} className="text-cosmic-accent mr-1.5" />
@@ -320,7 +320,7 @@ const MonthlySales = ({ eventSalesChartPage,
               <EChartWrapper option={countryOption} height="280px" />
             ) : (
               <div className="h-[280px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-                <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+                <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
                 <span>Your role profile does not have permission to view country revenue.</span>
               </div>
             )}

@@ -3726,124 +3726,111 @@ export const getNewsletterDashboard = async (req, res) => {
     }
 
     const query = `
-      WITH BaseData AS (
+      WITH CoreData AS (
           SELECT 
               CASE     
                   WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
                   ELSE 'Regular Store Item'     
               END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+              TS.TrackingCode,
+              GP.OrderDate,
+              POD.USDPrice,
+              CASE      
+                  WHEN NOT EXISTS (      
+                      SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId = pod.SelectedItemId      
+                  ) THEN 0      
+                  WHEN od.SelectedItemId > 0 THEN ISNULL(ROUND(od.USDAmount, 2), 0)      
+                  WHEN od.SelectedItemId = 0  THEN      
+                      CAST(ROUND(      
+                          pod.USDPrice * 1.0 / SUM(pod.USDPrice) OVER (PARTITION BY pod.SelectedListId) *      
+                          MAX(ROUND(od.USDAmount, 2)) OVER (PARTITION BY pod.SelectedListId, od.SelectedItemId),      
+                      2) AS DECIMAL(18, 2))      
+              END AS USDPriceDiscount
+          FROM Payment AS PA WITH (NOLOCK)         
+          INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
+          INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
+          INNER JOIN SelectedItem AS SI ON SI.SelectedListId = SL.SelectedListId         
+          INNER JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
+          INNER JOIN OrderDetail AS ODE ON ODE.OrderDetailId = POD.SelectedItemId AND ODE.OrderId = POD.SelectedListId  
+          INNER JOIN GenericPayment AS GP ON GP.PaymentId = PA.PaymentId    
+          JOIN Product P On P.ProductId=POD.ProductId
+          JOIN ProductTranslation PT ON PT.ProductId = Pod.ProductId AND PT.ShopId = 1 AND PT.LocaleId = 1    
+          JOIN Vaaak.ProductAdditionalInfo PAI ON Pod.ProductId = PAI.ProductId    
+          JOIN Vaaak.ProductAdditionalTranslation PAT ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId 
+          LEFT JOIN vaaak.ManualOrderPayment MOP ON MOP.SelectedListId = ORD.OrderId  
+          LEFT JOIN Vaaak.TrackingStatistics TS On Ts.OrderId=Ord.OrderId
+          LEFT JOIN Vaaak.OrderDiscounts od ON od.OrderId = pod.SelectedListId AND od.Currency = pod.Currency AND ((od.SelectedItemId = pod.SelectedItemId) OR (od.SelectedItemId = 0 AND NOT EXISTS (SELECT 1 FROM Vaaak.OrderDiscounts od2 WHERE od2.OrderId = pod.SelectedListId AND od2.SelectedItemId > 0)))      
+          LEFT JOIN (SELECT DISTINCT CustomerId FROM Vaaak.TestCustomerAccounts TCA Where TCA.CustomerId IS NOT NULL UNION SELECT DISTINCT Sl2.CustomerId FROM Payment P2 JOIN SelectedList Sl2 ON P2.OrderId = Sl2.SelectedListId AND Sl2.CustomerId IS NOT NULL JOIN GenericPayment Gp2 ON P2.PaymentId = Gp2.PaymentId AND Gp2.Code = '9999999999') TestAccounts ON Sl.CustomerId = TestAccounts.CustomerId        
+          WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 AND Gp.Code <> '9999999999' AND TestAccounts.CustomerId IS NULL AND SL.ShopId = 1
+      ),
+      BaseData AS (
+          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+          FROM CoreData
+          WHERE CAST(OrderDate AS DATE) >= @startDate AND CAST(OrderDate AS DATE) <= @endDate AND (${trackingConditions})
+            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
+      ),
+      PrevBaseData AS (
+          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate, CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate
+          FROM CoreData
+          WHERE CAST(OrderDate AS DATE) >= @prevStartDate AND CAST(OrderDate AS DATE) <= @prevEndDate AND (${trackingConditions})
+            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
+      ),
+      CurrYearBase AS (
+          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+          FROM CoreData
+          WHERE YEAR(OrderDate) = YEAR(@startDate) AND (${trackingConditions})
+            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
+      ),
+      PrevYearBase AS (
+          SELECT EventName, (USDPrice - ISNULL(USDPriceDiscount, 0)) as Revenue, TrackingCode, OrderDate
+          FROM CoreData
+          WHERE YEAR(OrderDate) = YEAR(@startDate) - 1 AND (${trackingConditions})
+            ${eventName && eventName !== 'All' ? "AND EventName = @eventName" : ""}
+      ),
+      DateWiseBase AS (
+          SELECT CONVERT(varchar, CAST(OrderDate AS DATE), 107) AS OrderDateStr, CAST(OrderDate AS DATE) as RawDate, EventName, Revenue, TrackingCode
+          FROM BaseData
       )
+
       -- 1. KPI Data
       SELECT 
           'KPI' as ResultType,
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
-          SUM(CASE WHEN TrackingCode LIKE '%NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
+          SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
       FROM BaseData;
 
       -- 1b. Overall Events Data
-      ;WITH BaseData2 AS (
-          SELECT 
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      )
       SELECT 
           'OverallEvents' as ResultType,
           EventName,
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
-          SUM(CASE WHEN TrackingCode LIKE '%NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
+          SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
-      FROM BaseData2
+      FROM BaseData
       GROUP BY EventName
       HAVING SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
-          OR SUM(CASE WHEN TrackingCode LIKE '%NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
+          OR SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
           OR SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
       ORDER BY NLW DESC;
 
       -- 2. Special Events Data
-      WITH SpecialEventsBase AS (
-          SELECT 
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            AND LEN(PAI.EventName) > 0
-      )
       SELECT 
           'SpecialEvents' as ResultType,
           EventName,
           SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLW,
-          SUM(CASE WHEN TrackingCode LIKE '%NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
+          SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS NLI,
           SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) AS OML
-      FROM SpecialEventsBase
+      FROM BaseData
+      WHERE EventName != 'Regular Store Item'
       GROUP BY EventName
       HAVING SUM(CASE WHEN TrackingCode LIKE '%NLW%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
-          OR SUM(CASE WHEN TrackingCode LIKE '%NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
+          OR SUM(CASE WHEN TrackingCode LIKE 'NLI%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
           OR SUM(CASE WHEN TrackingCode LIKE '%OML%' THEN ISNULL(Revenue, 0) ELSE 0 END) > 0
       ORDER BY NLW DESC;
 
       -- 3. Date Wise Performance
-      
-
-      ;WITH DateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      )
-SELECT 
+      SELECT 
           'DateWise' as ResultType,
           OrderDateStr AS date,
           RawDate,
@@ -3857,28 +3844,7 @@ SELECT
       ORDER BY RawDate DESC, revenue DESC;
 
       -- 4. Special Events Newsletter Performance
-      ;WITH DateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      )
-SELECT 
+      SELECT 
           'SpecialEventsPerformance' as ResultType,
           MAX(OrderDateStr) as date,
           EventName as name,
@@ -3896,28 +3862,7 @@ SELECT
       ORDER BY sent DESC;
 
       -- 4b. Overall Newsletter Performance
-      ;WITH DateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      )
-SELECT 
+      SELECT 
           'OverallPerformance' as ResultType,
           MAX(OrderDateStr) as date,
           EventName as name,
@@ -3933,96 +3878,45 @@ SELECT
       GROUP BY EventName
       ORDER BY sent DESC;
 
-      -- 5. Breakup Summary (Real SQL Data - Overall, no date filter)
+      -- 5. Breakup Summary
       SELECT 
           'BreakupSummary' as ResultType,
           CASE 
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%BONUS%' THEN 'Bonus Last Call'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%LAST%CALL%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%LASTCALL%' THEN 'Event Last Call'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%1%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP1%' THEN 'Follow-up 1'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%2%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP2%' THEN 'Follow-up 2'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%3%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP3%' THEN 'Follow-up 3'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP%' THEN 'Follow-up 1'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BONUS%' THEN 'Bonus Last Call'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%LAST%CALL%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%LASTCALL%' THEN 'Event Last Call'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%1%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP1%' THEN 'Follow-up 1'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%2%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP2%' THEN 'Follow-up 2'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%3%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP3%' THEN 'Follow-up 3'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP%' THEN 'Follow-up 1'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
               ELSE 'Others'
           END as type,
           COUNT(*) as count,
-          SUM(ISNULL(POD.USDPrice, 0)) as revenue
-      FROM Payment PA WITH (NOLOCK)
-      JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-      JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-      JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-      JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-      JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-      LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-      LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-      WHERE (${trackingConditions})
-        ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+          SUM(ISNULL(Revenue, 0)) as revenue
+      FROM BaseData
       GROUP BY 
           CASE 
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%BONUS%' THEN 'Bonus Last Call'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%LAST%CALL%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%LASTCALL%' THEN 'Event Last Call'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%1%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP1%' THEN 'Follow-up 1'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%2%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP2%' THEN 'Follow-up 2'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%3%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP3%' THEN 'Follow-up 3'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FOLLOW%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%FUP%' THEN 'Follow-up 1'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-              WHEN UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TS.TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BONUS%' THEN 'Bonus Last Call'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%LAST%CALL%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%LASTCALL%' THEN 'Event Last Call'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%1%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP1%' THEN 'Follow-up 1'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%2%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP2%' THEN 'Follow-up 2'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%3%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP3%' THEN 'Follow-up 3'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%FOLLOW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%FUP%' THEN 'Follow-up 1'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
+              WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
               ELSE 'Others'
           END
       ORDER BY revenue DESC;
 
-      -- 6. Types Compared with Previous Period (Real SQL Data)
-      ;WITH DateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      ),
-      PrevDateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      ),
-      CurrentStats AS (
+      -- 6. Types Compared with Previous Period
+      ;WITH CurrentStats AS (
           SELECT 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -4035,11 +3929,11 @@ SELECT
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM DateWiseBase
+          FROM BaseData
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -4052,8 +3946,7 @@ SELECT
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
-                  ELSE 'Others'
+                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
               END
       ),
       PrevStats AS (
@@ -4069,11 +3962,11 @@ SELECT
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
+                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
                   ELSE 'Others'
               END as type, 
               COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM PrevDateWiseBase
+          FROM PrevBaseData
           GROUP BY 
               CASE 
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%EDU%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%ACADEMY%' THEN 'Educational'
@@ -4086,8 +3979,7 @@ SELECT
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%BANNER%' THEN 'Bottom Banner'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%TARGET%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%OML%' THEN 'Target Newsletter'
                   WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLW%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%WESTERN%' THEN 'Western NL'
-                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE '%NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
-                  ELSE 'Others'
+                  WHEN UPPER(ISNULL(TrackingCode, '')) LIKE 'NLI%' OR UPPER(ISNULL(TrackingCode, '')) LIKE '%INDIA%' THEN 'India NL'
               END
       )
       SELECT 
@@ -4103,58 +3995,16 @@ SELECT
       FULL OUTER JOIN PrevStats p ON c.type = p.type
       ORDER BY ISNULL(c.revenue, 0) DESC;
 
-      -- 6b. Events Compared with Previous Period (Grouped by Event Name)
-      ;WITH DateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @startDate AND GP.OrderDate <= @endDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      ),
-      PrevDateWiseBase AS (
-          SELECT 
-              CONVERT(varchar, CAST(GP.OrderDate AS DATE), 107) AS OrderDateStr,
-              CAST(GP.OrderDate AS DATE) as RawDate,
-              CASE     
-                  WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName    
-                  ELSE 'Regular Store Item'     
-              END AS EventName,
-              POD.USDPrice as Revenue,
-              TS.TrackingCode
-          FROM Payment PA WITH (NOLOCK)
-          JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-          JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-          JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-          JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-          JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-          LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-          LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-          WHERE GP.OrderDate >= @prevStartDate AND GP.OrderDate <= @prevEndDate AND (${trackingConditions})
-            ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
-      ),
-      CurrentEventStats AS (
+      -- 6b. Events Compared with Previous Period
+      ;WITH CurrentEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM DateWiseBase
+          FROM BaseData
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       ),
       PrevEventStats AS (
           SELECT EventName, COUNT(*) as qty, SUM(ISNULL(Revenue, 0)) as revenue
-          FROM PrevDateWiseBase
+          FROM PrevBaseData
           WHERE EventName != 'Regular Store Item'
           GROUP BY EventName
       )
@@ -4174,50 +4024,28 @@ SELECT
       -- 7. Current Year Monthly Summary
       SELECT 
           'CurrentYearSummary' as ResultType,
-          FORMAT(GP.OrderDate, 'MMM yyyy') as monthYear,
-          MONTH(GP.OrderDate) as monthNum,
-          SUM(ISNULL(POD.USDPrice, 0)) as revenue
-      FROM Payment PA WITH (NOLOCK)
-      JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-      JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-      JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-      JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-      JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-      LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-      LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-      WHERE YEAR(GP.OrderDate) = YEAR(@startDate)
-        AND (${trackingConditions})
-        ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+          FORMAT(OrderDate, 'MMM yyyy') as monthYear,
+          MONTH(OrderDate) as monthNum,
+          SUM(ISNULL(Revenue, 0)) as revenue
+      FROM CurrYearBase
       GROUP BY 
-          FORMAT(GP.OrderDate, 'MMM yyyy'),
-          MONTH(GP.OrderDate)
+          FORMAT(OrderDate, 'MMM yyyy'),
+          MONTH(OrderDate)
       ORDER BY monthNum;
 
       -- 8. Previous Year Monthly Summary
       SELECT 
           'PreviousYearSummary' as ResultType,
-          FORMAT(GP.OrderDate, 'MMM yyyy') as monthYear,
-          MONTH(GP.OrderDate) as monthNum,
-          SUM(ISNULL(POD.USDPrice, 0)) as revenue
-      FROM Payment PA WITH (NOLOCK)
-      JOIN GenericPayment GP WITH (NOLOCK) ON PA.PaymentId = GP.PaymentId
-      JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
-      JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
-      JOIN SelectedItem AS SI WITH (NOLOCK) ON SI.SelectedListId = SL.SelectedListId         
-      JOIN Vaaak.ProductwiseOrderDetail AS POD WITH (NOLOCK) ON POD.SelectedListId = SL.SelectedListId AND POD.SelectedItemId = SI.SelectedItemId         
-      LEFT JOIN Vaaak.ProductAdditionalInfo PAI WITH (NOLOCK) ON POD.ProductId = PAI.ProductId
-      LEFT JOIN Vaaak.TrackingStatistics TS WITH (NOLOCK) ON TS.OrderId = ORD.OrderId
-      WHERE YEAR(GP.OrderDate) = YEAR(@startDate) - 1
-        AND (${trackingConditions})
-        ${eventName && eventName !== 'All' ? "AND (CASE WHEN LEN(PAI.EventName) > 0 THEN PAI.EventName ELSE 'Regular Store Item' END) = @eventName" : ""}
+          FORMAT(OrderDate, 'MMM yyyy') as monthYear,
+          MONTH(OrderDate) as monthNum,
+          SUM(ISNULL(Revenue, 0)) as revenue
+      FROM PrevYearBase
       GROUP BY 
-          FORMAT(GP.OrderDate, 'MMM yyyy'),
-          MONTH(GP.OrderDate)
+          FORMAT(OrderDate, 'MMM yyyy'),
+          MONTH(OrderDate)
       ORDER BY monthNum;
-
-      
-      
     `;
+
 
     const result = await request.query(query);
 

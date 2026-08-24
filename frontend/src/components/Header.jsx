@@ -356,8 +356,8 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
             </div>
           )}
 
-          {/* Global Calendar Selector Pill (Hidden on Executive Dashboard page) */}
-          {!isCalendarHidden && currentModule !== 'executive' && currentModule !== 'operations' && !title?.toLowerCase().includes('executive') && (
+          {/* Global Calendar Selector Pill (Hidden on Admin panels and certain dashboards) */}
+          {!isCalendarHidden && ['sales', 'marketing', 'newsletter', 'seo', 'customer', 'funnel', 'ai-insights'].includes(currentModule) && (
             <div className="relative shrink-0" ref={dateMenuRef}>
               <button
                 onClick={() => setDateMenuOpen(!dateMenuOpen)}
@@ -450,16 +450,6 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
 
           {/* Action buttons */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-
-            <button
-              onClick={() => {
-                if (onRefresh) onRefresh();
-              }}
-              title="Refresh Dashboard"
-              className="p-1.5 sm:p-2 rounded-lg text-cosmic-muted hover:text-cosmic-text bg-cosmic-bg border border-cosmic-border transition-colors group"
-            >
-              <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
-            </button>
 
             <button
               onClick={onToggleFullScreen}

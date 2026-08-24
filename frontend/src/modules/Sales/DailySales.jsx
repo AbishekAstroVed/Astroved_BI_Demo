@@ -128,9 +128,9 @@ const DailySales = ({ eventSalesChartPage,
       </div>
 
       {/* Event Revenue Summary Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className={isExportingPDF ? "flex w-full justify-between items-start mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"}>
         {/* Today Total Sales By Event Name */}
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
+        <div className={`bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <div className="bg-cosmic-bg border-b border-cosmic-border p-3 flex justify-between items-center">
             <h4 className="text-cosmic-text font-semibold text-sm">Total Sales By Event Name</h4>
           </div>
@@ -172,7 +172,7 @@ const DailySales = ({ eventSalesChartPage,
         </div>
 
         {/* Currency Card */}
-        <div className="bg-cosmic-card border border-cosmic-border p-6 rounded-2xl flex flex-col h-full">
+        <div className={`bg-cosmic-card border border-cosmic-border p-6 rounded-2xl flex flex-col h-full ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <div>
             <h4 className="text-cosmic-text font-semibold text-sm mb-4 flex items-center">
               <DollarSign size={16} className="text-cosmic-accent mr-1.5" />
@@ -284,9 +284,9 @@ const DailySales = ({ eventSalesChartPage,
 
 
       {/* Product performance (Best & Low Performers) Small Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-6">
+      <div className={isExportingPDF ? "flex w-full justify-between items-start mt-6 mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-6"}>
         {/* Best Sellers Card */}
-        <div className="bg-cosmic-card border border-cosmic-border p-5 rounded-xl">
+        <div className={`bg-cosmic-card border border-cosmic-border p-5 rounded-xl ${isExportingPDF ? 'w-[48%] overflow-hidden' : ''}`}>
           <h4 className="text-cosmic-text font-semibold text-sm mb-3 flex items-center">
             <ShoppingBag size={16} className="text-cosmic-success mr-1.5" />
             Best Selling Products
@@ -321,7 +321,7 @@ const DailySales = ({ eventSalesChartPage,
         </div>
 
         {/* Low Performers Card */}
-        <div className="bg-cosmic-card border border-cosmic-border p-5 rounded-xl">
+        <div className={`bg-cosmic-card border border-cosmic-border p-5 rounded-xl ${isExportingPDF ? 'w-[48%] overflow-hidden' : ''}`}>
           <h4 className="text-cosmic-text font-semibold text-sm mb-3 flex items-center">
             <TrendingDown size={16} className="text-cosmic-danger mr-1.5" />
             Low Performing Products / Alert List

@@ -19,6 +19,21 @@ const MonthlyCustomers = () => {
   const [showAllTraffic, setShowAllTraffic] = useState(false);
   const [showAllProjection, setShowAllProjection] = useState(false);
   const [showAllRevenueTraffic, setShowAllRevenueTraffic] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+  const handlePrepareExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(true);
+      return new Promise(resolve => setTimeout(resolve, 800));
+    }
+    return Promise.resolve();
+  };
+
+  const handleRestoreExport = (type) => {
+    if (type === 'PDF') {
+      setIsExportingPDF(false);
+    }
+  };
 
   const userPermissions = JSON.parse(localStorage.getItem('astroved_permissions') || '{}');
   if (userPermissions && userPermissions.data && userPermissions.data.viewCustomer === false) {
@@ -259,24 +274,24 @@ const MonthlyCustomers = () => {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
         {/* Global Metrics Period Toggle */}
         <div className="flex justify-start">
-        <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto">
-          {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
-            <button
-              key={period}
-              onClick={() => {
-                setMetricsPeriod(period);
-                setUseCustomDates(false);
-              }}
-              className={`flex-1 md:flex-none md:w-28 flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-medium transition-all ${metricsPeriod === period && !useCustomDates
-                ? 'bg-[#f0f7ff] dark:bg-blue-500/20 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/30 rounded shadow-sm z-10'
-                : 'text-slate-500 dark:text-slate-400 bg-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 border-y border-transparent ' + (metricsPeriod !== period && idx !== 0 && metricsPeriod !== ['Daily', 'Weekly', 'Monthly', 'Yearly'][idx - 1] ? 'border-l-[1px] border-l-slate-200 dark:border-l-slate-600' : 'border-l-0')
-                }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={metricsPeriod === period && !useCustomDates ? 'text-[#3b82f6]' : 'text-slate-400'}><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
-              {period}
-            </button>
-          ))}
-        </div>
+          <div className="flex bg-slate-50 dark:bg-slate-800/50 p-1 rounded-lg border border-gray-200 dark:border-slate-700 w-full md:w-auto">
+            {['Daily', 'Weekly', 'Monthly', 'Yearly'].map((period, idx) => (
+              <button
+                key={period}
+                onClick={() => {
+                  setMetricsPeriod(period);
+                  setUseCustomDates(false);
+                }}
+                className={`flex-1 md:flex-none md:w-28 flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-medium transition-all ${metricsPeriod === period && !useCustomDates
+                  ? 'bg-[#f0f7ff] dark:bg-blue-500/20 text-[#2563eb] dark:text-blue-400 border border-[#bfdbfe] dark:border-blue-500/30 rounded shadow-sm z-10'
+                  : 'text-slate-500 dark:text-slate-400 bg-transparent hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 border-y border-transparent ' + (metricsPeriod !== period && idx !== 0 && metricsPeriod !== ['Daily', 'Weekly', 'Monthly', 'Yearly'][idx - 1] ? 'border-l-[1px] border-l-slate-200 dark:border-l-slate-600' : 'border-l-0')
+                  }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={metricsPeriod === period && !useCustomDates ? 'text-[#3b82f6]' : 'text-slate-400'}><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></svg>
+                {period}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Export Reports Component */}
@@ -311,6 +326,8 @@ const MonthlyCustomers = () => {
             pageTitle="Customer Reports"
             showPeriodTabs={false}
             variant="inline"
+            onPrepareExport={handlePrepareExport}
+            onRestoreExport={handleRestoreExport}
           />
         </div>
       </div>
@@ -425,9 +442,9 @@ const MonthlyCustomers = () => {
             </div>
 
             {/* 2 Tables Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={isExportingPDF ? "flex w-full justify-between mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6"}>
               {/* Table 1: Event Name */}
-              <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden">
+              <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
                 <div className="bg-gray-500 p-2 flex justify-between items-center text-white px-4">
                   <h4 className="font-semibold text-sm">New Customers By Event Name</h4>
                 </div>
@@ -459,8 +476,8 @@ const MonthlyCustomers = () => {
               </div>
 
               {/* Table 2: Product Name */}
-              <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden">
-                <div className="bg-[#f97316] p-2 flex justify-between items-center text-white px-4">
+              <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
+                <div className="bg-[#6868f9] p-2 flex justify-between items-center text-white px-4">
                   <h4 className="font-semibold text-sm">New Customers By Product Name</h4>
                 </div>
                 <div className="overflow-hidden">
@@ -596,11 +613,11 @@ const MonthlyCustomers = () => {
               <EChartWrapper option={revenueBySourceOption} height="100%" />
             </div>
 
-            {/* Two Tables Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Charts Row */}
+            <div className={isExportingPDF ? "flex w-full justify-between mb-8" : "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"}>
               {/* Projection By Traffic Category */}
-              <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start w-full rounded-xl overflow-hidden">
-                <div className="bg-[#f97316] p-2 flex justify-between items-center text-white px-4">
+              <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
+                <div className="bg-[#f97316] p-3 flex justify-between items-center text-white px-4">
                   <h4 className="font-semibold text-sm">Projection By Traffic Category</h4>
                 </div>
                 <div className="overflow-hidden flex-1">
@@ -640,8 +657,8 @@ const MonthlyCustomers = () => {
               </div>
 
               {/* Revenue By Traffic Sources */}
-              <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
-                <div className="bg-[#f97316] p-2 flex justify-between items-center text-white px-4">
+              <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
+                <div className="bg-[#6868f9] p-3 flex justify-between items-center text-white px-4">
                   <h4 className="font-semibold text-sm">Revenue By Traffic Sources</h4>
                 </div>
                 <div className="overflow-hidden flex-1">

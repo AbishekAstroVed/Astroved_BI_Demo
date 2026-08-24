@@ -363,15 +363,15 @@ const Operations = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={isExportingPDF ? "flex w-full justify-between mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6"}>
         {/* Order Status Pie Chart */}
-        <div className="bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4">
+        <div className={`bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4 ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Order Status Distribution</h3>
           <EChartWrapper option={orderStatusOption} height="300px" />
         </div>
 
         {/* Orders vs Cancellations Trend Chart */}
-        <div className="bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4">
+        <div className={`bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4 ${isExportingPDF ? 'w-[48%]' : ''}`}>
           <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Orders vs Cancellations Trend</h3>
           <EChartWrapper option={trendOption} height="300px" />
         </div>

@@ -856,15 +856,17 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
 
       toast.loading('Generating PDF Report...', { id: 'pdfLoad' });
       
-      // Taking visual screenshot of current dashboard view
-      const canvas = await html2canvasPro(dashboardElement, { scale: 1.5, useCORS: true, logging: false });
+      // Taking visual screenshot of current dashboard view with higher scale for better resolution
+      const canvas = await html2canvasPro(dashboardElement, { scale: 2, useCORS: true, logging: false });
       const imgData = canvas.toDataURL("image/png");
 
-      const pdfWidth = canvas.width;
-      const pdfHeight = canvas.height;
+      // Calculate dimensions in mm based on A4 width (210mm)
+      const pdfWidth = 210; 
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
       const pdf = new jsPDF({
         orientation: pdfWidth > pdfHeight ? 'l' : 'p',
-        unit: 'px',
+        unit: 'mm',
         format: [pdfWidth, pdfHeight]
       });
 

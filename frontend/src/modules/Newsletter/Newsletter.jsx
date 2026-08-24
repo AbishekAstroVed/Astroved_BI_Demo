@@ -44,6 +44,11 @@ const Newsletter = () => {
 
   const [isExportingPDF, setIsExportingPDF] = useState(false);
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   const handlePrepareExport = (type) => {
     if (type === 'PDF') {
       setIsExportingPDF(true);
@@ -416,8 +421,13 @@ const Newsletter = () => {
 
 
       <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4 mb-4 z-50">
-        <div className="text-cosmic-text text-center font-bold text-base tracking-wide flex-1">
-          Newsletter Dashboard
+        <div className="text-cosmic-text text-center font-bold text-base tracking-wide flex-1 flex flex-col sm:flex-row items-center justify-center gap-2">
+          <span>Newsletter Dashboard</span>
+          {(startDate || endDate) && (
+            <span className="text-sm font-normal text-cosmic-muted">
+              ({startDate ? formatDate(startDate) : ''} {startDate && endDate ? '-' : ''} {endDate ? formatDate(endDate) : ''})
+            </span>
+          )}
         </div>
         <div className="md:absolute md:right-0">
           <ExportReportsCard
@@ -669,8 +679,8 @@ const Newsletter = () => {
           </div>
 
           {/* Event Wise and Category Wise Revenue Summary Donut Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
+          <div className={isExportingPDF ? "flex w-full justify-between mb-8" : "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"}>
+            <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
               <div className="bg-[#f97316] p-3 flex justify-between items-center text-white px-4">
                 <h4 className="font-semibold text-sm mx-auto">Event Wise Revenue Summary</h4>
               </div>
@@ -688,7 +698,7 @@ const Newsletter = () => {
               </div>
             </div>
 
-            <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
+            <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
               <div className="bg-[#6868f9] p-3 flex justify-between items-center text-white px-4">
                 <h4 className="font-semibold text-sm mx-auto">Category Wise Revenue Summary</h4>
               </div>
