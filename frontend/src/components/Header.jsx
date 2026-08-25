@@ -357,7 +357,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
           )}
 
           {/* Global Calendar Selector Pill (Hidden on Admin panels and certain dashboards) */}
-          {!isCalendarHidden && ['sales', 'marketing', 'newsletter', 'seo', 'customer', 'funnel', 'ai-insights'].includes(currentModule) && (
+          {!isCalendarHidden && ['sales', 'marketing', 'newsletter', 'seo', 'customer', 'funnel', 'ai-insights', 'home-banner'].includes(currentModule) && (
             <div className="relative shrink-0" ref={dateMenuRef}>
               <button
                 onClick={() => setDateMenuOpen(!dateMenuOpen)}

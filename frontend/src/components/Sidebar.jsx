@@ -4,13 +4,14 @@ import {
   Filter, Activity, Sparkles, User, Calendar,
   LogOut,
   ChevronsLeft, ChevronsRight, ChevronRight,
-  Newspaper
+  Newspaper, LayoutDashboard
 } from 'lucide-react';
 
 const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mobileOpen, user, permissions, onLogout }) => {
   const mainMenu = [
     { id: 'executive', name: 'Executive Dashboard', icon: TrendingUp },
     { id: 'sales', name: 'Sales Dashboard', icon: ShoppingBag },
+    { id: 'home-banner', name: 'Home Page Banner', icon: LayoutDashboard },
     { id: 'newsletter', name: "Newsletter Performance", icon: Newspaper },
     { id: 'customer', name: 'Customer Dashboard', icon: Users },
     { id: 'operations', name: 'Operations Dashboard', icon: Activity },
@@ -20,6 +21,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
   const permissionMap = {
     executive: 'executive',
     sales: 'sales',
+    'home-banner': 'marketing',
     marketing: 'marketing',
     newsletter: 'newsletter',
     seo: 'seo',

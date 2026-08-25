@@ -1280,17 +1280,17 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
       console.log(`[PDF Pregen] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 
-      await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 360000 });
+      await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
       try {
         await page.waitForFunction(() => {
           return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
-        }, { timeout: 360000 });
+        }, { timeout: 30000 });
       } catch (e) {
         console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
       }
 
-      await new Promise(r => setTimeout(r, 120000));
+      await new Promise(r => setTimeout(r, 3000));
 
       try {
         const scriptPath = require('path').resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
@@ -1352,7 +1352,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
   }
 };
 
-export const sendReportEmail = async (name, recipients, format, isAutomated = false, senderEmail = null, dashboards = [], period = 'Daily') => {
+export const sendReportEmail = async (name, recipients, format, isAutomated = false, senderEmail = null, dashboards = [], period = 'Daily', preGeneratedPdfPath = null) => {
   console.log(`[Report Scheduler] Initiating ${isAutomated ? 'automated' : 'test'} report dispatch for "${name}" (Period: ${period})`);
 
   const config = await SystemConfig.findOne({});
@@ -1386,7 +1386,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       extractedDataHtml += `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Executive Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Revenue:</strong> $${data[`${prefix}Revenue`] || '0'}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data[`${prefix}Orders`] || '0'}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Customers:</strong> ${data[`${prefix}Customers`] || '0'}</p>
@@ -1402,7 +1402,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       extractedDataHtml += `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Customer Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Total Customers:</strong> ${res.data[`${pfx}Customers`] || '0'}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>New Customers:</strong> ${res.data[`${pfx}NewCustomers`] || '0'}</p>
         </div>
@@ -1414,7 +1414,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     extractedDataHtml += `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Newsletter Performance</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
           <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed Newsletter metrics.</p>
         </div>
       `;
@@ -1426,7 +1426,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       extractedDataHtml += `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Sales Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Net Sales:</strong> ${data.salesKpiData[0]?.value || '0'}</p>
           <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data.salesKpiData[1]?.value || '0'}</p>
         </div>
@@ -1438,7 +1438,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     extractedDataHtml += `
         <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Operations Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Report Period:</strong> ${period}</p>
+          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
           <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed operational metrics.</p>
         </div>
       `;
@@ -1489,8 +1489,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
 
   if (includePDF) {
-    try {
-      const browser = await puppeteer.launch({
+    if (preGeneratedPdfPath && require('fs').existsSync(preGeneratedPdfPath)) {
+      attachments.push({ filename: `${safeName}_Report.pdf`, path: preGeneratedPdfPath });
+      console.log(`[Report Scheduler] Attached pre-generated PDF for ${name}`);
+    } else {
+      try {
+        const browser = await puppeteer.launch({
         headless: 'new',
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
         timeout: 300000
@@ -1541,19 +1545,19 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
         console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 
-        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 360000 });
+        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
         // Wait for the React loading spinner to disappear
         try {
           await page.waitForFunction(() => {
             return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
-          }, { timeout: 360000 });
+          }, { timeout: 30000 });
         } catch (e) {
           console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
         }
 
         // Extra wait for chart animations to complete after data fetches
-        await new Promise(r => setTimeout(r, 120000));
+        await new Promise(r => setTimeout(r, 3000));
 
         // Try local path first, fallback to CDN if it fails
         try {
@@ -1626,6 +1630,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     } catch (err) {
       console.error("Failed to generate/attach PDF via Puppeteer", err);
       pdfErrorMessage = err.message;
+    }
     }
   }
 
@@ -2031,7 +2036,7 @@ export const startReportCronJobs = () => {
           if (shouldSend) {
             console.log(`[Report Cron] Triggering automated report: "${schedule.name}"`);
             try {
-              await sendReportEmail(schedule.name, schedule.recipients, schedule.format, true, schedule.senderEmail, schedule.dashboards, schedule.period || 'Daily');
+              await sendReportEmail(schedule.name, schedule.recipients, schedule.format, true, schedule.senderEmail, schedule.dashboards, schedule.period || 'Daily', schedule.preGeneratedPdfPath);
               schedule.lastRunStatus = 'Success';
               schedule.lastRunAt = new Date();
             } catch (err) {

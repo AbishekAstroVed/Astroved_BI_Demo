@@ -15,6 +15,7 @@ const AIInsights = React.lazy(() => import('./modules/AIInsights/AIInsights'));
 const ReportsBuilder = React.lazy(() => import('./modules/Reports/ReportsBuilder'));
 const AdminControl = React.lazy(() => import('./modules/Admin/AdminControl'));
 const AISettings = React.lazy(() => import('./modules/AISettings/AISettings'));
+const HomePageBanner = React.lazy(() => import('./modules/HomePageBanner/HomePageBanner'));
 import Login from './components/Login';
 import { api } from './services/api';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -191,6 +192,8 @@ function MainAppContent() {
         return <Sales />;
       case 'marketing':
         return <Marketing setCurrentModule={setCurrentModule} />;
+      case 'home-banner':
+        return <HomePageBanner />;
       case 'newsletter':
         return <Newsletter />;
       case 'seo':
@@ -242,6 +245,7 @@ function MainAppContent() {
     const titles = {
       executive: 'Executive Performance ',
       sales: 'Sales Performance',
+      'home-banner': 'Home Page Banner Dashboard',
       marketing: 'Marketing Performance',
       newsletter: "Newsletter Performance",
       seo: 'SEO Performance',

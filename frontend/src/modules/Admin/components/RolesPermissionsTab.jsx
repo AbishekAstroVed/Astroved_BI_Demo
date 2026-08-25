@@ -17,7 +17,7 @@ const RolesPermissionsTab = ({ crud }) => {
   const availableRoles = ['System Admin', 'Super Admin', 'Admin', 'CEO', 'CFO', 'CTO', 'COO', 'Product Manager', 'Sales Manager', 'Marketing Manager', 'SEO Manager', 'Operations Manager', 'Finance Manager', 'Data Engineer', 'Developer', 'Support Lead', 'HR Manager', 'Analyst', 'Viewer', 'Guest'];
   const [selectedRole, setSelectedRole] = useState('Analyst');
   const [permissions, setPermissions] = useState({
-    dashboard: { executive: false, sales: false, marketing: false, newsletter: false, seo: false, customer: false, funnel: false, operations: false, ai: false },
+    dashboard: { executive: false, sales: false, newsletter: false, customer: false, operations: false, ai: false, homePageBanner: false },
     data: { view: false, export: false, download: false, drillDown: false, viewCost: false, viewRevenue: false, viewProfit: false, viewCustomer: false },
     management: { users: false, roles: false, kpis: false, targets: false, reports: false, ai: false, notifications: false, integrations: false, apis: false },
     crud: { view: false, create: false, edit: false, delete: false, approve: false, publish: false }
@@ -29,18 +29,30 @@ const RolesPermissionsTab = ({ crud }) => {
       const rolePerm = allRoles.find(r => r.role === selectedRole);
       
       const defaultPermissions = {
-        dashboard: { executive: false, sales: false, marketing: false, newsletter: false, seo: false, customer: false, funnel: false, operations: false, ai: false },
+        dashboard: { executive: false, sales: false, newsletter: false, customer: false, operations: false, ai: false, homePageBanner: false },
         data: { view: false, export: false, download: false, drillDown: false, viewCost: false, viewRevenue: false, viewProfit: false, viewCustomer: false },
         management: { users: false, roles: false, kpis: false, targets: false, reports: false, ai: false, notifications: false, integrations: false, apis: false },
         crud: { view: false, create: false, edit: false, delete: false, approve: false, publish: false }
       };
 
       if (rolePerm && rolePerm.permissions) {
+        // Only merge keys that actually exist in defaultPermissions
+        const strictMerge = (defaults, dbData) => {
+          if (!dbData) return defaults;
+          const result = { ...defaults };
+          Object.keys(defaults).forEach(key => {
+            if (dbData[key] !== undefined) {
+              result[key] = dbData[key];
+            }
+          });
+          return result;
+        };
+
         setPermissions({
-          dashboard: { ...defaultPermissions.dashboard, ...rolePerm.permissions.dashboard },
-          data: { ...defaultPermissions.data, ...rolePerm.permissions.data },
-          management: { ...defaultPermissions.management, ...rolePerm.permissions.management },
-          crud: { ...defaultPermissions.crud, ...rolePerm.permissions.crud }
+          dashboard: strictMerge(defaultPermissions.dashboard, rolePerm.permissions.dashboard),
+          data: strictMerge(defaultPermissions.data, rolePerm.permissions.data),
+          management: strictMerge(defaultPermissions.management, rolePerm.permissions.management),
+          crud: strictMerge(defaultPermissions.crud, rolePerm.permissions.crud)
         });
       } else {
         setPermissions(defaultPermissions);
@@ -168,7 +180,7 @@ const RolesPermissionsTab = ({ crud }) => {
                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${permissions.dashboard[key] ? 'bg-indigo-600 border-indigo-600' : 'border-cosmic-border bg-cosmic-card group-hover:border-indigo-400'}`}>
                           {permissions.dashboard[key] && <Check size={12} className="text-white" strokeWidth={3} />}
                         </div>
-                        <span className="capitalize text-xs text-cosmic-text group-hover:text-indigo-400 transition-colors select-none">{key} Dashboard</span>
+                        <span className="capitalize text-xs text-cosmic-text group-hover:text-indigo-400 transition-colors select-none">{key.replace(/([A-Z])/g, ' $1').trim()} Dashboard</span>
                       </label>
                     ))}
                   </div>
