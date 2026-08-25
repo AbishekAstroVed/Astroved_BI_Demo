@@ -6,7 +6,7 @@ import { seedDatabase } from './seed.js';
 import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
-import { startBackupScheduler, startReportCronJobs, startAlertCronJobs } from './controllers/adminController.js';
+import { startBackupScheduler, startReportCronJobs, startAlertCronJobs, startPDFPregenerationCron } from './controllers/adminController.js';
 import { connectMSSQL } from './config/mssql.js';
 
 // Load Environment variables
@@ -23,6 +23,8 @@ connectDB().then(async () => {
   startBackupScheduler();
   // Start the automated report email dispatcher
   startReportCronJobs();
+  // Start the PDF pre-generation scheduler
+  startPDFPregenerationCron();
   // Start the Slack alert dispatcher
   startAlertCronJobs();
 });

@@ -12,7 +12,9 @@ const ReportScheduleSchema = new mongoose.Schema({
   timeZone: { type: String, default: 'GMT+5:30' },
   senderEmail: { type: String, default: 'no-reply@astroved.com' },
   lastRunStatus: { type: String },
-  lastRunAt: { type: Date }
+  lastRunAt: { type: Date },
+  preGeneratedPdfPath: { type: String, default: null },
+  pdfGeneratedAt: { type: Date, default: null }
 });
 
 export default mongoose.model('ReportSchedule', ReportScheduleSchema);

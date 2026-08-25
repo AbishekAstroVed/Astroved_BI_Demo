@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDateFilter } from '../../contexts/DateFilterContext';
-import { Calendar, FileText, FileSpreadsheet, Download, Loader2, RefreshCw } from 'lucide-react';
+import { Calendar, FileText, FileSpreadsheet, Download, Loader2, RefreshCw, Search } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../../services/api';
 import Pagination from '../../components/Pagination';
@@ -24,6 +24,8 @@ const Operations = () => {
   const [refundPage, setRefundPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [cancelSearch, setCancelSearch] = useState('');
   useEffect(() => {
     // Ensure "Daily" is selected on initial load
     if (selectPreset) {
@@ -330,6 +332,20 @@ const Operations = () => {
     );
   }
 
+  const filteredOrders = (data?.recentActivity?.orders || []).filter(order => 
+    !orderSearch || 
+    order.ProductName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+    order.UserName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+    order.OrderId?.toString().includes(orderSearch)
+  );
+
+  const filteredCancellations = (data?.recentActivity?.cancellations || []).filter(cancel => 
+    !cancelSearch || 
+    cancel.ProductName?.toLowerCase().includes(cancelSearch.toLowerCase()) ||
+    cancel.UserName?.toLowerCase().includes(cancelSearch.toLowerCase()) ||
+    cancel.OrderId?.toString().includes(cancelSearch)
+  );
+
   return (
     <div id="operational-dashboard-container" className="space-y-6 animate-fade-in relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-cosmic-card p-4 rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm">
@@ -378,9 +394,19 @@ const Operations = () => {
       </div>
 
       <div className="bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Recent Orders</h3>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white sm:mr-auto">Recent Orders</h3>
+          <div className="relative w-full sm:w-auto order-3 sm:order-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search orders..." 
+              value={orderSearch} 
+              onChange={(e) => setOrderSearch(e.target.value)}
+              className="w-full sm:w-64 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500 transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-2 order-2 sm:order-3 w-full sm:w-auto justify-end">
             <span className="text-xs text-slate-500 dark:text-slate-400">Show:</span>
             <select
               value={pageSize}
@@ -413,7 +439,7 @@ const Operations = () => {
               </tr>
             </thead>
             <tbody>
-              {data?.recentActivity?.orders?.map((order, idx) => (
+              {filteredOrders.map((order, idx) => (
                 <tr key={idx} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">#{order.OrderId}</td>
                   <td className="px-4 py-3 text-slate-500">{order.DateStr}</td>
@@ -434,9 +460,9 @@ const Operations = () => {
                   </td>
                 </tr>
               ))}
-              {(!data?.recentActivity?.orders || data.recentActivity.orders.length === 0) && (
+              {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-500">No orders found for the selected period.</td>
+                  <td colSpan={7} className="text-center py-8 text-slate-500">No orders found for the selected period or search criteria.</td>
                 </tr>
               )}
             </tbody>
@@ -460,8 +486,18 @@ const Operations = () => {
 
       {/* Recent Cancellations Table */}
       <div className="bg-white dark:bg-cosmic-card rounded-xl border border-slate-200 dark:border-cosmic-border shadow-sm p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Recent Cancellations</h3>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white sm:mr-auto">Recent Cancellations</h3>
+          <div className="relative w-full sm:w-auto">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Search cancellations..." 
+              value={cancelSearch} 
+              onChange={(e) => setCancelSearch(e.target.value)}
+              className="w-full sm:w-64 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500 transition-all"
+            />
+          </div>
         </div>
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
@@ -476,7 +512,7 @@ const Operations = () => {
               </tr>
             </thead>
             <tbody>
-              {data?.recentActivity?.cancellations?.map((cancel, idx) => (
+              {filteredCancellations.map((cancel, idx) => (
                 <tr key={idx} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">#{cancel.OrderId}</td>
                   <td className="px-4 py-3 text-slate-500">{cancel.DateStr}</td>
@@ -490,15 +526,15 @@ const Operations = () => {
                     ${Number(cancel.Amount || 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusColor('Cancelled')}`}>
-                      Cancelled
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400">
+                      {cancel.Status || 'Cancelled'}
                     </span>
                   </td>
                 </tr>
               ))}
-              {(!data?.recentActivity?.cancellations || data.recentActivity.cancellations.length === 0) && (
+              {filteredCancellations.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500">No cancellations found for the selected period.</td>
+                  <td colSpan={6} className="text-center py-8 text-slate-500">No cancellations found for the selected period or search criteria.</td>
                 </tr>
               )}
             </tbody>

@@ -1224,6 +1224,134 @@ const fetchDashboardDataInternal = async (controllerFn, queryParams) => {
   });
 };
 
+
+export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
+  const safeName = scheduleName.replace(/\s+/g, '_');
+  try {
+    const puppeteer = (await import('puppeteer')).default;
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      timeout: 300000
+    });
+
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    let htmlContent = `
+      <html>
+        <head>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
+            body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
+            .dashboard-image { display: block; margin: 0; padding: 0; width: 100%; height: auto; page-break-after: always; }
+          </style>
+        </head>
+        <body>  
+    `;
+
+    const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(300000);
+    page.setDefaultTimeout(300000);
+    await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
+
+    await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 240000 });
+
+    await page.evaluate((schedPeriod) => {
+      localStorage.setItem('astroved_token', 'puppeteer_token');
+      localStorage.setItem('astroved_user', JSON.stringify({ empId: 'SYSTEM', role: 'admin' }));
+      localStorage.setItem('astroved_permissions', JSON.stringify({
+        dashboard: { executive: true, sales: true, marketing: true, newsletter: true, seo: true, customer: true, funnel: true, operations: true, ai: true }
+      }));
+      localStorage.setItem('astroved_report_period', schedPeriod);
+    }, period);
+
+    const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
+
+    for (const dash of dashboardsToCapture) {
+      let dashPath = '?module=executive';
+      if (dash.includes('Sales')) dashPath = '?module=sales';
+      if (dash.includes('Marketing')) dashPath = '?module=marketing';
+      if (dash.includes('Newsletter')) dashPath = '?module=newsletter';
+      if (dash.includes('SEO')) dashPath = '?module=seo';
+      if (dash.includes('Customer')) dashPath = '?module=customer';
+      if (dash.includes('Funnel')) dashPath = '?module=funnel';
+      if (dash.includes('Operations')) dashPath = '?module=operations';
+      if (dash.includes('AI')) dashPath = '?module=ai-insights';
+
+      console.log(`[PDF Pregen] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
+
+      await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'networkidle2', timeout: 360000 });
+
+      try {
+        await page.waitForFunction(() => {
+          return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
+        }, { timeout: 360000 });
+      } catch (e) {
+        console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
+      }
+
+      await new Promise(r => setTimeout(r, 120000));
+
+      try {
+        const scriptPath = require('path').resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
+        await page.addScriptTag({ path: scriptPath });
+      } catch (scriptErr) {
+        await page.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.3/dist/html2canvas-pro.min.js' });
+      }
+
+      const base64Img = await page.evaluate(async () => {
+        const el = document.querySelector('main') || document.querySelector('.main-content-area') || document.body;
+        const originalOverflow = el.style.overflow;
+        const originalHeight = el.style.height;
+        el.style.overflow = 'visible';
+        el.style.height = 'auto';
+
+        try {
+          const canvas = await window.html2canvas(el, {
+            useCORS: true, scale: 1.5, logging: false,
+            width: el.scrollWidth, height: el.scrollHeight,
+            windowWidth: el.scrollWidth, windowHeight: el.scrollHeight, scrollY: 0
+          });
+          el.style.overflow = originalOverflow;
+          el.style.height = originalHeight;
+          return canvas.toDataURL('image/png');
+        } catch (e) { return null; }
+      });
+
+      if (base64Img) htmlContent += `<img class="dashboard-image" src="${base64Img}" />`;
+    }
+
+    htmlContent += '</body></html>';
+
+    const tempDir = require('path').join(process.cwd(), 'temp_reports');
+    if (!require('fs').existsSync(tempDir)) require('fs').mkdirSync(tempDir, { recursive: true });
+
+    const tempHtmlPath = require('path').join(tempDir, `temp_report_${Date.now()}.html`);
+    require('fs').writeFileSync(tempHtmlPath, htmlContent);
+
+    const pdfPage = await browser.newPage();
+    pdfPage.setDefaultNavigationTimeout(480000);
+    pdfPage.setDefaultTimeout(480000);
+    await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 480000 });
+
+    const tempPdfPath = require('path').join(tempDir, `temp_report_${Date.now()}.pdf`);
+    await pdfPage.pdf({
+      path: tempPdfPath, format: 'A4', printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+
+    await browser.close();
+
+    // Clean up HTML file
+    if (require('fs').existsSync(tempHtmlPath)) require('fs').unlinkSync(tempHtmlPath);
+
+    return tempPdfPath;
+  } catch (err) {
+    console.error("[PDF Pregen] Failed to generate PDF", err);
+    throw err;
+  }
+};
+
 export const sendReportEmail = async (name, recipients, format, isAutomated = false, senderEmail = null, dashboards = [], period = 'Daily') => {
   console.log(`[Report Scheduler] Initiating ${isAutomated ? 'automated' : 'test'} report dispatch for "${name}" (Period: ${period})`);
 
@@ -1801,6 +1929,59 @@ export const startBackupScheduler = async () => {
 };
 
 let reportCronJob = null;
+
+
+let pdfPregenCronJob = null;
+export const startPDFPregenerationCron = () => {
+  if (mongoose.connection.readyState !== 1) return;
+  if (pdfPregenCronJob) pdfPregenCronJob.stop();
+
+  pdfPregenCronJob = cron.schedule('*/5 * * * *', async () => {
+    try {
+      const ReportScheduleModel = getModel('reportSchedule') || (await import('../models/ReportSchedule.js')).default;
+      const schedules = await ReportScheduleModel.find({});
+      if (!schedules || schedules.length === 0) return;
+
+      const now = new Date();
+
+      for (const schedule of schedules) {
+        if (!schedule.format.includes('PDF') && schedule.format !== 'All Formats') continue;
+
+        const [schedH, schedM] = (schedule.time || '00:00').split(':').map(Number);
+        const schedTimeToday = new Date(now);
+        schedTimeToday.setHours(schedH, schedM, 0, 0);
+
+        let diffMins = (schedTimeToday - now) / 60000;
+
+        if (diffMins < 0 && diffMins < -1000) {
+          schedTimeToday.setDate(schedTimeToday.getDate() + 1);
+          diffMins = (schedTimeToday - now) / 60000;
+        }
+
+        if (diffMins >= 0 && diffMins <= 10) {
+          const isStale = !schedule.pdfGeneratedAt || (now - new Date(schedule.pdfGeneratedAt)) > 60 * 60000;
+
+          if (!schedule.preGeneratedPdfPath || isStale || !require('fs').existsSync(schedule.preGeneratedPdfPath)) {
+            console.log(`[PDF Pregen] Starting pre-generation for ${schedule.name}`);
+            try {
+              const pdfPath = await generateAndSavePDF(schedule.name, schedule.dashboards, schedule.period || 'Daily');
+              schedule.preGeneratedPdfPath = pdfPath;
+              schedule.pdfGeneratedAt = new Date();
+              await schedule.save();
+              console.log(`[PDF Pregen] Saved pre-generated PDF for ${schedule.name}`);
+            } catch (err) {
+              console.error(`[PDF Pregen] Error generating for ${schedule.name}:`, err);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[PDF Pregen] Error:', error);
+    }
+  });
+
+  console.log('[PDF Pregen] Initialized PDF pre-generation cron job.');
+};
 
 export const startReportCronJobs = () => {
   if (mongoose.connection.readyState !== 1) {

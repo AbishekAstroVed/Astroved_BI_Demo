@@ -155,12 +155,25 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings)
   }).then(handleResponse),
-  generateAIInsights: (startDate, endDate) => {
+  generateAIInsights: async (startDate, endDate) => {
     let url = '/api/admin/ai/insights';
     if (startDate && endDate) {
       url += `?startDate=${startDate}&endDate=${endDate}`;
     }
-    return fetch(url, { method: 'POST' }).then(handleResponse);
+    
+    const now = Date.now();
+    const cacheKey = `ai_insights_${url}`;
+    const cached = dashboardCache.get(cacheKey);
+    // 3 minutes cache TTL
+    if (cached && (now - cached.timestamp < 3 * 60 * 1000)) {
+      return cached.data;
+    }
+    
+    const data = await fetch(url, { method: 'POST' }).then(handleResponse);
+    dashboardCache.set(cacheKey, { data, timestamp: now });
+    setTimeout(() => dashboardCache.delete(cacheKey), 3 * 60 * 1000);
+    
+    return data;
   },
 
   // Integrations

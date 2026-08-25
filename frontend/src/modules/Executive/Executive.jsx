@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import {
-  Target, Download, FileSpreadsheet, FileText, FilePlus, Sparkles, Loader2, Calendar, Database, X
+  Target, Download, FileSpreadsheet, FileText, FilePlus, Sparkles, Loader2, Calendar, Database, X, Search
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { api } from '../../services/api';
@@ -40,7 +40,8 @@ const Executive = () => {
     return 'Daily';
   });
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-
+  const [topProductsSearch, setTopProductsSearch] = useState('');
+  const [recentOrdersSearch, setRecentOrdersSearch] = useState('');
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
   useEffect(() => {
@@ -132,15 +133,18 @@ const Executive = () => {
     }
   };
 
-  const topProductsPage = usePagination(
-    data ? (
+  const topProductsArray = data ? (
       topProductsFilter === 'Today' || topProductsFilter === 'Daily' ? data.topProductsDay :
         topProductsFilter === 'This Week' || topProductsFilter === 'Weekly' ? data.topProductsWeek :
           topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
             data.topProductsYear
-    ) || [] : [],
-    isExportingPDF ? 9999 : 10
-  );
+    ) || [] : [];
+    
+  const filteredTopProducts = topProductsSearch 
+    ? topProductsArray.filter(prod => prod.name?.toLowerCase().includes(topProductsSearch.toLowerCase()))
+    : topProductsArray;
+
+  const topProductsPage = usePagination(filteredTopProducts, isExportingPDF ? 9999 : 10);
 
   const recentOrdersPage = usePagination(
     data ? (
@@ -1254,18 +1258,30 @@ const Executive = () => {
         {/* Top Selling Products */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
           <div>
-            <div className="bg-[#f97316] p-3 flex justify-between items-center text-white">
+            <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
               <h4 className="font-semibold text-sm">Top Selling Products</h4>
-              <select
-                value={topProductsFilter}
-                onChange={(e) => setTopProductsFilter(e.target.value)}
-                className="bg-white/20 border border-white/30 text-[10px] text-white px-2 py-0.5 rounded focus:outline-none cursor-pointer"
-              >
-                <option value="Today" className="text-black">Today</option>
-                <option value="This Week" className="text-black">This Week</option>
-                <option value="This Month" className="text-black">This Month</option>
-                <option value="This Year" className="text-black">This Year</option>
-              </select>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input 
+                    type="text" 
+                    placeholder="Search products..." 
+                    value={topProductsSearch} 
+                    onChange={(e) => setTopProductsSearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-40 md:w-48 lg:w-56 transition-all"
+                  />
+                </div>
+                <select
+                  value={topProductsFilter}
+                  onChange={(e) => setTopProductsFilter(e.target.value)}
+                  className="bg-white/20 border border-white/30 text-[11px] text-white px-2 py-1.5 rounded-md focus:outline-none cursor-pointer w-full sm:w-auto"
+                >
+                  <option value="Today" className="text-black">Today</option>
+                  <option value="This Week" className="text-black">This Week</option>
+                  <option value="This Month" className="text-black">This Month</option>
+                  <option value="This Year" className="text-black">This Year</option>
+                </select>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <div className="overflow-x-auto w-full ">
@@ -1300,16 +1316,26 @@ const Executive = () => {
         {/* Recent Orders */}
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl flex flex-col justify-between overflow-hidden">
           <div className="p-3">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <h4 className="font-semibold text-sm text-cosmic-text">Recent Orders</h4>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
+                  <input 
+                    type="text" 
+                    placeholder="Search orders..." 
+                    value={recentOrdersSearch} 
+                    onChange={(e) => setRecentOrdersSearch(e.target.value)}
+                    className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 md:w-48 lg:w-56 transition-all"
+                  />
+                </div>
                 <select
                   value={pageSize}
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
                     setOrderPage(1);
                   }}
-                  className="bg-cosmic-bg border border-cosmic-border text-[10px] text-cosmic-muted px-2 py-0.5 rounded focus:outline-none cursor-pointer"
+                  className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-muted px-2 py-1.5 rounded-md focus:outline-none cursor-pointer w-full sm:w-auto"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -1332,7 +1358,12 @@ const Executive = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {operationalData?.recentActivity?.orders?.map((order, idx) => (
+                  {(operationalData?.recentActivity?.orders?.filter(order => 
+                    !recentOrdersSearch || 
+                    order.OrderId?.toString().includes(recentOrdersSearch) || 
+                    order.ProductName?.toLowerCase().includes(recentOrdersSearch.toLowerCase()) || 
+                    order.UserName?.toLowerCase().includes(recentOrdersSearch.toLowerCase())
+                  ) || []).map((order, idx) => (
                     <tr key={idx} className="hover:bg-cosmic-card-hover transition-colors">
                       <td className="py-2 px-3 font-mono text-indigo-400">#{order.OrderId}</td>
                       <td className="py-2 px-3 text-cosmic-muted">{order.DateStr}</td>

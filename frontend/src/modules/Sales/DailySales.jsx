@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import EChartWrapper from '../../charts/EChartWrapper';
-import { DollarSign, ShoppingBag, TrendingDown, AlertCircle, Lock } from 'lucide-react';
+import { DollarSign, ShoppingBag, TrendingDown, AlertCircle, Lock, Search } from 'lucide-react';
 import ExportReportsCard from '../../components/ExportReportsCard';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -26,11 +26,51 @@ const DailySales = ({ eventSalesChartPage,
     specialsStoreItems = []
   } = data || {};
 
-  const revenueSourcePage = usePagination(revenueSource, 10);
-  const eventSalesPage = usePagination(eventSales, 10);
-  const specialsStoreItemsPage = usePagination(specialsStoreItems, 10);
-  const bestSellersPage = usePagination(bestSellers, 5);
-  const lowPerformersPage = usePagination(lowPerformers, 5);
+  const [revenueSourceSearch, setRevenueSourceSearch] = useState('');
+  const [totalSalesSearch, setTotalSalesSearch] = useState('');
+
+  const filteredRevenueSource = revenueSource.filter(item => 
+    !revenueSourceSearch || 
+    item.eventName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) || 
+    item.productName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) || 
+    item.name?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) ||
+    item.source?.toLowerCase().includes(revenueSourceSearch.toLowerCase())
+  );
+  const revenueSourcePage = usePagination(filteredRevenueSource, 10);
+
+  const filteredEventSales = eventSales.filter(item => 
+    !totalSalesSearch || 
+    item.eventName?.toLowerCase().includes(totalSalesSearch.toLowerCase()) || 
+    item.name?.toLowerCase().includes(totalSalesSearch.toLowerCase())
+  );
+  const eventSalesPage = usePagination(filteredEventSales, 10);
+  const [specialsSearch, setSpecialsSearch] = useState('');
+  const [bestSellersSearch, setBestSellersSearch] = useState('');
+  const [lowPerformersSearch, setLowPerformersSearch] = useState('');
+
+  const filteredSpecials = specialsStoreItems.filter(item => 
+    !specialsSearch || 
+    item.name?.toLowerCase().includes(specialsSearch.toLowerCase())
+  );
+  const specialsStoreItemsPage = usePagination(filteredSpecials, 10);
+
+  const filteredBestSellers = bestSellers.filter(item => 
+    !bestSellersSearch || 
+    item.name?.toLowerCase().includes(bestSellersSearch.toLowerCase()) || 
+    item.category?.toLowerCase().includes(bestSellersSearch.toLowerCase()) ||
+    item.id?.toString().toLowerCase().includes(bestSellersSearch.toLowerCase()) ||
+    item.code?.toLowerCase().includes(bestSellersSearch.toLowerCase())
+  );
+  const bestSellersPage = usePagination(filteredBestSellers, 5);
+
+  const filteredLowPerformers = lowPerformers.filter(item => 
+    !lowPerformersSearch || 
+    item.name?.toLowerCase().includes(lowPerformersSearch.toLowerCase()) || 
+    item.category?.toLowerCase().includes(lowPerformersSearch.toLowerCase()) ||
+    item.id?.toString().toLowerCase().includes(lowPerformersSearch.toLowerCase()) ||
+    item.code?.toLowerCase().includes(lowPerformersSearch.toLowerCase())
+  );
+  const lowPerformersPage = usePagination(filteredLowPerformers, 5);
 
 
   const displayDate = dailyDate ? dailyDate.split('-').reverse().join('-') : 'today';
@@ -84,8 +124,18 @@ const DailySales = ({ eventSalesChartPage,
       {/* Revenue Source as per Event Big Card */}
       <div className="w-full mt-6 mb-6">
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
-          <div className="bg-[#f97316] p-3 flex justify-between items-center text-white">
+          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
             <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+              <input 
+                type="text" 
+                placeholder="Search events, products, sources..." 
+                value={revenueSourceSearch} 
+                onChange={(e) => setRevenueSourceSearch(e.target.value)}
+                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full ">
@@ -100,8 +150,8 @@ const DailySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(isExportingPDF ? (revenueSource || []) : revenueSourcePage.currentData).length > 0 ? (
-                    (isExportingPDF ? (revenueSource || []) : revenueSourcePage.currentData).map((item, idx) => (
+                  {(isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).length > 0 ? (
+                    (isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
@@ -131,8 +181,18 @@ const DailySales = ({ eventSalesChartPage,
       <div className={isExportingPDF ? "flex w-full justify-between items-start mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"}>
         {/* Today Total Sales By Event Name */}
         <div className={`bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col ${isExportingPDF ? 'w-[48%]' : ''}`}>
-          <div className="bg-cosmic-bg border-b border-cosmic-border p-3 flex justify-between items-center">
+          <div className="bg-cosmic-bg border-b border-cosmic-border p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h4 className="text-cosmic-text font-semibold text-sm">Total Sales By Event Name</h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
+              <input 
+                type="text" 
+                placeholder="Search events..." 
+                value={totalSalesSearch} 
+                onChange={(e) => setTotalSalesSearch(e.target.value)}
+                className="bg-cosmic-card border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-48 lg:w-64 transition-all"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full ">
@@ -146,8 +206,8 @@ const DailySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(isExportingPDF ? (eventSales || []) : eventSalesPage.currentData).length > 0 ? (
-                    (isExportingPDF ? (eventSales || []) : eventSalesPage.currentData).map((item, idx) => (
+                  {(isExportingPDF ? (filteredEventSales || []) : eventSalesPage.currentData).length > 0 ? (
+                    (isExportingPDF ? (filteredEventSales || []) : eventSalesPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -241,8 +301,18 @@ const DailySales = ({ eventSalesChartPage,
       {/* Revenue as per Specials Store Items */}
       <div className="w-full mb-6">
         <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col h-full">
-          <div className="bg-[#f97316] p-3 flex justify-between items-center text-white">
+          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
             <h4 className="font-semibold text-sm">Revenue as per Specials Store Items</h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+              <input 
+                type="text" 
+                placeholder="Search items..." 
+                value={specialsSearch} 
+                onChange={(e) => setSpecialsSearch(e.target.value)}
+                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto flex-1">
             <div className="overflow-auto w-full ">
@@ -256,8 +326,8 @@ const DailySales = ({ eventSalesChartPage,
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(isExportingPDF ? (specialsStoreItems || []) : specialsStoreItemsPage.currentData).length > 0 ? (
-                    (isExportingPDF ? (specialsStoreItems || []) : specialsStoreItemsPage.currentData).map((item, idx) => (
+                  {(isExportingPDF ? (filteredSpecials || []) : specialsStoreItemsPage.currentData).length > 0 ? (
+                    (isExportingPDF ? (filteredSpecials || []) : specialsStoreItemsPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
                         <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
@@ -287,10 +357,22 @@ const DailySales = ({ eventSalesChartPage,
       <div className={isExportingPDF ? "flex w-full justify-between items-start mt-6 mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mt-6"}>
         {/* Best Sellers Card */}
         <div className={`bg-cosmic-card border border-cosmic-border p-5 rounded-xl ${isExportingPDF ? 'w-[48%] overflow-hidden' : ''}`}>
-          <h4 className="text-cosmic-text font-semibold text-sm mb-3 flex items-center">
-            <ShoppingBag size={16} className="text-cosmic-success mr-1.5" />
-            Best Selling Products
-          </h4>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+            <h4 className="text-cosmic-text font-semibold text-sm flex items-center">
+              <ShoppingBag size={16} className="text-cosmic-success mr-1.5" />
+              Best Selling Products
+            </h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
+              <input 
+                type="text" 
+                placeholder="Search products..." 
+                value={bestSellersSearch} 
+                onChange={(e) => setBestSellersSearch(e.target.value)}
+                className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 transition-all"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse ">
               <thead>
@@ -303,7 +385,7 @@ const DailySales = ({ eventSalesChartPage,
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {(isExportingPDF ? (bestSellers || []) : bestSellersPage.currentData).map((prod) => (
+                {(isExportingPDF ? (filteredBestSellers || []) : bestSellersPage.currentData).map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>
@@ -322,10 +404,22 @@ const DailySales = ({ eventSalesChartPage,
 
         {/* Low Performers Card */}
         <div className={`bg-cosmic-card border border-cosmic-border p-5 rounded-xl ${isExportingPDF ? 'w-[48%] overflow-hidden' : ''}`}>
-          <h4 className="text-cosmic-text font-semibold text-sm mb-3 flex items-center">
-            <TrendingDown size={16} className="text-cosmic-danger mr-1.5" />
-            Low Performing Products / Alert List
-          </h4>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+            <h4 className="text-cosmic-text font-semibold text-sm flex items-center">
+              <TrendingDown size={16} className="text-cosmic-danger mr-1.5" />
+              Low Performing Products / Alert List
+            </h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
+              <input 
+                type="text" 
+                placeholder="Search products..." 
+                value={lowPerformersSearch} 
+                onChange={(e) => setLowPerformersSearch(e.target.value)}
+                className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 transition-all"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse ">
               <thead>
@@ -338,7 +432,7 @@ const DailySales = ({ eventSalesChartPage,
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                {(isExportingPDF ? (lowPerformers || []) : lowPerformersPage.currentData).map((prod) => (
+                {(isExportingPDF ? (filteredLowPerformers || []) : lowPerformersPage.currentData).map((prod) => (
                   <tr key={prod.id} className="hover:bg-cosmic-card-hover transition-colors">
                     <td className="py-2.5 px-3 font-mono text-indigo-400">{prod.id}</td>
                     <td className="py-2.5 px-3 font-medium">{prod.name}</td>

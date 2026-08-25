@@ -341,7 +341,7 @@ function MainAppContent() {
 
         <main className={`p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
           <React.Suspense fallback={<DashboardSkeleton />}>
-            <div key={refreshKey} className="w-full h-full">
+            <div key={refreshKey} className="w-full h-full pb-40">
               {renderModule()}
             </div>
           </React.Suspense>

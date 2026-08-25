@@ -3,7 +3,7 @@ import KPICard from '../../components/KPICard';
 import EChartWrapper from '../../charts/EChartWrapper';
 import { api } from '../../services/api';
 import { useDateFilter } from '../../contexts/DateFilterContext';
-import { Heart, Calendar, TrendingUp, Loader2 } from 'lucide-react';
+import { Heart, Calendar, TrendingUp, Loader2, Search } from 'lucide-react';
 import ExportReportsCard from '../../components/ExportReportsCard';
 import Pagination from '../../components/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -20,6 +20,13 @@ const MonthlyCustomers = () => {
   const [showAllProjection, setShowAllProjection] = useState(false);
   const [showAllRevenueTraffic, setShowAllRevenueTraffic] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  
+  const [newCustEventSearch, setNewCustEventSearch] = useState('');
+  const [newCustProductSearch, setNewCustProductSearch] = useState('');
+  const [highContribSearch, setHighContribSearch] = useState('');
+  const [newCustTrafficSearch, setNewCustTrafficSearch] = useState('');
+  const [projTrafficSearch, setProjTrafficSearch] = useState('');
+  const [revTrafficSearch, setRevTrafficSearch] = useState('');
 
   const handlePrepareExport = (type) => {
     if (type === 'PDF') {
@@ -262,12 +269,34 @@ const MonthlyCustomers = () => {
 
 
 
-  const newCustByEventPage = usePagination(newCustomersByEvent, 10);
-  const newCustByProductPage = usePagination(newCustomersByProduct, 10);
-  const highContribPage = usePagination(highContributors, 10);
-  const newCustByTrafficPage = usePagination(newCustomersByTraffic, 10);
-  const projByTrafficPage = usePagination(projectionByTraffic, 10);
-  const revByTrafficPage = usePagination(revenueByTrafficSource, 10);
+  const filteredNewCustByEvent = (newCustomersByEvent || []).filter(item => 
+    !newCustEventSearch || item.name?.toLowerCase().includes(newCustEventSearch.toLowerCase())
+  );
+  const newCustByEventPage = usePagination(filteredNewCustByEvent, 10);
+
+  const filteredNewCustByProduct = (newCustomersByProduct || []).filter(item => 
+    !newCustProductSearch || item.name?.toLowerCase().includes(newCustProductSearch.toLowerCase())
+  );
+  const newCustByProductPage = usePagination(filteredNewCustByProduct, 10);
+
+  const filteredHighContrib = (highContributors || []).filter(item => 
+    !highContribSearch || item.name?.toLowerCase().includes(highContribSearch.toLowerCase())
+  );
+  const highContribPage = usePagination(filteredHighContrib, 10);
+  const filteredNewCustTraffic = (newCustomersByTraffic || []).filter(item => 
+    !newCustTrafficSearch || item.source?.toLowerCase().includes(newCustTrafficSearch.toLowerCase())
+  );
+  const newCustByTrafficPage = usePagination(filteredNewCustTraffic, 10);
+
+  const filteredProjTraffic = (projectionByTraffic || []).filter(item => 
+    !projTrafficSearch || item.group?.toLowerCase().includes(projTrafficSearch.toLowerCase())
+  );
+  const projByTrafficPage = usePagination(filteredProjTraffic, 10);
+
+  const filteredRevTraffic = (revenueByTrafficSource || []).filter(item => 
+    !revTrafficSearch || item.source?.toLowerCase().includes(revTrafficSearch.toLowerCase())
+  );
+  const revByTrafficPage = usePagination(filteredRevTraffic, 10);
 
   return (
     <div id="dashboard-export-area" className="space-y-6">
@@ -445,8 +474,21 @@ const MonthlyCustomers = () => {
             <div className={isExportingPDF ? "flex w-full justify-between mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6"}>
               {/* Table 1: Event Name */}
               <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
-                <div className="bg-gray-500 p-2 flex justify-between items-center text-white px-4">
-                  <h4 className="font-semibold text-sm">New Customers By Event Name</h4>
+                <div className="bg-gray-500 p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                  <div className="hidden sm:block sm:flex-1"></div>
+                  <h4 className="font-semibold text-sm text-center">New Customers By Event Name</h4>
+                  <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                      <input 
+                        type="text" 
+                        placeholder="Search event name..." 
+                        value={newCustEventSearch} 
+                        onChange={(e) => setNewCustEventSearch(e.target.value)}
+                        className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-hidden">
                   <div className="overflow-x-auto w-full">
@@ -477,8 +519,21 @@ const MonthlyCustomers = () => {
 
               {/* Table 2: Product Name */}
               <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
-                <div className="bg-[#6868f9] p-2 flex justify-between items-center text-white px-4">
-                  <h4 className="font-semibold text-sm">New Customers By Product Name</h4>
+                <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                  <div className="hidden sm:block sm:flex-1"></div>
+                  <h4 className="font-semibold text-sm text-center">New Customers By Product Name</h4>
+                  <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                      <input 
+                        type="text" 
+                        placeholder="Search product name..." 
+                        value={newCustProductSearch} 
+                        onChange={(e) => setNewCustProductSearch(e.target.value)}
+                        className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-hidden">
                   <div className="overflow-x-auto w-full">
@@ -523,8 +578,21 @@ const MonthlyCustomers = () => {
 
             {/* Table: High Contributors */}
             <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col self-start w-full rounded-xl overflow-hidden">
-              <div className="bg-gray-500 p-2 flex justify-between items-center text-white px-4">
-                <h4 className="font-semibold text-sm">New Customers Sorted By High Contribution</h4>
+              <div className="bg-gray-500 p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                <div className="hidden sm:block sm:flex-1"></div>
+                <h4 className="font-semibold text-sm text-center">New Customers Sorted By High Contribution</h4>
+                <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                  <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                    <input 
+                      type="text" 
+                      placeholder="Search customer name..." 
+                      value={highContribSearch} 
+                      onChange={(e) => setHighContribSearch(e.target.value)}
+                      className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="overflow-hidden flex-1">
                 <div className="overflow-x-auto w-full">
@@ -562,8 +630,21 @@ const MonthlyCustomers = () => {
           {/* Traffic Sources Table */}
           <div className="mb-8">
             <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
-              <div className=" p-2 flex justify-between items-center text-cosmic-text px-4">
-                <h4 className="font-semibold text-sm">New Customers By Traffic Sources</h4>
+              <div className="bg-gray-500 p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                <div className="hidden sm:block sm:flex-1"></div>
+                <h4 className="font-semibold text-sm text-center">New Customers By Traffic Sources</h4>
+                <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                  <div className="relative w-full sm:w-auto">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                    <input 
+                      type="text" 
+                      placeholder="Search traffic source..." 
+                      value={newCustTrafficSearch} 
+                      onChange={(e) => setNewCustTrafficSearch(e.target.value)}
+                      className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="overflow-hidden">
                 <div className="overflow-x-auto w-full">
@@ -617,8 +698,21 @@ const MonthlyCustomers = () => {
             <div className={isExportingPDF ? "flex w-full justify-between mb-8" : "grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8"}>
               {/* Projection By Traffic Category */}
               <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
-                <div className="bg-[#f97316] p-3 flex justify-between items-center text-white px-4">
-                  <h4 className="font-semibold text-sm">Projection By Traffic Category</h4>
+                <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                  <div className="hidden sm:block sm:flex-1"></div>
+                  <h4 className="font-semibold text-sm text-center">Projection By Traffic Category</h4>
+                  <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                      <input 
+                        type="text" 
+                        placeholder="Search traffic category..." 
+                        value={projTrafficSearch} 
+                        onChange={(e) => setProjTrafficSearch(e.target.value)}
+                        className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-hidden flex-1">
                   <div className="overflow-x-auto w-full">
@@ -658,8 +752,21 @@ const MonthlyCustomers = () => {
 
               {/* Revenue By Traffic Sources */}
               <div className={`bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden ${isExportingPDF ? 'w-[48%]' : ''}`}>
-                <div className="bg-[#6868f9] p-3 flex justify-between items-center text-white px-4">
-                  <h4 className="font-semibold text-sm">Revenue By Traffic Sources</h4>
+                <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+                  <div className="hidden sm:block sm:flex-1"></div>
+                  <h4 className="font-semibold text-sm text-center">Revenue By Traffic Sources</h4>
+                  <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                      <input 
+                        type="text" 
+                        placeholder="Search traffic source..." 
+                        value={revTrafficSearch} 
+                        onChange={(e) => setRevTrafficSearch(e.target.value)}
+                        className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-hidden flex-1">
                   <div className="overflow-x-auto w-full">
