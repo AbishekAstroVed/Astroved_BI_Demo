@@ -635,7 +635,7 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
       // Validate and sanitize the inputs for OpenAI
       const cleanModel = (model && model.includes('gpt-5.5')) ? 'gpt-4o' : (model || 'gpt-4o');
       const cleanTemp = Number(temperature) || 0.7;
-      const cleanTokens = Number(maxTokens) || 1500;
+      const cleanTokens = Number(maxTokens) || 4096;
 
       const requestBody = {
         model: cleanModel,
