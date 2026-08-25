@@ -332,15 +332,15 @@ const Operations = () => {
     );
   }
 
-  const filteredOrders = (data?.recentActivity?.orders || []).filter(order => 
-    !orderSearch || 
+  const filteredOrders = (data?.recentActivity?.orders || []).filter(order =>
+    !orderSearch ||
     order.ProductName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
     order.UserName?.toLowerCase().includes(orderSearch.toLowerCase()) ||
     order.OrderId?.toString().includes(orderSearch)
   );
 
-  const filteredCancellations = (data?.recentActivity?.cancellations || []).filter(cancel => 
-    !cancelSearch || 
+  const filteredCancellations = (data?.recentActivity?.cancellations || []).filter(cancel =>
+    !cancelSearch ||
     cancel.ProductName?.toLowerCase().includes(cancelSearch.toLowerCase()) ||
     cancel.UserName?.toLowerCase().includes(cancelSearch.toLowerCase()) ||
     cancel.OrderId?.toString().includes(cancelSearch)
@@ -398,10 +398,10 @@ const Operations = () => {
           <h3 className="text-lg font-bold text-slate-800 dark:text-white sm:mr-auto">Recent Orders</h3>
           <div className="relative w-full sm:w-auto order-3 sm:order-2">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search orders..." 
-              value={orderSearch} 
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={orderSearch}
               onChange={(e) => setOrderSearch(e.target.value)}
               className="w-full sm:w-64 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500 transition-all"
             />
@@ -434,7 +434,7 @@ const Operations = () => {
                 <th className="px-4 py-3">Customer Name</th>
                 <th className="px-4 py-3">Product Name</th>
                 <th className="px-4 py-3">Product ID</th>
-                <th className="px-4 py-3 text-right">Price</th>
+                <th className="px-4 py-3 text-right">Price ($)</th>
                 <th className="px-4 py-3 text-center">Status</th>
               </tr>
             </thead>
@@ -490,10 +490,10 @@ const Operations = () => {
           <h3 className="text-lg font-bold text-slate-800 dark:text-white sm:mr-auto">Recent Cancellations</h3>
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search cancellations..." 
-              value={cancelSearch} 
+            <input
+              type="text"
+              placeholder="Search cancellations..."
+              value={cancelSearch}
               onChange={(e) => setCancelSearch(e.target.value)}
               className="w-full sm:w-64 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500 transition-all"
             />
@@ -507,7 +507,7 @@ const Operations = () => {
                 <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Customer Name</th>
                 <th className="px-4 py-3">Product Name</th>
-                <th className="px-4 py-3 text-right">Refund Amount</th>
+                <th className="px-4 py-3 text-right">Refund Amount ($)</th>
                 <th className="px-4 py-3 text-center">Status</th>
               </tr>
             </thead>

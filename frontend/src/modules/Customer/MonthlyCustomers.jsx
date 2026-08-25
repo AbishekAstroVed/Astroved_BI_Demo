@@ -20,7 +20,7 @@ const MonthlyCustomers = () => {
   const [showAllProjection, setShowAllProjection] = useState(false);
   const [showAllRevenueTraffic, setShowAllRevenueTraffic] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  
+
   const [newCustEventSearch, setNewCustEventSearch] = useState('');
   const [newCustProductSearch, setNewCustProductSearch] = useState('');
   const [highContribSearch, setHighContribSearch] = useState('');
@@ -269,31 +269,31 @@ const MonthlyCustomers = () => {
 
 
 
-  const filteredNewCustByEvent = (newCustomersByEvent || []).filter(item => 
+  const filteredNewCustByEvent = (newCustomersByEvent || []).filter(item =>
     !newCustEventSearch || item.name?.toLowerCase().includes(newCustEventSearch.toLowerCase())
   );
   const newCustByEventPage = usePagination(filteredNewCustByEvent, 10);
 
-  const filteredNewCustByProduct = (newCustomersByProduct || []).filter(item => 
+  const filteredNewCustByProduct = (newCustomersByProduct || []).filter(item =>
     !newCustProductSearch || item.name?.toLowerCase().includes(newCustProductSearch.toLowerCase())
   );
   const newCustByProductPage = usePagination(filteredNewCustByProduct, 10);
 
-  const filteredHighContrib = (highContributors || []).filter(item => 
+  const filteredHighContrib = (highContributors || []).filter(item =>
     !highContribSearch || item.name?.toLowerCase().includes(highContribSearch.toLowerCase())
   );
   const highContribPage = usePagination(filteredHighContrib, 10);
-  const filteredNewCustTraffic = (newCustomersByTraffic || []).filter(item => 
+  const filteredNewCustTraffic = (newCustomersByTraffic || []).filter(item =>
     !newCustTrafficSearch || item.source?.toLowerCase().includes(newCustTrafficSearch.toLowerCase())
   );
   const newCustByTrafficPage = usePagination(filteredNewCustTraffic, 10);
 
-  const filteredProjTraffic = (projectionByTraffic || []).filter(item => 
+  const filteredProjTraffic = (projectionByTraffic || []).filter(item =>
     !projTrafficSearch || item.group?.toLowerCase().includes(projTrafficSearch.toLowerCase())
   );
   const projByTrafficPage = usePagination(filteredProjTraffic, 10);
 
-  const filteredRevTraffic = (revenueByTrafficSource || []).filter(item => 
+  const filteredRevTraffic = (revenueByTrafficSource || []).filter(item =>
     !revTrafficSearch || item.source?.toLowerCase().includes(revTrafficSearch.toLowerCase())
   );
   const revByTrafficPage = usePagination(filteredRevTraffic, 10);
@@ -480,10 +480,10 @@ const MonthlyCustomers = () => {
                   <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                     <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                      <input 
-                        type="text" 
-                        placeholder="Search event name..." 
-                        value={newCustEventSearch} 
+                      <input
+                        type="text"
+                        placeholder="Search event name..."
+                        value={newCustEventSearch}
                         onChange={(e) => setNewCustEventSearch(e.target.value)}
                         className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                       />
@@ -497,8 +497,8 @@ const MonthlyCustomers = () => {
                         <tr>
                           <th className="py-2 px-3 font-medium w-8 text-center border-b border-white/20"></th>
                           <th className="py-2 px-3 font-medium border-b border-white/20">Event Name</th>
-                          <th className="py-2 px-3 font-medium text-center border-b border-white/20">QTY ▾</th>
-                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue</th>
+                          <th className="py-2 px-3 font-medium text-center border-b border-white/20">Qty </th>
+                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ($)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -525,10 +525,10 @@ const MonthlyCustomers = () => {
                   <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                     <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                      <input 
-                        type="text" 
-                        placeholder="Search product name..." 
-                        value={newCustProductSearch} 
+                      <input
+                        type="text"
+                        placeholder="Search product name..."
+                        value={newCustProductSearch}
                         onChange={(e) => setNewCustProductSearch(e.target.value)}
                         className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                       />
@@ -542,8 +542,8 @@ const MonthlyCustomers = () => {
                         <tr>
                           <th className="py-2 px-3 font-medium w-8 text-center border-b border-white/20"></th>
                           <th className="py-2 px-3 font-medium border-b border-white/20">Product Name</th>
-                          <th className="py-2 px-3 font-medium text-center border-b border-white/20">QTY ▾</th>
-                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue</th>
+                          <th className="py-2 px-3 font-medium text-center border-b border-white/20">Qty</th>
+                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ($)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -584,10 +584,10 @@ const MonthlyCustomers = () => {
                 <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                   <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                    <input 
-                      type="text" 
-                      placeholder="Search customer name..." 
-                      value={highContribSearch} 
+                    <input
+                      type="text"
+                      placeholder="Search customer name..."
+                      value={highContribSearch}
                       onChange={(e) => setHighContribSearch(e.target.value)}
                       className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                     />
@@ -602,8 +602,8 @@ const MonthlyCustomers = () => {
                         <th className="py-2 px-3 font-medium border-b border-white/20">Customer Name</th>
                         <th className="py-2 px-3 font-medium border-b border-white/20">Currency</th>
                         <th className="py-2 px-3 font-medium border-b border-white/20">Country</th>
-                        <th className="py-2 px-3 font-medium border-b border-white/20 text-center">QTY</th>
-                        <th className="py-2 px-3 font-medium border-b border-white/20 text-right">Revenue ▾</th>
+                        <th className="py-2 px-3 font-medium border-b border-white/20 text-center">Qty</th>
+                        <th className="py-2 px-3 font-medium border-b border-white/20 text-right">Revenue ($)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -636,10 +636,10 @@ const MonthlyCustomers = () => {
                 <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                   <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                    <input 
-                      type="text" 
-                      placeholder="Search traffic source..." 
-                      value={newCustTrafficSearch} 
+                    <input
+                      type="text"
+                      placeholder="Search traffic source..."
+                      value={newCustTrafficSearch}
                       onChange={(e) => setNewCustTrafficSearch(e.target.value)}
                       className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                     />
@@ -652,9 +652,9 @@ const MonthlyCustomers = () => {
                     <thead className="bg-[#6868f9] text-white sticky top-0 z-10">
                       <tr>
                         <th className="py-2 px-4 font-medium border-b border-white/20">Traffic Sources</th>
-                        <th className="py-2 px-4 font-medium text-center border-b border-white/20">QTY</th>
+                        <th className="py-2 px-4 font-medium text-center border-b border-white/20">Qty</th>
                         <th className="py-2 px-4 font-medium text-right border-b border-white/20">% Δ</th>
-                        <th className="py-2 px-4 font-medium text-right border-b border-white/20">Revenue ▾</th>
+                        <th className="py-2 px-4 font-medium text-right border-b border-white/20">Revenue ($)</th>
                         <th className="py-2 px-4 font-medium text-right border-b border-white/20">% Δ</th>
                       </tr>
                     </thead>
@@ -704,10 +704,10 @@ const MonthlyCustomers = () => {
                   <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                     <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                      <input 
-                        type="text" 
-                        placeholder="Search traffic category..." 
-                        value={projTrafficSearch} 
+                      <input
+                        type="text"
+                        placeholder="Search traffic category..."
+                        value={projTrafficSearch}
                         onChange={(e) => setProjTrafficSearch(e.target.value)}
                         className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                       />
@@ -722,7 +722,7 @@ const MonthlyCustomers = () => {
                           <th className="py-2 px-3 font-medium border-b border-white/20">Traffic Group</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">Projected</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">% Δ</th>
-                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ▾</th>
+                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ($)</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">% Δ</th>
                         </tr>
                       </thead>
@@ -758,10 +758,10 @@ const MonthlyCustomers = () => {
                   <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
                     <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                      <input 
-                        type="text" 
-                        placeholder="Search traffic source..." 
-                        value={revTrafficSearch} 
+                      <input
+                        type="text"
+                        placeholder="Search traffic source..."
+                        value={revTrafficSearch}
                         onChange={(e) => setRevTrafficSearch(e.target.value)}
                         className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 transition-all"
                       />
@@ -776,7 +776,7 @@ const MonthlyCustomers = () => {
                           <th className="py-2 px-3 font-medium border-b border-white/20">Traffic Source</th>
                           <th className="py-2 px-3 font-medium text-center border-b border-white/20">Quantity</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">% Δ</th>
-                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ▾</th>
+                          <th className="py-2 px-3 font-medium text-right border-b border-white/20">Revenue ($)</th>
                           <th className="py-2 px-3 font-medium text-right border-b border-white/20">% Δ</th>
                         </tr>
                       </thead>

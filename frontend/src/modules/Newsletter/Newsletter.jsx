@@ -157,7 +157,7 @@ const Newsletter = () => {
     }
   };
 
-  const filteredCategorySales = (categorySales || []).filter(item => 
+  const filteredCategorySales = (categorySales || []).filter(item =>
     !categorySearch || item.name?.toLowerCase().includes(categorySearch.toLowerCase())
   );
   const categorySalesPage = usePagination(filteredCategorySales, 10);
@@ -412,9 +412,9 @@ const Newsletter = () => {
     ]
   };
 
-  const filteredDateWise = (dateWisePerformance || []).filter(item => 
-    !dateWiseSearch || 
-    item.name?.toLowerCase().includes(dateWiseSearch.toLowerCase()) || 
+  const filteredDateWise = (dateWisePerformance || []).filter(item =>
+    !dateWiseSearch ||
+    item.name?.toLowerCase().includes(dateWiseSearch.toLowerCase()) ||
     item.date?.toLowerCase().includes(dateWiseSearch.toLowerCase())
   );
   const dateWisePerformancePage = usePagination(filteredDateWise, 10);
@@ -422,22 +422,22 @@ const Newsletter = () => {
   const breakupSummaryPage = usePagination(breakupSummary || [], 10);
   const typesComparedPage = usePagination(typesCompared || [], 10);
 
-  const filteredOverall = (overallEventsData || []).filter(item => 
-    !overallSearch || 
+  const filteredOverall = (overallEventsData || []).filter(item =>
+    !overallSearch ||
     item.name?.toLowerCase().includes(overallSearch.toLowerCase())
   );
   const overallEventsDataPage = usePagination(filteredOverall, 10);
 
-  const filteredSpecialEvents = (specialEventsData || []).filter(item => 
-    !specialEventsSearch || 
+  const filteredSpecialEvents = (specialEventsData || []).filter(item =>
+    !specialEventsSearch ||
     item.name?.toLowerCase().includes(specialEventsSearch.toLowerCase())
   );
   const specialEventsDataPage = usePagination(filteredSpecialEvents, 10);
   const specialEventsPerformanceDataPage = usePagination(specialEventsPerformanceData || [], 10);
 
-  const filteredEventsCompared = (eventsCompared || []).filter(item => 
-    !eventsComparedSearch || 
-    item.type?.toLowerCase().includes(eventsComparedSearch.toLowerCase()) || 
+  const filteredEventsCompared = (eventsCompared || []).filter(item =>
+    !eventsComparedSearch ||
+    item.type?.toLowerCase().includes(eventsComparedSearch.toLowerCase()) ||
     item.period?.toLowerCase().includes(eventsComparedSearch.toLowerCase())
   );
   const eventsComparedPage = usePagination(filteredEventsCompared, 10);
@@ -549,29 +549,29 @@ const Newsletter = () => {
           {/* Category Wise Sales Insights */}
 
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
-          <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
-            <div className="hidden sm:block sm:flex-1"></div>
-            <h4 className="font-semibold text-sm text-center">Category Wise Sales Insights</h4>
-            <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search category name..." 
-                  value={categorySearch} 
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-                />
+            <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+              <div className="hidden sm:block sm:flex-1"></div>
+              <h4 className="font-semibold text-sm text-center">Category Wise Sales Insights</h4>
+              <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input
+                    type="text"
+                    placeholder="Search category name..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+                  />
+                </div>
               </div>
             </div>
-          </div>
             <div className="overflow-hidden flex-1">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
                   <thead className="bg-cosmic-card text-cosmic-text border-b border-cosmic-border sticky top-0 z-20">
                     <tr>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">Event Name</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">NetRevenue</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">NetRevenue ($)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -600,22 +600,22 @@ const Newsletter = () => {
           </div>
           {/* Date Wise Newsletter Performance */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden">
-          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
-            <div className="hidden sm:block sm:flex-1"></div>
-            <h4 className="font-semibold text-sm text-center">Date Wise Newsletter Performance</h4>
-            <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search campaign, date..." 
-                  value={dateWiseSearch} 
-                  onChange={(e) => setDateWiseSearch(e.target.value)}
-                  className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-                />
+            <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+              <div className="hidden sm:block sm:flex-1"></div>
+              <h4 className="font-semibold text-sm text-center">Date Wise Newsletter Performance</h4>
+              <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input
+                    type="text"
+                    placeholder="Search campaign, date..."
+                    value={dateWiseSearch}
+                    onChange={(e) => setDateWiseSearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+                  />
+                </div>
               </div>
             </div>
-          </div>
             <div className="overflow-hidden flex-1">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
@@ -623,7 +623,7 @@ const Newsletter = () => {
                     <tr>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border text-left">News Letter Sent Date</th>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border text-left">NewsLetter Name</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In USD</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue ($)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -784,7 +784,7 @@ const Newsletter = () => {
                       <th className="py-3 px-3 font-medium w-8 text-center border-b border-cosmic-border"></th>
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">NewsLetter Type</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">NewsLetter Count</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue IN ($)</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue ($)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
@@ -834,7 +834,7 @@ const Newsletter = () => {
                       <th className="py-3 px-4 font-medium border-b border-cosmic-border">News Letter Type</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">News Letter Count</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
-                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue In USD</th>
+                      <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">Net Revenue ($)</th>
                       <th className="py-3 px-4 font-medium text-right border-b border-cosmic-border">% Change</th>
                     </tr>
                   </thead>
@@ -900,22 +900,22 @@ const Newsletter = () => {
 
           {/* Overall Newsletters Performance */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
-          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
-            <div className="hidden sm:block sm:flex-1"></div>
-            <h4 className="font-semibold text-sm text-center">Overall Newsletters Performance</h4>
-            <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search event name..." 
-                  value={overallSearch} 
-                  onChange={(e) => setOverallSearch(e.target.value)}
-                  className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-                />
+            <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+              <div className="hidden sm:block sm:flex-1"></div>
+              <h4 className="font-semibold text-sm text-center">Overall Newsletters Performance</h4>
+              <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input
+                    type="text"
+                    placeholder="Search event name..."
+                    value={overallSearch}
+                    onChange={(e) => setOverallSearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+                  />
+                </div>
               </div>
             </div>
-          </div>
             <div className="overflow-hidden flex-1">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
@@ -953,22 +953,22 @@ const Newsletter = () => {
 
           {/* Special Events Newsletters Performance */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
-          <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
-            <div className="hidden sm:block sm:flex-1"></div>
-            <h4 className="font-semibold text-sm text-center">Special Events Newsletters Performance</h4>
-            <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search event name..." 
-                  value={specialEventsSearch} 
-                  onChange={(e) => setSpecialEventsSearch(e.target.value)}
-                  className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-                />
+            <div className="bg-[#6868f9] p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+              <div className="hidden sm:block sm:flex-1"></div>
+              <h4 className="font-semibold text-sm text-center">Special Events Newsletters Performance</h4>
+              <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input
+                    type="text"
+                    placeholder="Search event name..."
+                    value={specialEventsSearch}
+                    onChange={(e) => setSpecialEventsSearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+                  />
+                </div>
               </div>
             </div>
-          </div>
             <div className="overflow-hidden flex-1">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
@@ -1082,22 +1082,22 @@ const Newsletter = () => {
 
           {/* Events Compared With Previous Period */}
           <div className="bg-cosmic-card border border-cosmic-border shadow-sm flex flex-col rounded-xl overflow-hidden mb-8">
-          <div className="bg-gray-500 p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
-            <div className="hidden sm:block sm:flex-1"></div>
-            <h4 className="font-semibold text-sm text-center">Events Compared With Previous Period</h4>
-            <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
-              <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                <input 
-                  type="text" 
-                  placeholder="Search event, period..." 
-                  value={eventsComparedSearch} 
-                  onChange={(e) => setEventsComparedSearch(e.target.value)}
-                  className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-                />
+            <div className="bg-gray-500 p-3 flex flex-col sm:flex-row justify-between items-center gap-3 text-white border-b border-cosmic-border px-4">
+              <div className="hidden sm:block sm:flex-1"></div>
+              <h4 className="font-semibold text-sm text-center">Events Compared With Previous Period</h4>
+              <div className="relative w-full sm:w-auto sm:flex-1 flex sm:justify-end">
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+                  <input
+                    type="text"
+                    placeholder="Search event, period..."
+                    value={eventsComparedSearch}
+                    onChange={(e) => setEventsComparedSearch(e.target.value)}
+                    className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+                  />
+                </div>
               </div>
             </div>
-          </div>
             <div className="overflow-hidden flex-1">
               <div className="overflow-x-auto w-full">
                 <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">

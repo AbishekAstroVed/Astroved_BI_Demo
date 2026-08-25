@@ -134,13 +134,13 @@ const Executive = () => {
   };
 
   const topProductsArray = data ? (
-      topProductsFilter === 'Today' || topProductsFilter === 'Daily' ? data.topProductsDay :
-        topProductsFilter === 'This Week' || topProductsFilter === 'Weekly' ? data.topProductsWeek :
-          topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
-            data.topProductsYear
-    ) || [] : [];
-    
-  const filteredTopProducts = topProductsSearch 
+    topProductsFilter === 'Today' || topProductsFilter === 'Daily' ? data.topProductsDay :
+      topProductsFilter === 'This Week' || topProductsFilter === 'Weekly' ? data.topProductsWeek :
+        topProductsFilter === 'This Month' || topProductsFilter === 'Monthly' ? data.topProductsMonth :
+          data.topProductsYear
+  ) || [] : [];
+
+  const filteredTopProducts = topProductsSearch
     ? topProductsArray.filter(prod => prod.name?.toLowerCase().includes(topProductsSearch.toLowerCase()))
     : topProductsArray;
 
@@ -1152,10 +1152,10 @@ const Executive = () => {
         {/* Bottom Row: 4 Cards (Centered) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:w-4/5 lg:mx-auto">
           {[
-            { title: 'Avg Order Value (Today)', value: showRevenue ? formatDollar(kpi.aov?.current || 0) : 'ðŸ”’', change: `+${kpi.aov?.compChange || 0}% vs Yesterday`, badgeColor: 'text-emerald-500' },
-            { title: 'Avg Revenue per User (This Month)', value: showRevenue ? formatDollar(kpi.arpu?.current || 0) : 'ðŸ”’', change: `+${kpi.arpu?.compChange || 0}% vs Last Month`, badgeColor: 'text-emerald-500' },
-            { title: 'Year over Year Growth', value: showRevenue ? `${kpi.yoyGrowth?.current > 0 ? '+' : ''}${(kpi.yoyGrowth?.current || 0).toFixed(1)}%` : 'ðŸ”’', change: `vs YTD Last Year`, badgeColor: kpi.yoyGrowth?.current >= 0 ? 'text-emerald-500' : 'text-rose-500' },
-            { title: 'Forecast (This Month)', value: showRevenue ? formatDollar(kpi.forecast.current) : 'ðŸ”’', change: `+${kpi.forecast.compChange}% Trending`, badgeColor: 'text-emerald-500' }
+            { title: 'Avg Order Value (Today)', value: showRevenue ? formatDollar(kpi.aov?.current || 0) : '🔒', change: `${(kpi.aov?.compChange || 0) > 0 ? '+' : ''}${(kpi.aov?.compChange || 0)}% vs Yesterday`, badgeColor: (kpi.aov?.compChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500' },
+            { title: 'Avg Revenue per User (This Month)', value: showRevenue ? formatDollar(kpi.arpu?.current || 0) : '🔒', change: `${(kpi.arpu?.compChange || 0) > 0 ? '+' : ''}${(kpi.arpu?.compChange || 0)}% vs Last Month`, badgeColor: (kpi.arpu?.compChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500' },
+            { title: 'Year over Year Growth', value: showRevenue ? `${kpi.yoyGrowth?.current > 0 ? '+' : ''}${(kpi.yoyGrowth?.current || 0).toFixed(1)}%` : '🔒', change: `vs YTD Last Year`, badgeColor: (kpi.yoyGrowth?.current || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500' },
+            { title: 'Forecast (This Month)', value: showRevenue ? formatDollar(kpi.forecast.current) : '🔒', change: `${(kpi.forecast.compChange || 0) > 0 ? '+' : ''}${(kpi.forecast.compChange || 0)}% Trending`, badgeColor: (kpi.forecast.compChange || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500' }
           ].map((card, index) => (
             <div key={index} className="bg-cosmic-card border border-cosmic-border rounded-xl shadow-sm p-4 md:p-5 flex flex-col items-center justify-center text-center">
               <span className="text-[12px] md:text-[13px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 md:mb-2">{card.title}</span>
@@ -1191,8 +1191,8 @@ const Executive = () => {
           {showRevenue ? (
             <EChartWrapper option={revenueOverviewOption} height="220px" />
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+            <div className="h-64 flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view revenue summary.</span>
             </div>
           )}
@@ -1216,8 +1216,8 @@ const Executive = () => {
           {showRevenue ? (
             <EChartWrapper option={{ ...categoryOption, legend: { ...categoryOption.legend, type: 'scroll' } }} height="300px" />
           ) : (
-            <div className="h-[300px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+            <div className="h-64 flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view category breakdown.</span>
             </div>
           )}
@@ -1242,7 +1242,7 @@ const Executive = () => {
             <EChartWrapper option={{ ...channelOption, legend: { ...channelOption.legend, type: 'scroll' } }} height="300px" />
           ) : (
             <div className="h-[300px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view channel breakdown.</span>
             </div>
           )}
@@ -1263,10 +1263,10 @@ const Executive = () => {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-                  <input 
-                    type="text" 
-                    placeholder="Search products..." 
-                    value={topProductsSearch} 
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={topProductsSearch}
                     onChange={(e) => setTopProductsSearch(e.target.value)}
                     className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-40 md:w-48 lg:w-56 transition-all"
                   />
@@ -1321,10 +1321,10 @@ const Executive = () => {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
-                  <input 
-                    type="text" 
-                    placeholder="Search orders..." 
-                    value={recentOrdersSearch} 
+                  <input
+                    type="text"
+                    placeholder="Search orders..."
+                    value={recentOrdersSearch}
                     onChange={(e) => setRecentOrdersSearch(e.target.value)}
                     className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 md:w-48 lg:w-56 transition-all"
                   />
@@ -1358,10 +1358,10 @@ const Executive = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(operationalData?.recentActivity?.orders?.filter(order => 
-                    !recentOrdersSearch || 
-                    order.OrderId?.toString().includes(recentOrdersSearch) || 
-                    order.ProductName?.toLowerCase().includes(recentOrdersSearch.toLowerCase()) || 
+                  {(operationalData?.recentActivity?.orders?.filter(order =>
+                    !recentOrdersSearch ||
+                    order.OrderId?.toString().includes(recentOrdersSearch) ||
+                    order.ProductName?.toLowerCase().includes(recentOrdersSearch.toLowerCase()) ||
                     order.UserName?.toLowerCase().includes(recentOrdersSearch.toLowerCase())
                   ) || []).map((order, idx) => (
                     <tr key={idx} className="hover:bg-cosmic-card-hover transition-colors">
@@ -1429,7 +1429,7 @@ const Executive = () => {
             <EChartWrapper option={targetOption} height="400px" />
           ) : (
             <div className="h-[400px] flex flex-col items-center justify-center text-xs text-cosmic-muted font-bold bg-cosmic-card border border-cosmic-border rounded-xl">
-              <span className="mb-1 text-base text-cosmic-accent">ðŸ”’ Access Restricted</span>
+              <span className="mb-1 text-base text-cosmic-accent">🔒 Access Restricted</span>
               <span>Your role profile does not have permission to view target matching.</span>
             </div>
           )}

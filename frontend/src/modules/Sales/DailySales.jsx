@@ -29,18 +29,18 @@ const DailySales = ({ eventSalesChartPage,
   const [revenueSourceSearch, setRevenueSourceSearch] = useState('');
   const [totalSalesSearch, setTotalSalesSearch] = useState('');
 
-  const filteredRevenueSource = revenueSource.filter(item => 
-    !revenueSourceSearch || 
-    item.eventName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) || 
-    item.productName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) || 
+  const filteredRevenueSource = revenueSource.filter(item =>
+    !revenueSourceSearch ||
+    item.eventName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) ||
+    item.productName?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) ||
     item.name?.toLowerCase().includes(revenueSourceSearch.toLowerCase()) ||
     item.source?.toLowerCase().includes(revenueSourceSearch.toLowerCase())
   );
   const revenueSourcePage = usePagination(filteredRevenueSource, 10);
 
-  const filteredEventSales = eventSales.filter(item => 
-    !totalSalesSearch || 
-    item.eventName?.toLowerCase().includes(totalSalesSearch.toLowerCase()) || 
+  const filteredEventSales = eventSales.filter(item =>
+    !totalSalesSearch ||
+    item.eventName?.toLowerCase().includes(totalSalesSearch.toLowerCase()) ||
     item.name?.toLowerCase().includes(totalSalesSearch.toLowerCase())
   );
   const eventSalesPage = usePagination(filteredEventSales, 10);
@@ -48,24 +48,24 @@ const DailySales = ({ eventSalesChartPage,
   const [bestSellersSearch, setBestSellersSearch] = useState('');
   const [lowPerformersSearch, setLowPerformersSearch] = useState('');
 
-  const filteredSpecials = specialsStoreItems.filter(item => 
-    !specialsSearch || 
+  const filteredSpecials = specialsStoreItems.filter(item =>
+    !specialsSearch ||
     item.name?.toLowerCase().includes(specialsSearch.toLowerCase())
   );
   const specialsStoreItemsPage = usePagination(filteredSpecials, 10);
 
-  const filteredBestSellers = bestSellers.filter(item => 
-    !bestSellersSearch || 
-    item.name?.toLowerCase().includes(bestSellersSearch.toLowerCase()) || 
+  const filteredBestSellers = bestSellers.filter(item =>
+    !bestSellersSearch ||
+    item.name?.toLowerCase().includes(bestSellersSearch.toLowerCase()) ||
     item.category?.toLowerCase().includes(bestSellersSearch.toLowerCase()) ||
     item.id?.toString().toLowerCase().includes(bestSellersSearch.toLowerCase()) ||
     item.code?.toLowerCase().includes(bestSellersSearch.toLowerCase())
   );
   const bestSellersPage = usePagination(filteredBestSellers, 5);
 
-  const filteredLowPerformers = lowPerformers.filter(item => 
-    !lowPerformersSearch || 
-    item.name?.toLowerCase().includes(lowPerformersSearch.toLowerCase()) || 
+  const filteredLowPerformers = lowPerformers.filter(item =>
+    !lowPerformersSearch ||
+    item.name?.toLowerCase().includes(lowPerformersSearch.toLowerCase()) ||
     item.category?.toLowerCase().includes(lowPerformersSearch.toLowerCase()) ||
     item.id?.toString().toLowerCase().includes(lowPerformersSearch.toLowerCase()) ||
     item.code?.toLowerCase().includes(lowPerformersSearch.toLowerCase())
@@ -128,10 +128,10 @@ const DailySales = ({ eventSalesChartPage,
             <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-              <input 
-                type="text" 
-                placeholder="Search events, products, sources..." 
-                value={revenueSourceSearch} 
+              <input
+                type="text"
+                placeholder="Search events, products, sources..."
+                value={revenueSourceSearch}
                 onChange={(e) => setRevenueSourceSearch(e.target.value)}
                 className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
               />
@@ -146,7 +146,7 @@ const DailySales = ({ eventSalesChartPage,
                     <th className="py-2 px-3 font-medium">Event Name</th>
                     <th className="py-2 px-3 font-medium">Product Name</th>
                     <th className="py-2 px-3 font-medium">Source</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -185,10 +185,10 @@ const DailySales = ({ eventSalesChartPage,
             <h4 className="text-cosmic-text font-semibold text-sm">Total Sales By Event Name</h4>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
-              <input 
-                type="text" 
-                placeholder="Search events..." 
-                value={totalSalesSearch} 
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={totalSalesSearch}
                 onChange={(e) => setTotalSalesSearch(e.target.value)}
                 className="bg-cosmic-card border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-48 lg:w-64 transition-all"
               />
@@ -202,7 +202,7 @@ const DailySales = ({ eventSalesChartPage,
                     <th className="py-2 px-3 font-medium w-8">#</th>
                     <th className="py-2 px-3 font-medium">Event Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -305,10 +305,10 @@ const DailySales = ({ eventSalesChartPage,
             <h4 className="font-semibold text-sm">Revenue as per Specials Store Items</h4>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-              <input 
-                type="text" 
-                placeholder="Search items..." 
-                value={specialsSearch} 
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={specialsSearch}
                 onChange={(e) => setSpecialsSearch(e.target.value)}
                 className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
               />
@@ -322,7 +322,7 @@ const DailySales = ({ eventSalesChartPage,
                     <th className="py-2 px-3 font-medium w-8">#</th>
                     <th className="py-2 px-3 font-medium">Store Item Name</th>
                     <th className="py-2 px-3 font-medium text-right">Qty</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -364,10 +364,10 @@ const DailySales = ({ eventSalesChartPage,
             </h4>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
-              <input 
-                type="text" 
-                placeholder="Search products..." 
-                value={bestSellersSearch} 
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={bestSellersSearch}
                 onChange={(e) => setBestSellersSearch(e.target.value)}
                 className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 transition-all"
               />
@@ -381,7 +381,7 @@ const DailySales = ({ eventSalesChartPage,
                   <th className="py-2 px-3">Product Name</th>
                   <th className="py-2 px-3">Category</th>
                   <th className="py-2 px-3 text-right">Units Sold</th>
-                  <th className="py-2 px-3 text-right">Total Revenue</th>
+                  <th className="py-2 px-3 text-right">Total Revenue ($)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
@@ -411,10 +411,10 @@ const DailySales = ({ eventSalesChartPage,
             </h4>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-cosmic-muted" />
-              <input 
-                type="text" 
-                placeholder="Search products..." 
-                value={lowPerformersSearch} 
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={lowPerformersSearch}
                 onChange={(e) => setLowPerformersSearch(e.target.value)}
                 className="bg-cosmic-bg border border-cosmic-border text-[11px] text-cosmic-text pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:border-indigo-500/50 placeholder-cosmic-muted w-full sm:w-40 transition-all"
               />
@@ -428,7 +428,7 @@ const DailySales = ({ eventSalesChartPage,
                   <th className="py-2 px-3">Product Name</th>
                   <th className="py-2 px-3">Category</th>
                   <th className="py-2 px-3 text-right">Units Sold</th>
-                  <th className="py-2 px-3 text-right">Revenue</th>
+                  <th className="py-2 px-3 text-right">Revenue ($)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
