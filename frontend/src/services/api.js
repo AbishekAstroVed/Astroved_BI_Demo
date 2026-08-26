@@ -207,6 +207,7 @@ export const api = {
   getExecutiveDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/executive?startDate=${startDate}&endDate=${endDate}`),
   getDailySalesDashboard: (dailyDate) => fetchWithCache(`/api/dashboard/sales/daily?dailyDate=${dailyDate}`),
   getMonthlySalesDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/sales/monthly?startDate=${startDate}&endDate=${endDate}`),
+  getBannerSalesDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/sales/banner?startDate=${startDate}&endDate=${endDate}`),
   getMarketingDashboard: (startDate, endDate) => fetchWithCache(`/api/dashboard/marketing?startDate=${startDate}&endDate=${endDate}`),
   syncMetaAds: () => fetch('/api/dashboard/marketing/meta/sync', { method: 'POST' }).then(handleResponse),
   syncGoogleAds: () => fetch('/api/dashboard/marketing/google/sync', { method: 'POST' }).then(handleResponse),

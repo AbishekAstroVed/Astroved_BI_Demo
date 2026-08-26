@@ -11,7 +11,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
   const mainMenu = [
     { id: 'executive', name: 'Executive Dashboard', icon: TrendingUp },
     { id: 'sales', name: 'Sales Dashboard', icon: ShoppingBag },
-    { id: 'home-banner', name: 'Home Page Banner', icon: LayoutDashboard },
+    { id: 'home-banner', name: 'Home Page Banner Clicks', icon: LayoutDashboard },
     { id: 'newsletter', name: "Newsletter Performance", icon: Newspaper },
     { id: 'customer', name: 'Customer Dashboard', icon: Users },
     { id: 'operations', name: 'Operations Dashboard', icon: Activity },
@@ -82,11 +82,11 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
                 <div className="absolute left-[-8px] top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#6868f9] rounded-r-full" />
               )}
 
-              <div className={`flex items-center ${collapsed ? '' : 'space-x-3'} truncate`}>
-                <div className={`flex items-center justify-center ${collapsed ? 'w-9 h-9 rounded-xl' : 'w-7 h-7 rounded-lg'} ${isActive ? 'bg-[#6868f9] text-white shadow-md shadow-[#6868f9]/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+              <div className={`flex items-center ${collapsed ? '' : 'space-x-3'} w-full`}>
+                <div className={`flex items-center justify-center shrink-0 ${collapsed ? 'w-9 h-9 rounded-xl' : 'w-7 h-7 rounded-lg'} ${isActive ? 'bg-[#6868f9] text-white shadow-md shadow-[#6868f9]/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
                   <Icon size={collapsed ? 16 : 14} strokeWidth={2.5} />
                 </div>
-                {!collapsed && <span className="truncate">{item.name}</span>}
+                {!collapsed && <span className="whitespace-nowrap">{item.name}</span>}
               </div>
               {item.badge && !collapsed && (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#6868f9] text-white">
@@ -101,7 +101,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
   );
 
   return (
-    <aside className={`bg-white dark:bg-[#0b0c10] border-r border-slate-100 dark:border-slate-800 ${collapsed ? 'lg:w-20' : 'lg:w-[250px]'} w-[250px] h-screen flex flex-col justify-between p-4 z-40 shrink-0 fixed lg:static inset-y-0 left-0 transform lg:transform-none transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}`}>
+    <aside className={`bg-white dark:bg-[#0b0c10] border-r border-slate-100 dark:border-slate-800 ${collapsed ? 'md:w-20' : 'md:w-[280px]'} w-[280px] h-screen flex flex-col justify-between p-4 z-40 shrink-0 fixed md:static inset-y-0 left-0 transform md:transform-none transition-transform duration-300 ease-in-out ${mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}`}>
 
       <div className="space-y-6 flex flex-col min-h-0 flex-1">
         {/* Brand Header */}
@@ -117,7 +117,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
               </div>
               <button
                 onClick={() => setCollapsed(false)}
-                className="hidden lg:flex w-7 h-7 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[#6868f9] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="hidden md:flex w-7 h-7 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[#6868f9] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 title="Expand Sidebar"
               >
                 <ChevronsRight size={14} />
@@ -137,7 +137,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
               </div>
               <button
                 onClick={() => setCollapsed(true)}
-                className="hidden lg:flex w-8 h-8 mt-1 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-[#6868f9] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shrink-0 ml-4"
+                className="hidden md:flex w-8 h-8 mt-1 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-[#6868f9] hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shrink-0 ml-4"
                 title="Collapse Sidebar"
               >
                 <ChevronsLeft size={16} strokeWidth={2.5} />

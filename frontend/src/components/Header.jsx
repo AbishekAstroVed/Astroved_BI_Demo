@@ -297,7 +297,7 @@ const Header = ({ title, currentModule, onToggleMobileMenu, onNavigate, onLogout
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
           <button
             onClick={onToggleMobileMenu}
-            className="p-1.5 sm:p-2 rounded-lg text-cosmic-muted hover:text-cosmic-text bg-cosmic-bg border border-cosmic-border lg:hidden transition-colors shrink-0"
+            className="p-1.5 sm:p-2 rounded-lg text-cosmic-muted hover:text-cosmic-text bg-cosmic-bg border border-cosmic-border md:hidden transition-colors shrink-0"
           >
             <Menu size={16} />
           </button>

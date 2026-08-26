@@ -245,7 +245,7 @@ function MainAppContent() {
     const titles = {
       executive: 'Executive Performance ',
       sales: 'Sales Performance',
-      'home-banner': 'Home Page Banner Dashboard',
+      'home-banner': 'Home Page Banner Clicks Dashboard',
       marketing: 'Marketing Performance',
       newsletter: "Newsletter Performance",
       seo: 'SEO Performance',
@@ -289,7 +289,7 @@ function MainAppContent() {
       {/* Mobile Sidebar Backdrop Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden transition-all duration-300"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-all duration-300"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -343,7 +343,7 @@ function MainAppContent() {
           </button>
         )}
 
-        <main className={`p-4 md:p-6 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
+        <main className={`px-4 md:px-6 py-2 md:py-3 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
           <React.Suspense fallback={<DashboardSkeleton />}>
             <div key={refreshKey} className="w-full h-full pb-40">
               {renderModule()}

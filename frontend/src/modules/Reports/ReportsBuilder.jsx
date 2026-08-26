@@ -9,7 +9,8 @@ const DASHBOARD_OPTIONS = [
   { label: 'Customer Dashboard', value: 'Customer Dashboard' },
   { label: 'Sales Dashboard', value: 'Sales Dashboard' },
   { label: 'Newsletter Performance', value: 'Newsletter Performance' },
-  { label: 'Operations Dashboard', value: 'Operations Dashboard' }
+  { label: 'Operations Dashboard', value: 'Operations Dashboard' },
+  { label: 'Home Page Banner Clicks', value: 'Home Page Banner Clicks' }
 ];
 
 const ReportsBuilder = () => {

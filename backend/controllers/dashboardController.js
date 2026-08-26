@@ -4769,6 +4769,331 @@ export const getCustomerMetrics = async (req, res) => {
   }
 };
 
+export const getBannerSalesDashboard = async (req, res) => {
+  const { startDate, endDate } = req.query;
+  const shopId = 1; // Default to shop ID 1 as per assumption
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ message: "startDate and endDate are required" });
+  }
+
+  try {
+    const pool = await connectMSSQL();
+    if (!pool) {
+      return res.status(500).json({ message: "MSSQL connection pool is not ready" });
+    }
+
+    const request = pool.request();
+    request.input('FromDate', startDate);
+    request.input('ToDate', endDate);
+    request.input('Shopid', shopId);
+
+    const result = await request.query(`
+      SELECT
+          T.ShopId,
+          T.TrafficCode,
+          T.EventName,
+          T.ProductName,
+
+          T.USDQTY,
+          T.USDAMOUNT,
+
+          T.INRQTY,
+          T.INRAMOUNT,
+          T.INRUSDTOT,
+
+          T.MYRQTY,
+          T.MYRAMOUNT,
+          T.MYRUSDTOT,
+
+          T.DiscountAmount,
+
+          T.USDTOTAL,
+          T.USDNETTOTAL,
+
+          ISNULL(BC.TotalClicks, 0) AS TotalClicks,
+
+          T.OrderDate
+
+      FROM
+      (
+          SELECT
+              ShopId,
+              TrafficCode,
+              EventName,
+              ProductName,
+
+              SUM(ISNULL([USD], 0)) AS USDQTY,
+              SUM(ISNULL([1], 0)) AS USDAMOUNT,
+
+              SUM(ISNULL([INR], 0)) AS INRQTY,
+              SUM(ISNULL([2], 0)) AS INRAMOUNT,
+              SUM(ISNULL([INRUSDTOT], 0)) AS INRUSDTOT,
+
+              SUM(ISNULL([MYR], 0)) AS MYRQTY,
+              SUM(ISNULL([3], 0)) AS MYRAMOUNT,
+              SUM(ISNULL([MYRUSDTOT], 0)) AS MYRUSDTOT,
+
+              SUM(ISNULL([DiscountAmount], 0)) AS DiscountAmount,
+
+              SUM([USDTOTAL]) AS USDTOTAL,
+
+              SUM([USDTOTAL])
+                  - SUM(ISNULL([DiscountAmount], 0)) AS USDNETTOTAL,
+
+              OrderDate
+
+          FROM
+          (
+                  SELECT
+              SL.ShopId AS ShopId,
+              PAT.Name AS ProductName,
+
+              CASE
+                  WHEN
+                      LEFT(LTRIM(ISNULL(TS.Comments, '')), 7) LIKE 'SL_HOME%'
+                      AND RIGHT(RTRIM(ISNULL(TS.Comments, '')), 2) LIKE '-[1-7]%'
+                  THEN TS.Comments
+                  ELSE TS.TrackingCode
+              END AS TrafficCode,
+
+              CASE
+                  WHEN LEN(PAI.EventName) > 1
+                  THEN PAI.EventName
+                  ELSE 'Regular Store Items'
+              END AS EventName,
+
+              C.FirstName,
+              C.LastName,
+              CUR.Code,
+              ORD.CurrencyId,
+
+              SUM(POD.Quantity) AS Quantity,
+
+              CASE
+                  WHEN CUR.Code IN ('INR', 'USD', 'MYR')
+                  THEN SUM(POD.ActualPrice)
+              END AS Price,
+
+              SUM(POD.USDPrice) AS USDTOTAL,
+
+              SUM(POD.USDPrice) - ISNULL(SUM(VOD.UsdAmount), 0) AS USDNETTOTAL,
+
+              SUM(
+                  CASE
+                      WHEN CUR.Code = 'INR'
+                      THEN POD.USDPrice
+                      ELSE 0
+                  END
+              ) AS INRUSDTOT,
+
+              SUM(
+                  CASE
+                      WHEN CUR.Code = 'MYR'
+                      THEN POD.USDPrice
+                      ELSE 0
+                  END
+              ) AS MYRUSDTOT,
+
+              SUM(
+                  CASE
+                      WHEN CUR.Code = 'GBP'
+                      THEN POD.USDPrice
+                      ELSE 0
+                  END
+              ) AS GBPUSDTOT,
+
+              CONVERT(DATE, GP.OrderDate) AS OrderDate,
+
+              ORD.OrderId AS OrderId,
+
+              CASE
+                  WHEN VOD.SelectedItemId = 0
+                  THEN
+                      VOD.UsdAmount /
+                      (
+                          SELECT COUNT(*)
+                          FROM OrderDetail od1
+                          WHERE od1.OrderId = OD.OrderId
+                      )
+                  ELSE VOD.UsdAmount
+              END AS DiscountAmount,
+
+              SI.ProductId AS ProductID
+
+          FROM dbo.Payment PA WITH (NOLOCK)
+
+          JOIN dbo.[Order] ORD WITH (NOLOCK)
+              ON PA.OrderId = ORD.OrderId
+
+          JOIN SelectedList SL WITH (NOLOCK)
+              ON ORD.OrderId = SL.SelectedListId
+
+          JOIN SelectedItem SI
+              ON SI.SelectedListId = SL.SelectedListId
+
+          JOIN ProductTranslation PT
+              ON PT.ProductId = SI.ProductId
+              AND PT.ShopId = SL.ShopId
+              AND PT.LocaleId = 1
+
+          JOIN Vaaak.ProductAdditionalInfo PAI
+              ON SI.ProductId = PAI.ProductId
+
+          JOIN Vaaak.ProductAdditionalTranslation PAT
+              ON PT.ProductAdditionalTransId = PAT.ProductAdditionalTransId
+
+          JOIN Currency CUR WITH (NOLOCK)
+              ON ORD.CurrencyId = CUR.CurrencyId
+
+          JOIN Vaaak.ProductWiseOrderDetail POD WITH (NOLOCK)
+              ON POD.SelectedListId = SL.SelectedListId
+              AND POD.SelectedItemId = SI.SelectedItemId
+
+          JOIN OrderDetail OD
+              ON OD.OrderDetailId = POD.SelectedItemId
+              AND OD.OrderId = POD.SelectedListId
+
+          JOIN GenericPayment GP
+              ON GP.PaymentId = PA.PaymentId
+
+          JOIN Contact C
+              ON C.ContactId = PA.ContactId
+
+          JOIN Email E
+              ON E.EmailId = C.EmailId
+
+          LEFT JOIN vaaak.ManualOrderPayment MOP
+              ON MOP.SelectedListId = ORD.OrderId
+
+          LEFT JOIN Vaaak.OrderDiscounts VOD
+              ON POD.SelectedListId = VOD.OrderId
+              AND POD.Currency = VOD.Currency
+              AND POD.SelectedItemId =
+                  CASE
+                      WHEN VOD.SelectedItemId = 0
+                      THEN POD.SelectedItemId
+                      ELSE VOD.SelectedItemId
+                  END
+
+          LEFT JOIN Vaaak.TrackingStatistics TS
+              ON ORD.OrderId = TS.OrderId
+
+          LEFT JOIN Vaaak.LinkTracking LT
+              ON TS.TrackingCode = LT.TrackingCode
+              AND LT.ShopId = SL.ShopId
+
+          WHERE OD.OrderDetailStatusId <> 6
+            AND GP.Code NOT IN ('9999999999')
+
+            AND SL.ShopId = @Shopid
+
+            AND
+            (
+                (
+                    LEFT(
+                        LTRIM(ISNULL(TS.Comments, TS.TrackingCode)),
+                        7
+                    ) LIKE 'SL_HOME%'
+                    AND RIGHT(
+                        RTRIM(ISNULL(TS.Comments, TS.TrackingCode)),
+                        2
+                    ) LIKE '-[1-7]%'
+                )
+                OR
+                (
+                    LEFT(
+                        LTRIM(TS.TrackingCode),
+                        7
+                    ) LIKE 'SL_HOME%'
+                    AND RIGHT(
+                        RTRIM(TS.TrackingCode),
+                        2
+                    ) LIKE '-[1-7]%'
+                )
+            )
+
+          GROUP BY
+              SL.ShopId,
+              C.FirstName,
+              C.LastName,
+              PAT.Name,
+              CUR.Code,
+              ORD.CurrencyId,
+              GP.OrderDate,
+              ORD.OrderId,
+              SI.ProductId,
+              ORD.PromotionCode,
+              TS.Comments,
+              TS.TrackingCode,
+              PAI.EventName,
+              VOD.SelectedItemId,
+              VOD.DiscountAmount,
+              VOD.UsdAmount,
+              OD.OrderId
+          ) T
+
+          PIVOT
+          (
+              MAX(Quantity)
+              FOR Code IN
+              (
+                  [USD],
+                  [INR],
+                  [MYR],
+                  [GBP]
+              )
+          ) AS P1
+
+          PIVOT
+          (
+              MAX(Price)
+              FOR CurrencyId IN
+              (
+                  [1],
+                  [2],
+                  [3],
+                  [5]
+              )
+          ) AS P2
+
+          GROUP BY
+              ShopId,
+              TrafficCode,
+              EventName,
+              ProductName,
+              OrderDate
+      ) T
+
+      LEFT JOIN
+      (
+          SELECT
+              PromoCode,
+              SUM(ClickCount) AS TotalClicks
+          FROM [Vaaak].[BannersClick] WITH (NOLOCK)
+          WHERE DeviceType IN ('Mobile', 'Desktop')
+            AND CONVERT(DATE, TrackedUTCDate)
+                BETWEEN @FromDate AND CONVERT(DATE, @ToDate)
+          GROUP BY
+              PromoCode
+      ) BC
+          ON T.TrafficCode = BC.PromoCode
+
+      WHERE T.ShopId = @Shopid
+        AND CONVERT(DATE, T.OrderDate)
+            BETWEEN @FromDate AND CONVERT(DATE, @ToDate)
+
+      ORDER BY
+          T.USDNETTOTAL DESC;
+    `);
+
+    res.status(200).json(result.recordset);
+  } catch (error) {
+    console.error("Banner Sales Dashboard Error:", error);
+    res.status(500).json({ message: 'Failed to load banner sales dashboard data', error: error.message });
+  }
+};
+
 // 7. Generic MSSQL Data Fetcher (Test Route)
 export const getMSSQLData = async (req, res) => {
   try {

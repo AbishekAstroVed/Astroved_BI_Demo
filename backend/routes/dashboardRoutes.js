@@ -4,6 +4,7 @@ import {
   getExecutiveDashboard,
   getDailySalesDashboard,
   getMonthlySalesDashboard,
+  getBannerSalesDashboard,
   getMarketingDashboard,
   syncMetaAds,
   syncGoogleAds,
@@ -24,6 +25,7 @@ router.post('/clear-cache', clearDashboardCache);
 router.get('/executive', getExecutiveDashboard);
 router.get('/sales/daily', getDailySalesDashboard);
 router.get('/sales/monthly', getMonthlySalesDashboard);
+router.get('/sales/banner', getBannerSalesDashboard);
 router.get('/marketing', getMarketingDashboard);
 router.post('/marketing/meta/sync', syncMetaAds);
 router.post('/marketing/google/sync', syncGoogleAds);
