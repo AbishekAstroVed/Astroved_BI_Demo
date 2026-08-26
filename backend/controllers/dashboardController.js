@@ -4797,14 +4797,17 @@ export const getBannerSalesDashboard = async (req, res) => {
 
           T.USDQTY,
           T.USDAMOUNT,
+          T.USDDiscountAmount,
 
           T.INRQTY,
           T.INRAMOUNT,
           T.INRUSDTOT,
+          T.INRUSDDiscountAmount,
 
           T.MYRQTY,
           T.MYRAMOUNT,
           T.MYRUSDTOT,
+          T.MYRUSDDiscountAmount,
 
           T.DiscountAmount,
 
@@ -4825,14 +4828,17 @@ export const getBannerSalesDashboard = async (req, res) => {
 
               SUM(ISNULL([USD], 0)) AS USDQTY,
               SUM(ISNULL([1], 0)) AS USDAMOUNT,
+              SUM(ISNULL([USDDiscountCalc], 0)) AS USDDiscountAmount,
 
               SUM(ISNULL([INR], 0)) AS INRQTY,
               SUM(ISNULL([2], 0)) AS INRAMOUNT,
               SUM(ISNULL([INRUSDTOT], 0)) AS INRUSDTOT,
+              SUM(ISNULL([INRDiscountCalc], 0)) AS INRUSDDiscountAmount,
 
               SUM(ISNULL([MYR], 0)) AS MYRQTY,
               SUM(ISNULL([3], 0)) AS MYRAMOUNT,
               SUM(ISNULL([MYRUSDTOT], 0)) AS MYRUSDTOT,
+              SUM(ISNULL([MYRDiscountCalc], 0)) AS MYRUSDDiscountAmount,
 
               SUM(ISNULL([DiscountAmount], 0)) AS DiscountAmount,
 
@@ -4919,6 +4925,18 @@ export const getBannerSalesDashboard = async (req, res) => {
                   ELSE VOD.UsdAmount
               END AS DiscountAmount,
 
+              CASE WHEN CUR.Code = 'USD' THEN 
+                  (CASE WHEN VOD.SelectedItemId = 0 THEN VOD.UsdAmount / (SELECT COUNT(*) FROM OrderDetail od1 WHERE od1.OrderId = OD.OrderId) ELSE VOD.UsdAmount END)
+              ELSE 0 END AS USDDiscountCalc,
+
+              CASE WHEN CUR.Code = 'INR' THEN 
+                  (CASE WHEN VOD.SelectedItemId = 0 THEN VOD.UsdAmount / (SELECT COUNT(*) FROM OrderDetail od1 WHERE od1.OrderId = OD.OrderId) ELSE VOD.UsdAmount END)
+              ELSE 0 END AS INRDiscountCalc,
+
+              CASE WHEN CUR.Code = 'MYR' THEN 
+                  (CASE WHEN VOD.SelectedItemId = 0 THEN VOD.UsdAmount / (SELECT COUNT(*) FROM OrderDetail od1 WHERE od1.OrderId = OD.OrderId) ELSE VOD.UsdAmount END)
+              ELSE 0 END AS MYRDiscountCalc,
+
               SI.ProductId AS ProductID
 
           FROM dbo.Payment PA WITH (NOLOCK)
@@ -4986,8 +5004,10 @@ export const getBannerSalesDashboard = async (req, res) => {
           WHERE OD.OrderDetailStatusId <> 6
             AND GP.Code NOT IN ('9999999999')
 
+         
             AND SL.ShopId = @Shopid
 
+       
             AND
             (
                 (

@@ -555,15 +555,19 @@ export const generateAIInsights = async (req, res) => {
     const mockReq = { query: { period: period, startDate, endDate } };
 
     if (isDbConnected) {
-      const createMockRes = (setter) => ({ json: setter, status: () => createMockRes(setter) });
+      console.log("Starting to fetch live dashboard data...");
+      const createMockRes = (name, setter) => ({ 
+        json: (d) => { console.log(`${name} fetched successfully`); setter(d); }, 
+        status: (code) => { console.log(`${name} status: ${code}`); return createMockRes(name, setter); } 
+      });
+      
       try {
-        await Promise.all([
-          getExecutiveDashboard(mockReq, createMockRes(d => { execData = d; })),
-          getMonthlySalesDashboard(mockReq, createMockRes(d => { salesData = d; })),
-          getNewsletterDashboard(mockReq, createMockRes(d => { newsletterData = d; })),
-          getOperationalDashboard(mockReq, createMockRes(d => { opsData = d; })),
-          getCustomerDashboard(mockReq, createMockRes(d => { customerData = d; }))
-        ]);
+        await getExecutiveDashboard(mockReq, createMockRes('Executive', d => { execData = d; })).catch(e => console.error("Exec error", e));
+        await getMonthlySalesDashboard(mockReq, createMockRes('Sales', d => { salesData = d; })).catch(e => console.error("Sales error", e));
+        await getNewsletterDashboard(mockReq, createMockRes('Newsletter', d => { newsletterData = d; })).catch(e => console.error("News error", e));
+        await getOperationalDashboard(mockReq, createMockRes('Operations', d => { opsData = d; })).catch(e => console.error("Ops error", e));
+        await getCustomerDashboard(mockReq, createMockRes('Customer', d => { customerData = d; })).catch(e => console.error("Cust error", e));
+        console.log("All dashboard data fetched successfully");
       } catch (err) {
         console.warn("Failed to fetch live dashboard data for AI:", err.message);
       }
@@ -576,23 +580,23 @@ export const generateAIInsights = async (req, res) => {
       period: period,
       executive: execData ? {
         kpi: execData.kpi,
-        topProducts: execData.topProductsMonth
+        topProducts: (execData.topProductsMonth || []).slice(0, 10)
       } : null,
       sales: salesData ? {
         kpi: salesData.salesKpiData,
-        bestSellers: salesData.bestSellers,
-        lowPerformers: salesData.lowPerformers
+        bestSellers: (salesData.bestSellers || []).slice(0, 10),
+        lowPerformers: (salesData.lowPerformers || []).slice(0, 10)
       } : null,
       newsletter: newsletterData ? {
         kpi: newsletterData.kpiData
       } : null,
       operations: opsData ? {
         kpi: opsData.kpis,
-        trends: opsData.trends
+        trends: (opsData.trends || []).slice(0, 10)
       } : null,
       customer: customerData ? {
         kpi: customerData.kpiData,
-        segments: customerData.segments
+        segments: (customerData.segments || []).slice(0, 5)
       } : null
     };
 
@@ -646,6 +650,9 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
         temperature: cleanTemp,
         max_tokens: cleanTokens
       };
+
+      console.log("Sending request to OpenAI API...");
+      console.log("Payload size:", JSON.stringify(businessMetrics).length, "characters");
 
       // Make the native fetch call
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1277,6 +1284,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
       if (dash.includes('Funnel')) dashPath = '?module=funnel';
       if (dash.includes('Operations')) dashPath = '?module=operations';
       if (dash.includes('AI')) dashPath = '?module=ai-insights';
+      if (dash.includes('Home') || dash.includes('Banner')) dashPath = '?module=home-banner';
 
       console.log(`[PDF Pregen] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
 

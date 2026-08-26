@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDateFilter } from '../../contexts/DateFilterContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { BarChart3, TrendingUp, Users, DollarSign, Search, Loader2, ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, DollarSign, Search, Loader2, ChevronLeft, ChevronRight, Download, FileText, FileSpreadsheet, MousePointerClick, Wallet, Globe, MapPin, Map, ShoppingCart, Package } from 'lucide-react';
 import { api } from '../../services/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -41,17 +41,20 @@ const HomePageBanner = ({ showRevenue = true }) => {
           product: row.ProductName,
           global: {
             qty: row.USDQTY || 0,
-            usd: row.USDAMOUNT || 0
+            usd: row.USDAMOUNT || 0,
+            discount: row.USDDiscountAmount || 0
           },
           india: {
             qty: row.INRQTY || 0,
             inr: row.INRAMOUNT || 0,
-            usd: row.INRUSDTOT || 0
+            usd: row.INRUSDTOT || 0,
+            discount: row.INRUSDDiscountAmount || 0
           },
           mysg: {
             qty: row.MYRQTY || 0,
             myr: row.MYRAMOUNT || 0,
-            usd: row.MYRUSDTOT || 0
+            usd: row.MYRUSDTOT || 0,
+            discount: row.MYRUSDDiscountAmount || 0
           },
           clicks: row.TotalClicks || 0,
           discount: row.DiscountAmount || 0,
@@ -119,20 +122,23 @@ const HomePageBanner = ({ showRevenue = true }) => {
     if (row.isEmpty) return acc;
     acc.globalQty += Number(row.global?.qty || 0);
     acc.globalUsd += Number(row.global?.usd || 0);
+    acc.globalDiscount += Number(row.global?.discount || 0);
     acc.indiaQty += Number(row.india?.qty || 0);
     acc.indiaInr += Number(row.india?.inr || 0);
     acc.indiaUsd += Number(row.india?.usd || 0);
+    acc.indiaDiscount += Number(row.india?.discount || 0);
     acc.mysgQty += Number(row.mysg?.qty || 0);
     acc.mysgMyr += Number(row.mysg?.myr || 0);
     acc.mysgUsd += Number(row.mysg?.usd || 0);
+    acc.mysgDiscount += Number(row.mysg?.discount || 0);
     acc.clicks += Number(row.clicks || 0);
     acc.discount += Number(row.discount || 0);
     acc.totalUsd += Number(row.totalUsd || 0);
     acc.netTotalUsd += Number(row.netTotalUsd || 0);
     return acc;
   }, {
-    globalQty: 0, globalUsd: 0, indiaQty: 0, indiaInr: 0, indiaUsd: 0,
-    mysgQty: 0, mysgMyr: 0, mysgUsd: 0, clicks: 0, discount: 0,
+    globalQty: 0, globalUsd: 0, globalDiscount: 0, indiaQty: 0, indiaInr: 0, indiaUsd: 0, indiaDiscount: 0,
+    mysgQty: 0, mysgMyr: 0, mysgUsd: 0, mysgDiscount: 0, clicks: 0, discount: 0,
     totalUsd: 0, netTotalUsd: 0
   });
 
@@ -271,43 +277,84 @@ const HomePageBanner = ({ showRevenue = true }) => {
           {/* Wrap both KPI and Table in one container for PDF export */}
           <div id="pdf-export-container" className="flex flex-col space-y-6">
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">Total Clicks</span>
-                <span className="text-[26px] font-normal text-cosmic-text">{totals.clicks.toLocaleString()}</span>
+            <div className="flex flex-col space-y-4">
+              {/* Row 1: 4 Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-2">
+                    <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Total Net Revenue</span>
+                  <span className="text-[26px] font-bold text-cosmic-text">$ {totals.netTotalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-2">
+                    <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Global Revenue</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.globalUsd - totals.globalDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-2">
+                    <MapPin className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">India Revenue</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.indiaUsd - totals.indiaDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mb-2">
+                    <Map className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Malaysia/Singapore Revenue</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.mysgUsd - totals.mysgDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
               </div>
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">Global Revenue</span>
-                <span className="text-[26px] font-normal text-cosmic-text">$ {totals.globalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">India Revenue</span>
-                <span className="text-[26px] font-normal text-cosmic-text">$ {totals.indiaUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">Malaysia/Singapore Revenue</span>
-                <span className="text-[26px] font-normal text-cosmic-text">$ {totals.mysgUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">Total Revenue</span>
-                <span className="text-[26px] font-normal text-cosmic-text">$ {totals.totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-              <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                <span className="text-[13px] text-cosmic-muted font-medium mb-3">Total Net Revenue</span>
-                <span className="text-[26px] font-bold text-cosmic-text">$ {totals.netTotalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+              {/* Row 2: 4 Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2">
+                    <MousePointerClick className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Total Clicks</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">{totals.clicks.toLocaleString()}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-2">
+                    <Package className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Global Quantity</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">{totals.globalQty.toLocaleString()}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
+                    <Package className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">India Quantity</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">{totals.indiaQty.toLocaleString()}</span>
+                </div>
+                <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-2">
+                    <Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="text-[13px] text-cosmic-muted font-medium mb-1">Malaysia/Singapore Quantity</span>
+                  <span className="text-[26px] font-normal text-cosmic-text">{totals.mysgQty.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
             {/* Actions & Search Bar Above Table */}
-            <div className="flex flex-col md:flex-row justify-end items-center mb-4 gap-4 w-full">
-              <div className="relative w-full sm:w-64 md:w-80 lg:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cosmic-muted" />
+            <div className="flex flex-col md:flex-row justify-end items-center mb-5 gap-4 w-full">
+              <div className="relative w-full sm:w-64 md:w-80 lg:w-96 group">
+                {/* Glowing subtle background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-[#6868f9] rounded-full blur opacity-20 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6868f9] z-10 group-hover:scale-110 transition-transform duration-300" />
                 <input
                   type="text"
-                  placeholder="Global Search (Traffic Code, Product)..."
+                  placeholder="Search Traffic Code, Product..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-cosmic-card border border-cosmic-border text-xs sm:text-sm text-cosmic-text pl-9 pr-4 py-2 sm:py-2.5 rounded-full focus:outline-none focus:border-[#6868f9] focus:ring-2 focus:ring-[#6868f9]/20 placeholder-cosmic-muted w-full transition-all shadow-sm"
+                  className="relative bg-cosmic-card border border-[#6868f9]/30 text-sm text-cosmic-text pl-10 pr-5 py-2.5 rounded-full focus:outline-none focus:border-[#6868f9] focus:ring-2 focus:ring-[#6868f9]/20 placeholder-cosmic-muted w-full transition-all shadow-md hover:shadow-lg"
                 />
               </div>
             </div>
