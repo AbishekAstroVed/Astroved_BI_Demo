@@ -36,6 +36,64 @@ const getFirstPermittedModule = (permissions) => {
   return 'executive';
 };
 
+const DraggableExitButton = ({ onExit }) => {
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragInfo = React.useRef({ startX: 0, startY: 0, initialOffsetX: 0, initialOffsetY: 0, moved: false });
+
+  const handlePointerDown = (e) => {
+    setIsDragging(true);
+    dragInfo.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialOffsetX: offset.x,
+      initialOffsetY: offset.y,
+      moved: false
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    
+    const dx = e.clientX - dragInfo.current.startX;
+    const dy = e.clientY - dragInfo.current.startY;
+    
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        dragInfo.current.moved = true;
+    }
+
+    setOffset({
+      x: dragInfo.current.initialOffsetX + dx,
+      y: dragInfo.current.initialOffsetY + dy
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    if (!dragInfo.current.moved) {
+      onExit();
+    }
+  };
+
+  return (
+    <button
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      style={{ 
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+        touchAction: 'none' 
+      }}
+      className={`fixed bottom-6 right-6 z-[100] bg-indigo-600 text-white p-3 rounded-full shadow-2xl hover:bg-indigo-700 flex items-center gap-2 font-bold cursor-move select-none ${isDragging ? 'opacity-90 scale-105' : 'transition-transform'}`}
+    >
+      <Minimize size={20} className="pointer-events-none" />
+      <span className="hidden sm:inline pointer-events-none">Exit Full Screen</span>
+    </button>
+  );
+};
+
 const DashboardSkeleton = () => (
   <div className="animate-pulse p-2 space-y-6 w-full max-w-7xl mx-auto">
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -334,13 +392,7 @@ function MainAppContent() {
         )}
 
         {isFullScreen && (
-          <button
-            onClick={() => setIsFullScreen(false)}
-            className="fixed bottom-6 right-6 z-[100] bg-indigo-600 text-white p-3 rounded-full shadow-2xl hover:bg-indigo-700 transition-all flex items-center gap-2 font-bold"
-          >
-            <Minimize size={20} />
-            <span className="hidden sm:inline">Exit Full Screen</span>
-          </button>
+          <DraggableExitButton onExit={() => setIsFullScreen(false)} />
         )}
 
         <main className={`px-4 md:px-6 py-2 md:py-3 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
