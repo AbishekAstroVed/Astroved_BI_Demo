@@ -281,30 +281,18 @@ const HomePageBanner = ({ showRevenue = true }) => {
               {/* Row 1: 4 Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-2">
-                    <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Total Net Revenue</span>
                   <span className="text-[26px] font-bold text-cosmic-text">$ {totals.netTotalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-2">
-                    <Globe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Global Revenue</span>
                   <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.globalUsd - totals.globalDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-2">
-                    <MapPin className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">India Revenue</span>
                   <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.indiaUsd - totals.indiaDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mb-2">
-                    <Map className="w-4 h-4 text-pink-600 dark:text-pink-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Malaysia/Singapore Revenue</span>
                   <span className="text-[26px] font-normal text-cosmic-text">$ {(totals.mysgUsd - totals.mysgDiscount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
@@ -313,30 +301,18 @@ const HomePageBanner = ({ showRevenue = true }) => {
               {/* Row 2: 4 Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2">
-                    <MousePointerClick className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Total Clicks</span>
                   <span className="text-[26px] font-normal text-cosmic-text">{totals.clicks.toLocaleString()}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-2">
-                    <Package className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Global Quantity</span>
                   <span className="text-[26px] font-normal text-cosmic-text">{totals.globalQty.toLocaleString()}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2">
-                    <Package className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">India Quantity</span>
                   <span className="text-[26px] font-normal text-cosmic-text">{totals.indiaQty.toLocaleString()}</span>
                 </div>
                 <div className="bg-cosmic-card border border-cosmic-border rounded-lg min-h-[130px] p-4 shadow-sm flex flex-col items-center justify-center text-center">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-2">
-                    <Package className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  </div>
                   <span className="text-[13px] text-cosmic-muted font-medium mb-1">Malaysia/Singapore Quantity</span>
                   <span className="text-[26px] font-normal text-cosmic-text">{totals.mysgQty.toLocaleString()}</span>
                 </div>
