@@ -27,7 +27,7 @@ const HomePageBanner = ({ showRevenue = true }) => {
   const [allData, setAllData] = useState([]);
   const [currentPageMain, setCurrentPageMain] = useState(1);
   const [currentPageSec, setCurrentPageSec] = useState(1);
-  const MAIN_ITEMS_PER_PAGE = 6;
+  const MAIN_ITEMS_PER_PAGE = 10;
   const SEC_ITEMS_PER_PAGE = 10;
 
   // Fetch real data from backend
@@ -99,24 +99,12 @@ const HomePageBanner = ({ showRevenue = true }) => {
     currentPageMain * MAIN_ITEMS_PER_PAGE
   );
 
-  if (paginatedDataMain.length > 0 && paginatedDataMain.length < MAIN_ITEMS_PER_PAGE) {
-    const emptyRowsCount = MAIN_ITEMS_PER_PAGE - paginatedDataMain.length;
-    const emptyRows = Array(emptyRowsCount).fill({ isEmpty: true });
-    paginatedDataMain = [...paginatedDataMain, ...emptyRows];
-  }
-
   // Pagination logic for secondary table
   const totalPagesSec = Math.ceil(filteredData.length / SEC_ITEMS_PER_PAGE);
   let paginatedDataSec = filteredData.slice(
     (currentPageSec - 1) * SEC_ITEMS_PER_PAGE,
     currentPageSec * SEC_ITEMS_PER_PAGE
   );
-
-  if (paginatedDataSec.length > 0 && paginatedDataSec.length < SEC_ITEMS_PER_PAGE) {
-    const emptyRowsCount = SEC_ITEMS_PER_PAGE - paginatedDataSec.length;
-    const emptyRows = Array(emptyRowsCount).fill({ isEmpty: true });
-    paginatedDataSec = [...paginatedDataSec, ...emptyRows];
-  }
 
   const totals = filteredData.reduce((acc, row) => {
     if (row.isEmpty) return acc;
@@ -371,28 +359,7 @@ const HomePageBanner = ({ showRevenue = true }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
-                    {paginatedDataMain.map((row, idx) => {
-                      if (row.isEmpty) {
-                        return (
-                          <tr key={`empty-${idx}`} className="h-[60px]">
-                            <td className="py-2 px-3 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-3 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 border-r border-cosmic-border/30 text-transparent">&nbsp;</td>
-                            <td className="py-2 px-2 text-transparent">&nbsp;</td>
-                          </tr>
-                        );
-                      }
-                      return (
+                    {paginatedDataMain.map((row, idx) => (
                         <tr key={idx} className="hover:bg-cosmic-bg transition-colors h-[60px]">
                           <td className="py-2 px-3 text-cosmic-text font-medium border-r border-cosmic-border/30">{row.code}</td>
                           <td className="py-2 px-3 border-r border-cosmic-border/30">{row.product}</td>
@@ -409,8 +376,7 @@ const HomePageBanner = ({ showRevenue = true }) => {
                           <td className="py-2 px-2 text-right font-semibold border-r border-cosmic-border/30">{row.totalUsd.toFixed(2)}</td>
                           <td className="py-2 px-2 text-right font-bold">{row.netTotalUsd.toFixed(2)}</td>
                         </tr>
-                      );
-                    })}
+                    ))}
                     {filteredData.length === 0 && (
                       <tr>
                         <td colSpan="14" className="py-8 text-center text-cosmic-muted">No data available for this date range.</td>

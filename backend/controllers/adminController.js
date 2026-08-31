@@ -1237,7 +1237,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
   try {
     const puppeteer = (await import('puppeteer')).default;
     const browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
       timeout: 300000
     });
@@ -1334,13 +1334,10 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     const tempDir = require('path').join(process.cwd(), 'temp_reports');
     if (!require('fs').existsSync(tempDir)) require('fs').mkdirSync(tempDir, { recursive: true });
 
-    const tempHtmlPath = require('path').join(tempDir, `temp_report_${Date.now()}.html`);
-    require('fs').writeFileSync(tempHtmlPath, htmlContent);
-
     const pdfPage = await browser.newPage();
     pdfPage.setDefaultNavigationTimeout(480000);
     pdfPage.setDefaultTimeout(480000);
-    await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 480000 });
+    await pdfPage.setContent(htmlContent, { waitUntil: 'load', timeout: 480000 });
 
     const tempPdfPath = require('path').join(tempDir, `temp_report_${Date.now()}.pdf`);
     await pdfPage.pdf({
@@ -1349,9 +1346,6 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     });
 
     await browser.close();
-
-    // Clean up HTML file
-    if (require('fs').existsSync(tempHtmlPath)) require('fs').unlinkSync(tempHtmlPath);
 
     return tempPdfPath;
   } catch (err) {
@@ -1503,7 +1497,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     } else {
       try {
         const browser = await puppeteer.launch({
-        headless: 'new',
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
         timeout: 300000
       });
@@ -1615,13 +1609,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       htmlContent += '</body></html>';
 
-      const tempHtmlPath = path.join(process.cwd(), `temp_report_${Date.now()}.html`);
-      fs.writeFileSync(tempHtmlPath, htmlContent);
-
       const pdfPage = await browser.newPage();
       pdfPage.setDefaultNavigationTimeout(480000);
       pdfPage.setDefaultTimeout(480000);
-      await pdfPage.goto(`file:///${tempHtmlPath.replace(/\\/g, '/')}`, { waitUntil: 'load', timeout: 480000 });
+      await pdfPage.setContent(htmlContent, { waitUntil: 'load', timeout: 480000 });
 
       const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
       await pdfPage.pdf({
@@ -1633,7 +1624,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       await browser.close();
 
-      attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath, _tempHtmlPath: tempHtmlPath });
+      attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath });
       console.log('[Report Scheduler] PDF generated successfully using html2canvas-pro via Puppeteer.');
     } catch (err) {
       console.error("Failed to generate/attach PDF via Puppeteer", err);
@@ -2014,12 +2005,16 @@ export const startReportCronJobs = () => {
       if (!schedules || schedules.length === 0) return;
 
       const now = new Date();
-      // Current hours and minutes in local time (or can be adjusted to specific timeZone)
-      const currentHours = String(now.getHours()).padStart(2, '0');
-      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      // Convert current time strictly to IST (Asia/Kolkata) for accurate schedule matching
+      const istDateStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+      const istNow = new Date(istDateStr);
+      
+      const currentHours = String(istNow.getHours()).padStart(2, '0');
+      const currentMinutes = String(istNow.getMinutes()).padStart(2, '0');
       const currentTimeStr = `${currentHours}:${currentMinutes}`;
-      const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
-      const dateOfMonth = now.getDate(); // 1-31
+      const dayOfWeek = istNow.getDay(); // 0 (Sun) to 6 (Sat)
+      const dateOfMonth = istNow.getDate(); // 1-31
+      const currentMonth = istNow.getMonth(); // 0-11
 
       for (const schedule of schedules) {
         const scheduleTimeClean = (schedule.time || '').trim();
@@ -2036,7 +2031,7 @@ export const startReportCronJobs = () => {
           } else if (freq === 'monthly' && dateOfMonth === 1) {
             // Send monthly on the 1st
             shouldSend = true;
-          } else if (freq === 'yearly' && dateOfMonth === 1 && now.getMonth() === 0) {
+          } else if (freq === 'yearly' && dateOfMonth === 1 && currentMonth === 0) {
             // Send yearly on Jan 1st
             shouldSend = true;
           }
