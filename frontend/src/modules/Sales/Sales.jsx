@@ -14,7 +14,13 @@ const Sales = () => {
   const { startDate, endDate, setStartDate, setEndDate, dailyDate, setCalendarHidden } = useDateFilter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('daily');
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedPeriod = localStorage.getItem('astroved_report_period');
+    if (savedPeriod && (savedPeriod.toLowerCase() === 'monthly' || savedPeriod.toLowerCase() === 'yearly')) {
+      return 'monthly';
+    }
+    return 'daily';
+  });
 
   useEffect(() => {
     setCalendarHidden(activeTab === 'daily');
