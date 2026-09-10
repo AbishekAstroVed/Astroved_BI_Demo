@@ -20,7 +20,10 @@ export const DateFilterProvider = ({ children }) => {
   let initialEnd = new Date(today);
   let initialDailyDate = new Date(today);
 
-  const savedPeriod = localStorage.getItem('astroved_report_period');
+  const queryParams = new URLSearchParams(window.location.search);
+  const urlPeriod = queryParams.get('period');
+  const savedPeriod = urlPeriod || localStorage.getItem('astroved_report_period');
+  
   if (savedPeriod) {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);

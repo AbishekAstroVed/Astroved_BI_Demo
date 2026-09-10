@@ -5,7 +5,11 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('light'); // 'dark' or 'light'
+  const queryParams = new URLSearchParams(window.location.search);
+  const isPrintMode = queryParams.get('print') === 'true';
+  const urlTheme = queryParams.get('theme');
+
+  const [theme, setTheme] = useState(isPrintMode ? (urlTheme || 'light') : 'light'); // 'dark' or 'light'
 
 
   useEffect(() => {

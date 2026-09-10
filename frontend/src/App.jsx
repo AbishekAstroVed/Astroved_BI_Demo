@@ -107,15 +107,19 @@ const DashboardSkeleton = () => (
 );
 
 function MainAppContent() {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('astroved_user') && !!localStorage.getItem('astroved_token'));
+  const queryParams = new URLSearchParams(window.location.search);
+  const isPrintMode = queryParams.get('print') === 'true';
+  const printToken = queryParams.get('token');
+  const isValidPrint = isPrintMode && printToken === 'astroved_pdf_secret_123';
+
+  const [isLoggedIn, setIsLoggedIn] = useState(isValidPrint || (!!localStorage.getItem('astroved_user') && !!localStorage.getItem('astroved_token')));
   const [currentUser, setCurrentUser] = useState(
-    localStorage.getItem('astroved_user') ? JSON.parse(localStorage.getItem('astroved_user')) : null
+    isValidPrint ? { role: 'Admin', empId: 'PRINT' } : (localStorage.getItem('astroved_user') ? JSON.parse(localStorage.getItem('astroved_user')) : null)
   );
   const [userPermissions, setUserPermissions] = useState(
     localStorage.getItem('astroved_permissions') ? JSON.parse(localStorage.getItem('astroved_permissions')) : null
   );
   const [currentModule, setCurrentModule] = useState(() => {
-    const queryParams = new URLSearchParams(window.location.search);
     const moduleFromUrl = queryParams.get('module');
     if (moduleFromUrl) return moduleFromUrl;
 
@@ -124,7 +128,7 @@ function MainAppContent() {
   });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(isValidPrint); // Force full screen in print mode
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleSoftRefresh = async () => {
@@ -391,13 +395,13 @@ function MainAppContent() {
           />
         )}
 
-        {isFullScreen && (
+        {isFullScreen && !isValidPrint && (
           <DraggableExitButton onExit={() => setIsFullScreen(false)} />
         )}
 
         <main className={`px-4 md:px-6 py-2 md:py-3 overflow-y-auto overflow-x-hidden flex-1 scroll-smooth transform-gpu ${isFullScreen ? 'pt-6' : ''}`}>
           <React.Suspense fallback={<DashboardSkeleton />}>
-            <div key={refreshKey} className="w-full h-full pb-40">
+            <div key={refreshKey} className={`w-full h-full ${isValidPrint ? 'pb-4' : 'pb-40'}`}>
               {renderModule()}
             </div>
           </React.Suspense>

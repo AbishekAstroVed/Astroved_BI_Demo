@@ -1240,225 +1240,61 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
   const safeName = scheduleName.replace(/\s+/g, '_');
   try {
     const puppeteer = (await import('puppeteer')).default;
+    const path = await import('path');
+    const fs = await import('fs');
+
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     });
 
-    let displayPeriod = period;
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    const yesterdayStr = yesterday.toLocaleDateString('en-US', options);
-
-    if (period === 'Daily') {
-      displayPeriod = yesterdayStr;
-    } else if (period === 'Weekly') {
-      const startOfWeek = new Date(yesterday);
-      startOfWeek.setDate(yesterday.getDate() - yesterday.getDay()); // Start of week (Sunday)
-      const startOfWeekStr = startOfWeek.toLocaleDateString('en-US', options);
-      displayPeriod = `${startOfWeekStr} - ${yesterdayStr}`;
-    } else if (period === 'Monthly') {
-      const startOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
-      const startOfMonthStr = startOfMonth.toLocaleDateString('en-US', options);
-      displayPeriod = `${startOfMonthStr} - ${yesterdayStr}`;
-    }
-
-    let htmlContent = `
-      <html>
-        <head>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-            * { box-sizing: border-box; }
-            body { 
-              font-family: 'Outfit', sans-serif; 
-              margin: 0; 
-              padding: 40px; 
-              background: #0b0f19; 
-              color: #f8fafc; 
-            }
-            .report-header { 
-              text-align: center; 
-              margin-bottom: 40px; 
-              padding-bottom: 30px; 
-              border-bottom: 1px solid #1e293b; 
-            }
-            .report-title { 
-              font-size: 32px; 
-              font-weight: 800; 
-              color: #818cf8; 
-              margin: 0; 
-              text-transform: uppercase; 
-              letter-spacing: 1.5px; 
-            }
-            .report-period { 
-              font-size: 14px; 
-              font-weight: 500; 
-              color: #94a3b8; 
-              margin-top: 10px; 
-              text-transform: uppercase;
-              letter-spacing: 2px;
-            }
-            .dashboard-section { 
-              margin-bottom: 50px; 
-              page-break-inside: avoid; 
-            }
-            .dashboard-title { 
-              font-size: 24px; 
-              font-weight: 700; 
-              margin-bottom: 25px; 
-              color: #f8fafc; 
-              display: flex; 
-              align-items: center; 
-            }
-            .dashboard-title::after { 
-              content: ''; 
-              flex: 1; 
-              height: 1px; 
-              background: linear-gradient(90deg, #334155 0%, transparent 100%); 
-              margin-left: 20px; 
-            }
-            .grid-container { 
-              display: grid; 
-              grid-template-columns: repeat(2, 1fr); 
-              gap: 20px; 
-            }
-            .metric-card { 
-              background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
-              border: 1px solid #1e293b; 
-              border-radius: 16px; 
-              padding: 20px; 
-              box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.02);
-            }
-            .metric-card.full-width { 
-              grid-column: span 2; 
-            }
-            .card-title { 
-              font-size: 11px; 
-              font-weight: 700; 
-              color: #94a3b8; 
-              text-transform: uppercase; 
-              letter-spacing: 1px; 
-              margin-bottom: 12px; 
-            }
-            .card-value { 
-              font-size: 24px; 
-              font-weight: 800; 
-              color: #ffffff; 
-              line-height: 1.2;
-            }
-            .data-list { 
-              list-style: none; 
-              padding: 0; 
-              margin: 0; 
-              column-count: 2;
-              column-gap: 40px;
-            }
-            .data-list-item { 
-              display: flex; 
-              justify-content: space-between; 
-              padding: 10px 0; 
-              border-bottom: 1px solid #1e293b; 
-              font-size: 14px; 
-              break-inside: avoid;
-            }
-            .data-list-item:last-child { 
-              border-bottom: none; 
-            }
-            .data-metric { 
-              color: #cbd5e1; 
-              font-weight: 500;
-              width: 60%;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .data-val { 
-              font-weight: 700; 
-              color: #818cf8; 
-              text-align: right;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="report-header">
-            <h1 class="report-title">AstroVed Business Intelligence</h1>
-            <div class="report-period">Automated Report &bull; Data Period: ${displayPeriod}</div>
-          </div>
-    `;
-
-    const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
-
-    for (const dashboard of dashboardsToCapture) {
-      const sections = await fetchDashboardDataForReport(dashboard, period);
-      if (!sections || sections.length === 0) continue;
-
-      htmlContent += `<div class="dashboard-section"><h2 class="dashboard-title">${dashboard}</h2>`;
-      htmlContent += `<div class="grid-container">`;
-
-      for (const sec of sections) {
-        if (sec.isCards) {
-          sec.data.forEach(card => {
-            htmlContent += `
-              <div class="metric-card">
-                <div class="card-title">${card.title}</div>
-                <div class="card-value">${card.value}</div>
-              </div>
-            `;
-          });
-        } else {
-          // Add full width class for lists
-          htmlContent += `
-            <div class="metric-card full-width">
-              <div class="card-title">${sec.title}</div>
-              <ul class="data-list">
-                ${sec.data.map(row => `
-                  <li class="data-list-item">
-                    <span class="data-metric">${row.Metric}</span>
-                    <span class="data-val">${row.Value}</span>
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          `;
-        }
-      }
-      htmlContent += `</div></div>`;
-    }
-
-    htmlContent += '</body></html>';
-
-    const path = await import('path');
-    const fs = await import('fs');
-
     const tempDir = path.join(process.cwd(), 'temp_reports');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const pdfPage = await browser.newPage();
-    // 2 minutes is more than enough for a static string render
+    // Use a large viewport to make sure the dashboard fits well horizontally
+    await pdfPage.setViewport({ width: 1440, height: 1080 });
+    
+    // 2 minutes timeout for rendering
     pdfPage.setDefaultNavigationTimeout(120000);
     pdfPage.setDefaultTimeout(120000);
 
-    // Inject the raw HTML directly without any network requests
-    await pdfPage.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 120000 });
+    // Build the target URL for the frontend
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Handle array or string for dashboards
+    const dashboardQuery = Array.isArray(dashboards) && dashboards.length > 0 ? dashboards[0] : (dashboards || 'Executive');
+    
+    // Convert friendly name to module route id (e.g. Executive Dashboard -> executive)
+    let moduleId = dashboardQuery.toLowerCase().replace(' dashboard', '').replace(/\s+/g, '-');
+    if (moduleId === 'executive') moduleId = 'executive';
 
-    // Inject html2canvas-pro
+    const targetUrl = `${frontendUrl}/?print=true&module=${encodeURIComponent(moduleId)}&token=astroved_pdf_secret_123&period=${encodeURIComponent(period)}&theme=light`;
+
+    console.log(`[Report Scheduler] Navigating Puppeteer to: ${targetUrl}`);
+    
+    // Navigate to the React frontend
+    await pdfPage.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 120000 });
+
+    // Wait an extra seconds for recharts animations or final data fetching to settle
+    await new Promise(r => setTimeout(r, 4000));
+
+    // Inject html2canvas-pro to comply with requirement
     await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
 
     // Run html2canvas-pro on the backend's hidden page and replace body with the image
     await pdfPage.evaluate(async () => {
-      const dashboardElement = document.body;
+      const dashboardElement = document.querySelector('main') || document.body;
 
       // Allow a brief moment for dynamic styling to settle
       await new Promise(r => setTimeout(r, 500));
 
-      // Use html2canvasPro with scale 1 as configured
-      const canvas = await window.html2canvasPro(dashboardElement, { scale: 1, useCORS: true, logging: false });
+      const canvas = await window.html2canvas(dashboardElement, { scale: 1, useCORS: true, logging: false });
 
       // Clear the body and append only the generated canvas image
       document.body.innerHTML = '';
       document.body.style.margin = '0';
       document.body.style.padding = '0';
+      document.body.style.background = '#ffffff';
       document.body.appendChild(canvas);
     });
 
@@ -1467,7 +1303,8 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     // Capture the canvas image natively using Puppeteer's PDF engine
     await pdfPage.pdf({
       path: tempPdfPath,
-      format: 'A4',
+      format: 'A3', // A3 gives more breathing room for complex dashboards
+      landscape: true,
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
@@ -1476,7 +1313,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
     return tempPdfPath;
   } catch (err) {
-    console.error("[PDF Pregen] Failed to generate PDF via static engine", err);
+    console.error('[PDF Engine] Failed to generate live screenshot PDF:', err);
     throw err;
   }
 };
