@@ -209,7 +209,7 @@ const HomePageBanner = ({ showRevenue = true }) => {
     const loadingToast = toast.loading('Generating PDF...');
 
     try {
-      const canvas = await html2canvas(tableElement, { scale: 2 });
+      const canvas = await html2canvas(tableElement, { scale: 1 });
       const imgData = canvas.toDataURL('image/png');
 
       const pdf = new jsPDF('landscape', 'mm', 'a4');

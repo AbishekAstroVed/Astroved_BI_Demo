@@ -844,7 +844,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
     }
   };
 
-    const handleExportPDF = async () => {
+  const handleExportPDF = async () => {
     try {
       const elementId = exportElementId || 'dashboard-export-area';
       const dashboardElement = document.getElementById(elementId);
@@ -855,15 +855,15 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       }
 
       toast.loading('Generating PDF Report...', { id: 'pdfLoad' });
-      
+
       // Taking visual screenshot of current dashboard view with higher scale for better resolution
-      const canvas = await html2canvasPro(dashboardElement, { scale: 2, useCORS: true, logging: false });
+      const canvas = await html2canvasPro(dashboardElement, { scale: 1, useCORS: true, logging: false });
       const imgData = canvas.toDataURL("image/png");
 
       // Calculate dimensions in mm based on A4 width (210mm)
-      const pdfWidth = 210; 
+      const pdfWidth = 210;
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       const pdf = new jsPDF({
         orientation: pdfWidth > pdfHeight ? 'l' : 'p',
         unit: 'mm',
@@ -874,7 +874,7 @@ const ExportReportsCard = ({ data, defaultPeriod = 'Daily', pageTitle = 'Sales',
       pdf.save(getExportFileName('pdf'));
       toast.dismiss('pdfLoad');
       toast.success("PDF Report downloaded successfully!");
-      
+
       if (onRestoreExport) {
         onRestoreExport();
       }

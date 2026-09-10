@@ -748,7 +748,7 @@ const Executive = () => {
         return;
       }
       toast.loading("Generating PDF...", { id: "pdf-export" });
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const canvas = await html2canvas(element, { scale: 1, useCORS: true, backgroundColor: '#ffffff' });
       const imgData = canvas.toDataURL('image/png');
       const pdfWidth = canvas.width;
       const pdfHeight = canvas.height;

@@ -16,15 +16,13 @@ dotenv.config();
 connectDB().then(async () => {
   // Connect to MSSQL
   await connectMSSQL();
-  
+
   // Auto-seed database if empty
   await seedDatabase();
   // Start the background database backup scheduler
   startBackupScheduler();
   // Start the automated report email dispatcher
   startReportCronJobs();
-  // Start the PDF pre-generation scheduler
-  startPDFPregenerationCron();
   // Start the Slack alert dispatcher
   startAlertCronJobs();
 });

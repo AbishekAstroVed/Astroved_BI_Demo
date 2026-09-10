@@ -556,11 +556,11 @@ export const generateAIInsights = async (req, res) => {
 
     if (isDbConnected) {
       console.log("Starting to fetch live dashboard data...");
-      const createMockRes = (name, setter) => ({ 
-        json: (d) => { console.log(`${name} fetched successfully`); setter(d); }, 
-        status: (code) => { console.log(`${name} status: ${code}`); return createMockRes(name, setter); } 
+      const createMockRes = (name, setter) => ({
+        json: (d) => { console.log(`${name} fetched successfully`); setter(d); },
+        status: (code) => { console.log(`${name} status: ${code}`); return createMockRes(name, setter); }
       });
-      
+
       try {
         await getExecutiveDashboard(mockReq, createMockRes('Executive', d => { execData = d; })).catch(e => console.error("Exec error", e));
         await getMonthlySalesDashboard(mockReq, createMockRes('Sales', d => { salesData = d; })).catch(e => console.error("Sales error", e));
@@ -935,7 +935,7 @@ export const updateSystemConfig = async (req, res) => {
 const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
   try {
     const dateRange = getDateRangeForPeriod(period);
-    const mockReq = { query: { isReport: true, startDate: dateRange.startDate, endDate: dateRange.endDate } };
+    const mockReq = { query: { isReport: true, startDate: dateRange.startDate, endDate: dateRange.endDate, dailyDate: dateRange.dailyDate } };
     let responseDataList = [];
     const mockRes = {
       json: (data) => { responseDataList.push(data); },
@@ -1182,8 +1182,7 @@ function getDateRangeForPeriod(period) {
   const now = new Date();
 
   // End date is always yesterday
-  const endDate = new Date(now);
-  endDate.setDate(now.getDate() - 1);
+  const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
 
   let startDate = new Date(endDate);
 
@@ -1192,26 +1191,31 @@ function getDateRangeForPeriod(period) {
       // startDate is already yesterday
       break;
     case 'weekly':
-      // Start of current week (Sunday)
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - now.getDay());
+      // Start of week of yesterday (Sunday)
+      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - endDate.getDay());
       break;
     case 'monthly':
-      // Start of current month
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      // Start of month of yesterday
+      startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
       break;
     case 'yearly':
-      // Start of current year
-      startDate = new Date(now.getFullYear(), 0, 1);
+      // Start of year of yesterday
+      startDate = new Date(endDate.getFullYear(), 0, 1);
       break;
     default:
       break;
   }
 
+  // Format as YYYY-MM-DD in local time
+  const formatLocal = (d) => {
+    const tzDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+    return tzDate.toISOString().split('T')[0];
+  };
+
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-    dailyDate: endDate.toISOString().split('T')[0]
+    startDate: formatLocal(startDate),
+    endDate: formatLocal(endDate),
+    dailyDate: formatLocal(endDate)
   };
 };
 
@@ -1239,109 +1243,232 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-      timeout: 300000
     });
 
-    const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+    let displayPeriod = period;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    const yesterdayStr = yesterday.toLocaleDateString('en-US', options);
+
+    if (period === 'Daily') {
+      displayPeriod = yesterdayStr;
+    } else if (period === 'Weekly') {
+      const startOfWeek = new Date(yesterday);
+      startOfWeek.setDate(yesterday.getDate() - yesterday.getDay()); // Start of week (Sunday)
+      const startOfWeekStr = startOfWeek.toLocaleDateString('en-US', options);
+      displayPeriod = `${startOfWeekStr} - ${yesterdayStr}`;
+    } else if (period === 'Monthly') {
+      const startOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
+      const startOfMonthStr = startOfMonth.toLocaleDateString('en-US', options);
+      displayPeriod = `${startOfMonthStr} - ${yesterdayStr}`;
+    }
 
     let htmlContent = `
       <html>
         <head>
           <style>
-            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
-            body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
-            .dashboard-image { display: block; margin: 0; padding: 0; width: 100%; height: auto; page-break-after: always; }
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+            * { box-sizing: border-box; }
+            body { 
+              font-family: 'Outfit', sans-serif; 
+              margin: 0; 
+              padding: 40px; 
+              background: #0b0f19; 
+              color: #f8fafc; 
+            }
+            .report-header { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              padding-bottom: 30px; 
+              border-bottom: 1px solid #1e293b; 
+            }
+            .report-title { 
+              font-size: 32px; 
+              font-weight: 800; 
+              color: #818cf8; 
+              margin: 0; 
+              text-transform: uppercase; 
+              letter-spacing: 1.5px; 
+            }
+            .report-period { 
+              font-size: 14px; 
+              font-weight: 500; 
+              color: #94a3b8; 
+              margin-top: 10px; 
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            }
+            .dashboard-section { 
+              margin-bottom: 50px; 
+              page-break-inside: avoid; 
+            }
+            .dashboard-title { 
+              font-size: 24px; 
+              font-weight: 700; 
+              margin-bottom: 25px; 
+              color: #f8fafc; 
+              display: flex; 
+              align-items: center; 
+            }
+            .dashboard-title::after { 
+              content: ''; 
+              flex: 1; 
+              height: 1px; 
+              background: linear-gradient(90deg, #334155 0%, transparent 100%); 
+              margin-left: 20px; 
+            }
+            .grid-container { 
+              display: grid; 
+              grid-template-columns: repeat(2, 1fr); 
+              gap: 20px; 
+            }
+            .metric-card { 
+              background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
+              border: 1px solid #1e293b; 
+              border-radius: 16px; 
+              padding: 20px; 
+              box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.02);
+            }
+            .metric-card.full-width { 
+              grid-column: span 2; 
+            }
+            .card-title { 
+              font-size: 11px; 
+              font-weight: 700; 
+              color: #94a3b8; 
+              text-transform: uppercase; 
+              letter-spacing: 1px; 
+              margin-bottom: 12px; 
+            }
+            .card-value { 
+              font-size: 24px; 
+              font-weight: 800; 
+              color: #ffffff; 
+              line-height: 1.2;
+            }
+            .data-list { 
+              list-style: none; 
+              padding: 0; 
+              margin: 0; 
+              column-count: 2;
+              column-gap: 40px;
+            }
+            .data-list-item { 
+              display: flex; 
+              justify-content: space-between; 
+              padding: 10px 0; 
+              border-bottom: 1px solid #1e293b; 
+              font-size: 14px; 
+              break-inside: avoid;
+            }
+            .data-list-item:last-child { 
+              border-bottom: none; 
+            }
+            .data-metric { 
+              color: #cbd5e1; 
+              font-weight: 500;
+              width: 60%;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            .data-val { 
+              font-weight: 700; 
+              color: #818cf8; 
+              text-align: right;
+            }
           </style>
         </head>
-        <body>  
+        <body>
+          <div class="report-header">
+            <h1 class="report-title">AstroVed Business Intelligence</h1>
+            <div class="report-period">Automated Report &bull; Data Period: ${displayPeriod}</div>
+          </div>
     `;
-
-    const page = await browser.newPage();
-    page.setDefaultNavigationTimeout(300000);
-    page.setDefaultTimeout(300000);
-    await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
-
-    await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 240000 });
-
-    await page.evaluate((schedPeriod) => {
-      localStorage.setItem('astroved_token', 'puppeteer_token');
-      localStorage.setItem('astroved_user', JSON.stringify({ empId: 'SYSTEM', role: 'admin' }));
-      localStorage.setItem('astroved_permissions', JSON.stringify({
-        dashboard: { executive: true, sales: true, marketing: true, newsletter: true, seo: true, customer: true, funnel: true, operations: true, ai: true }
-      }));
-      localStorage.setItem('astroved_report_period', schedPeriod);
-    }, period);
 
     const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
 
-    for (const dash of dashboardsToCapture) {
-      let dashPath = '?module=executive';
-      if (dash.includes('Sales')) dashPath = '?module=sales';
-      if (dash.includes('Marketing')) dashPath = '?module=marketing';
-      if (dash.includes('Newsletter')) dashPath = '?module=newsletter';
-      if (dash.includes('SEO')) dashPath = '?module=seo';
-      if (dash.includes('Customer')) dashPath = '?module=customer';
-      if (dash.includes('Funnel')) dashPath = '?module=funnel';
-      if (dash.includes('Operations')) dashPath = '?module=operations';
-      if (dash.includes('AI')) dashPath = '?module=ai-insights';
-      if (dash.includes('Home') || dash.includes('Banner')) dashPath = '?module=home-banner';
+    for (const dashboard of dashboardsToCapture) {
+      const sections = await fetchDashboardDataForReport(dashboard, period);
+      if (!sections || sections.length === 0) continue;
 
-      console.log(`[PDF Pregen] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
+      htmlContent += `<div class="dashboard-section"><h2 class="dashboard-title">${dashboard}</h2>`;
+      htmlContent += `<div class="grid-container">`;
 
-      await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-      try {
-        await page.waitForFunction(() => {
-          return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
-        }, { timeout: 30000 });
-      } catch (e) {
-        console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
-      }
-
-      await new Promise(r => setTimeout(r, 3000));
-
-      try {
-        const scriptPath = require('path').resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
-        await page.addScriptTag({ path: scriptPath });
-      } catch (scriptErr) {
-        await page.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.3/dist/html2canvas-pro.min.js' });
-      }
-
-      const base64Img = await page.evaluate(async () => {
-        const el = document.querySelector('main') || document.querySelector('.main-content-area') || document.body;
-        const originalOverflow = el.style.overflow;
-        const originalHeight = el.style.height;
-        el.style.overflow = 'visible';
-        el.style.height = 'auto';
-
-        try {
-          const canvas = await window.html2canvas(el, {
-            useCORS: true, scale: 1.5, logging: false,
-            width: el.scrollWidth, height: el.scrollHeight,
-            windowWidth: el.scrollWidth, windowHeight: el.scrollHeight, scrollY: 0
+      for (const sec of sections) {
+        if (sec.isCards) {
+          sec.data.forEach(card => {
+            htmlContent += `
+              <div class="metric-card">
+                <div class="card-title">${card.title}</div>
+                <div class="card-value">${card.value}</div>
+              </div>
+            `;
           });
-          el.style.overflow = originalOverflow;
-          el.style.height = originalHeight;
-          return canvas.toDataURL('image/png');
-        } catch (e) { return null; }
-      });
-
-      if (base64Img) htmlContent += `<img class="dashboard-image" src="${base64Img}" />`;
+        } else {
+          // Add full width class for lists
+          htmlContent += `
+            <div class="metric-card full-width">
+              <div class="card-title">${sec.title}</div>
+              <ul class="data-list">
+                ${sec.data.map(row => `
+                  <li class="data-list-item">
+                    <span class="data-metric">${row.Metric}</span>
+                    <span class="data-val">${row.Value}</span>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          `;
+        }
+      }
+      htmlContent += `</div></div>`;
     }
 
     htmlContent += '</body></html>';
 
-    const tempDir = require('path').join(process.cwd(), 'temp_reports');
-    if (!require('fs').existsSync(tempDir)) require('fs').mkdirSync(tempDir, { recursive: true });
+    const path = await import('path');
+    const fs = await import('fs');
+
+    const tempDir = path.join(process.cwd(), 'temp_reports');
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const pdfPage = await browser.newPage();
-    pdfPage.setDefaultNavigationTimeout(480000);
-    pdfPage.setDefaultTimeout(480000);
-    await pdfPage.setContent(htmlContent, { waitUntil: 'load', timeout: 480000 });
+    // 2 minutes is more than enough for a static string render
+    pdfPage.setDefaultNavigationTimeout(120000);
+    pdfPage.setDefaultTimeout(120000);
 
-    const tempPdfPath = require('path').join(tempDir, `temp_report_${Date.now()}.pdf`);
+    // Inject the raw HTML directly without any network requests
+    await pdfPage.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 120000 });
+
+    // Inject html2canvas-pro
+    await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
+
+    // Run html2canvas-pro on the backend's hidden page and replace body with the image
+    await pdfPage.evaluate(async () => {
+      const dashboardElement = document.body;
+
+      // Allow a brief moment for dynamic styling to settle
+      await new Promise(r => setTimeout(r, 500));
+
+      // Use html2canvasPro with scale 1 as configured
+      const canvas = await window.html2canvasPro(dashboardElement, { scale: 1, useCORS: true, logging: false });
+
+      // Clear the body and append only the generated canvas image
+      document.body.innerHTML = '';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.body.appendChild(canvas);
+    });
+
+    const tempPdfPath = path.join(tempDir, `temp_report_${Date.now()}.pdf`);
+
+    // Capture the canvas image natively using Puppeteer's PDF engine
     await pdfPage.pdf({
-      path: tempPdfPath, format: 'A4', printBackground: true,
+      path: tempPdfPath,
+      format: 'A4',
+      printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
 
@@ -1349,7 +1476,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
     return tempPdfPath;
   } catch (err) {
-    console.error("[PDF Pregen] Failed to generate PDF", err);
+    console.error("[PDF Pregen] Failed to generate PDF via static engine", err);
     throw err;
   }
 };
@@ -1386,12 +1513,27 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     if (data) {
       const prefix = period.toLowerCase() === 'daily' ? 'today' : period.toLowerCase() === 'weekly' ? 'week' : period.toLowerCase() === 'monthly' ? 'month' : 'year';
       extractedDataHtml += `
-        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Executive Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Revenue:</strong> $${data[`${prefix}Revenue`] || '0'}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data[`${prefix}Orders`] || '0'}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Customers:</strong> ${data[`${prefix}Customers`] || '0'}</p>
+        <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #4f46e5; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Executive Dashboard</h4>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #3b82f6;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+            <tr>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Revenue</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">$${data[`${prefix}Revenue`] || '0'}</p>
+              </td>
+              <td width="15"></td>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Orders</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${data[`${prefix}Orders`] || '0'}</p>
+              </td>
+              <td width="15"></td>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Customers</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${data[`${prefix}Customers`] || '0'}</p>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     }
@@ -1402,11 +1544,22 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     if (res && res.data) {
       const pfx = period.toLowerCase() === 'daily' ? 'today' : period.toLowerCase() === 'weekly' ? 'week' : period.toLowerCase() === 'monthly' ? 'month' : 'year';
       extractedDataHtml += `
-        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Customer Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Total Customers:</strong> ${res.data[`${pfx}Customers`] || '0'}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>New Customers:</strong> ${res.data[`${pfx}NewCustomers`] || '0'}</p>
+        <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #10b981; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Customer Dashboard</h4>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #10b981;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+            <tr>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total Customers</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${res.data[`${pfx}Customers`] || '0'}</p>
+              </td>
+              <td width="15"></td>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">New Customers</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${res.data[`${pfx}NewCustomers`] || '0'}</p>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     }
@@ -1414,10 +1567,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
   if (dashboards.includes('Newsletter Performance') || dashboards.includes('All Dashboards')) {
     extractedDataHtml += `
-        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Newsletter Performance</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
-          <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed Newsletter metrics.</p>
+        <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #f59e0b; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Newsletter Performance</h4>
+          <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #f59e0b;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
+          <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 13px; color: #d97706; font-weight: 600;">Please see the attached PDF for detailed Newsletter metrics.</p>
+          </div>
         </div>
       `;
   }
@@ -1426,11 +1581,22 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     const data = await fetchDashboardDataInternal(period.toLowerCase() === 'monthly' || period.toLowerCase() === 'yearly' ? getMonthlySalesDashboard : getDailySalesDashboard, dateRange);
     if (data && data.salesKpiData) {
       extractedDataHtml += `
-        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Sales Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Net Sales:</strong> ${data.salesKpiData[0]?.value || '0'}</p>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Orders:</strong> ${data.salesKpiData[1]?.value || '0'}</p>
+        <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #ec4899; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Sales Dashboard</h4>
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #ec4899;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+            <tr>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Net Sales</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${data.salesKpiData[0]?.value || '0'}</p>
+              </td>
+              <td width="15"></td>
+              <td style="padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase;">Orders</p>
+                <p style="margin: 0; font-size: 22px; color: #0f172a; font-weight: 800;">${data.salesKpiData[1]?.value || '0'}</p>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
     }
@@ -1438,10 +1604,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
   if (dashboards.includes('Operations Dashboard') || dashboards.includes('All Dashboards')) {
     extractedDataHtml += `
-        <div style="margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Operations Dashboard</h4>
-          <p style="margin: 5px 0; font-size: 14px;"><strong>Data Period:</strong> ${dateRange.startDate} to ${dateRange.endDate}</p>
-          <p style="margin: 5px 0; font-size: 14px; color: #64748b;">Please see the attached PDF for detailed operational metrics.</p>
+        <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #8b5cf6; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Operations Dashboard</h4>
+          <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #8b5cf6;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
+          <div style="background: #ede9fe; border: 1px solid #ddd6fe; border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="margin: 0; font-size: 13px; color: #7c3aed; font-weight: 600;">Please see the attached PDF for detailed operational metrics.</p>
+          </div>
         </div>
       `;
   }
@@ -1496,140 +1664,13 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       console.log(`[Report Scheduler] Attached pre-generated PDF for ${name}`);
     } else {
       try {
-        const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-        timeout: 300000
-      });
-
-      const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-      let htmlContent = `
-            <html>
-              <head>
-                <style>
-                  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&display=swap');
-                  body { font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background: #f8fafc; color: #0f172a; }
-                  .dashboard-image { display: block; margin: 0; padding: 0; width: 100%; height: auto; page-break-after: always; }
-                </style>
-              </head>
-              <body>  
-          `;
-
-      const page = await browser.newPage();
-      page.setDefaultNavigationTimeout(300000);
-      page.setDefaultTimeout(300000);
-      await page.setViewport({ width: 1440, height: 1024, deviceScaleFactor: 2 });
-
-      await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded', timeout: 240000 });
-
-      await page.evaluate((schedPeriod) => {
-        localStorage.setItem('astroved_token', 'puppeteer_token');
-        localStorage.setItem('astroved_user', JSON.stringify({ empId: 'SYSTEM', role: 'admin' }));
-        localStorage.setItem('astroved_permissions', JSON.stringify({
-          dashboard: { executive: true, sales: true, marketing: true, newsletter: true, seo: true, customer: true, funnel: true, operations: true, ai: true }
-        }));
-        localStorage.setItem('astroved_report_period', schedPeriod);
-      }, period);
-
-      const dashboardsToCapture = dashboards && dashboards.length > 0 ? dashboards : ['Executive Dashboard'];
-
-      for (const dash of dashboardsToCapture) {
-        let dashPath = '?module=executive';
-        if (dash.includes('Sales')) dashPath = '?module=sales';
-        if (dash.includes('Marketing')) dashPath = '?module=marketing';
-        if (dash.includes('Newsletter')) dashPath = '?module=newsletter';
-        if (dash.includes('SEO')) dashPath = '?module=seo';
-        if (dash.includes('Customer')) dashPath = '?module=customer';
-        if (dash.includes('Funnel')) dashPath = '?module=funnel';
-        if (dash.includes('Operations')) dashPath = '?module=operations';
-        if (dash.includes('AI')) dashPath = '?module=ai-insights';
-
-        console.log(`[Report Scheduler] Capturing ${dash} at ${FRONTEND_URL}/${dashPath}`);
-
-        await page.goto(`${FRONTEND_URL}/${dashPath}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-        // Wait for the React loading spinner to disappear
-        try {
-          await page.waitForFunction(() => {
-            return !document.querySelector('.animate-spin') && !document.querySelector('.lucide-loader2');
-          }, { timeout: 30000 });
-        } catch (e) {
-          console.warn(`Timeout waiting for loader to disappear on ${dashPath}`);
-        }
-
-        // Extra wait for chart animations to complete after data fetches
-        await new Promise(r => setTimeout(r, 3000));
-
-        // Try local path first, fallback to CDN if it fails
-        try {
-          const scriptPath = path.resolve(process.cwd(), '../frontend/node_modules/html2canvas-pro/dist/html2canvas-pro.min.js');
-          await page.addScriptTag({ path: scriptPath });
-        } catch (scriptErr) {
-          console.warn("Local html2canvas failed to load, falling back to CDN", scriptErr);
-          await page.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.3/dist/html2canvas-pro.min.js' });
-        }
-
-        const base64Img = await page.evaluate(async () => {
-          // Target main to avoid sidebar
-          const el = document.querySelector('main') || document.querySelector('.main-content-area') || document.body;
-
-          const originalOverflow = el.style.overflow;
-          const originalHeight = el.style.height;
-          el.style.overflow = 'visible';
-          el.style.height = 'auto';
-
-          try {
-            const canvas = await window.html2canvas(el, {
-              useCORS: true,
-              scale: 1.5,
-              logging: false,
-              width: el.scrollWidth,
-              height: el.scrollHeight,
-              windowWidth: el.scrollWidth,
-              windowHeight: el.scrollHeight,
-              scrollY: 0
-            });
-
-            el.style.overflow = originalOverflow;
-            el.style.height = originalHeight;
-
-            return canvas.toDataURL('image/png');
-          } catch (e) {
-            return null;
-          }
-        });
-
-        if (base64Img) {
-          htmlContent += `
-            <img class="dashboard-image" src="${base64Img}" />
-          `;
-        }
+        const tempPdfPath = await generateAndSavePDF(name, dashboards, period);
+        attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath });
+        console.log('[Report Scheduler] PDF generated successfully using native HTML template.');
+      } catch (err) {
+        console.error("Failed to generate/attach PDF natively", err);
+        pdfErrorMessage = err.message;
       }
-
-      htmlContent += '</body></html>';
-
-      const pdfPage = await browser.newPage();
-      pdfPage.setDefaultNavigationTimeout(480000);
-      pdfPage.setDefaultTimeout(480000);
-      await pdfPage.setContent(htmlContent, { waitUntil: 'load', timeout: 480000 });
-
-      const tempPdfPath = path.join(process.cwd(), `temp_report_${Date.now()}.pdf`);
-      await pdfPage.pdf({
-        path: tempPdfPath,
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '0', bottom: '0', left: '0', right: '0' }
-      });
-
-      await browser.close();
-
-      attachments.push({ filename: `${safeName}_Report.pdf`, path: tempPdfPath, _tempPath: tempPdfPath });
-      console.log('[Report Scheduler] PDF generated successfully using html2canvas-pro via Puppeteer.');
-    } catch (err) {
-      console.error("Failed to generate/attach PDF via Puppeteer", err);
-      pdfErrorMessage = err.message;
-    }
     }
   }
 
@@ -2008,7 +2049,7 @@ export const startReportCronJobs = () => {
       // Convert current time strictly to IST (Asia/Kolkata) for accurate schedule matching
       const istDateStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
       const istNow = new Date(istDateStr);
-      
+
       const currentHours = String(istNow.getHours()).padStart(2, '0');
       const currentMinutes = String(istNow.getMinutes()).padStart(2, '0');
       const currentTimeStr = `${currentHours}:${currentMinutes}`;
