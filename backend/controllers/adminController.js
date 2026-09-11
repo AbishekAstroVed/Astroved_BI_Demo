@@ -1244,7 +1244,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     const fs = await import('fs');
 
     const browser = await puppeteer.launch({
-      headless: true,
+      headless: 'new',
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     });
 
@@ -1281,14 +1281,18 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
     // Inject html2canvas-pro to comply with requirement
     await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
 
-    // Run html2canvas-pro on the backend's hidden page and replace body with the image
+    // Run html2canvas on the backend's hidden page and replace body with the image
     await pdfPage.evaluate(async () => {
       const dashboardElement = document.querySelector('main') || document.body;
 
       // Allow a brief moment for dynamic styling to settle
       await new Promise(r => setTimeout(r, 500));
 
-      const canvas = await window.html2canvas(dashboardElement, { scale: 1, useCORS: true, logging: false });
+      const html2canvasFunc = window.html2canvasPro || window.html2canvas;
+      if (!html2canvasFunc) {
+        throw new Error('html2canvas-pro failed to load in Puppeteer');
+      }
+      const canvas = await html2canvasFunc(dashboardElement, { scale: 1, useCORS: true, logging: false });
 
       // Clear the body and append only the generated canvas image
       document.body.innerHTML = '';
@@ -1549,9 +1553,9 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
   // --- 3. GENERATE CSV ---
   try {
-    let csvString = '';
     if (dashboards && dashboards.length > 0) {
       for (const dashboard of dashboards) {
+        let csvString = '';
         const sections = await fetchDashboardDataForReport(dashboard, period);
         let flatData = [];
         sections.forEach(sec => {
@@ -1569,25 +1573,23 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           }
         });
         if (flatData.length > 0) {
-          csvString += `--- ${dashboard} ---\n`;
           csvString += Object.keys(flatData[0]).join(',') + '\n';
           flatData.forEach(row => {
             csvString += Object.values(row).map(v => {
               if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
               let valStr = String(v).replace(/"/g, '""');
-              if (valStr.includes(',') || valStr.includes('\\n') || valStr.includes('"')) {
+              if (valStr.includes(',') || valStr.includes('\n') || valStr.includes('"')) {
                 return `"${valStr}"`;
               }
               return valStr;
             }).join(',') + '\n';
           });
-          csvString += '\n';
+          attachments.push({ filename: `${safeName}_${dashboard.replace(/\s+/g, '_')}.csv`, content: csvString });
         }
       }
     } else {
-      csvString = 'Notice\\nNo dashboards selected\\n';
+      attachments.push({ filename: `${safeName}_Report.csv`, content: 'Notice\nNo dashboards selected\n' });
     }
-    attachments.push({ filename: `${safeName}_Report.csv`, content: csvString });
   } catch (err) {
     console.error("Failed to attach CSV", err);
   }

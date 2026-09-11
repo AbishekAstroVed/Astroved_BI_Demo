@@ -120,7 +120,7 @@ const ReportsBuilder = () => {
         time: scheduleTime,
         period: schedulePeriod,
         senderEmail: senderEmail,
-        dashboards: selectedDashboards.length > 0 
+        dashboards: selectedDashboards.length > 0
           ? selectedDashboards.map(d => typeof d === 'string' ? d : d.value)
           : DASHBOARD_OPTIONS.map(d => d.value),
         status: 'Active'
@@ -264,7 +264,7 @@ const ReportsBuilder = () => {
 
             <form onSubmit={handleAddSchedule} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                
+
                 {/* 1. Schedule Name */}
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-1 xl:col-span-1">
                   <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Schedule Name</label>
@@ -312,7 +312,7 @@ const ReportsBuilder = () => {
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-1 xl:col-span-1">
                   <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Select Dashboards</label>
                   <div className="border border-cosmic-border rounded-xl transition-colors focus-within:border-indigo-500/50">
-                    <MultiSelectDropdown 
+                    <MultiSelectDropdown
                       options={DASHBOARD_OPTIONS}
                       selected={selectedDashboards}
                       onChange={setSelectedDashboards}
@@ -364,7 +364,7 @@ const ReportsBuilder = () => {
                       required
                     >
                       <option value="" disabled>HH</option>
-                      {Array.from({length: 12}, (_, i) => String(i + 1).padStart(2, '0')).map(h => <option key={h} value={h}>{h}</option>)}
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                     <span className="text-cosmic-text font-extrabold">:</span>
                     <select
@@ -377,7 +377,7 @@ const ReportsBuilder = () => {
                       required
                     >
                       <option value="" disabled>MM</option>
-                      {Array.from({length: 60}, (_, i) => String(i).padStart(2, '0')).map(m => <option key={m} value={m}>{m}</option>)}
+                      {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                     <select
                       value={scheduleTime && parseInt(scheduleTime.split(':')[0], 10) >= 12 ? 'PM' : 'AM'}
@@ -476,79 +476,79 @@ const ReportsBuilder = () => {
                 <th className="py-3 text-center whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-              <tbody className="divide-y divide-cosmic-border/20 text-cosmic-text">
-                {schedules.map((sch, idx) => (
-                  <tr key={idx} className="hover:bg-cosmic-card-hover/30 transition-colors">
-                    <td className="py-3.5 pl-4 font-semibold text-cosmic-text">{sch.name}</td>
-                    <td className="py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize">
-                        <Clock size={10} className="mr-1" />
-                        {sch.frequency || sch.type}
+            <tbody className="divide-y divide-cosmic-border/20 text-cosmic-text">
+              {schedules.map((sch, idx) => (
+                <tr key={idx} className="hover:bg-cosmic-card-hover/30 transition-colors">
+                  <td className="py-3.5 pl-4 font-semibold text-cosmic-text">{sch.name}</td>
+                  <td className="py-3.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize">
+                      <Clock size={10} className="mr-1" />
+                      {sch.frequency || sch.type}
+                    </span>
+                  </td>
+                  <td className="py-3.5 font-mono text-cosmic-muted">{sch.time || '09:00'}</td>
+                  <td className="py-3.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 capitalize">
+                      {sch.period || 'Daily'}
+                    </span>
+                  </td>
+                  <td className="py-3.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase border ${sch.format?.toLowerCase() === 'pdf'
+                      ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                      : sch.format?.toLowerCase() === 'excel'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                      }`}>
+                      {sch.format}
+                    </span>
+                  </td>
+                  <td className="py-3.5 font-mono text-cosmic-muted text-[10px] max-w-[150px] truncate" title={sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards.join(', ') : 'All'}>
+                    {sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards.join(', ') : 'All'}
+                  </td>
+                  <td className="py-3.5 font-mono text-cosmic-muted max-w-[120px] truncate" title={sch.recipients}>{sch.recipients}</td>
+                  <td className="py-3.5 text-center">
+                    <div className="flex flex-col items-center space-y-1.5">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+                        {sch.status || 'Active'}
                       </span>
-                    </td>
-                    <td className="py-3.5 font-mono text-cosmic-muted">{sch.time || '09:00'}</td>
-                    <td className="py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 capitalize">
-                        {sch.period || 'Daily'}
-                      </span>
-                    </td>
-                    <td className="py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase border ${sch.format?.toLowerCase() === 'pdf'
-                          ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                          : sch.format?.toLowerCase() === 'excel'
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                            : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-                        }`}>
-                        {sch.format}
-                      </span>
-                    </td>
-                    <td className="py-3.5 font-mono text-cosmic-muted text-[10px] max-w-[150px] truncate" title={sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards.join(', ') : 'All'}>
-                      {sch.dashboards && sch.dashboards.length > 0 ? sch.dashboards.join(', ') : 'All'}
-                    </td>
-                    <td className="py-3.5 font-mono text-cosmic-muted max-w-[120px] truncate" title={sch.recipients}>{sch.recipients}</td>
-                    <td className="py-3.5 text-center">
-                      <div className="flex flex-col items-center space-y-1.5">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-                          {sch.status || 'Active'}
+                      {sch.lastRunStatus && (
+                        <span className={`text-[9px] font-bold ${sch.lastRunStatus === 'Success' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          Last: {sch.lastRunStatus} ({new Date(sch.lastRunAt).toLocaleDateString()})
                         </span>
-                        {sch.lastRunStatus && (
-                          <span className={`text-[9px] font-bold ${sch.lastRunStatus === 'Success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            Last: {sch.lastRunStatus} ({new Date(sch.lastRunAt).toLocaleDateString()})
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => handleTriggerTest(sch)}
-                          title="Trigger Test Dispatch"
-                          className="p-1.5 rounded-lg bg-cosmic-bg hover:bg-cosmic-card-hover border border-cosmic-border text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                        >
-                          <Send size={11} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSchedule(sch.id, sch.name)}
-                          title="Delete Schedule"
-                          className="p-1.5 rounded-lg bg-cosmic-bg hover:bg-cosmic-card-hover border border-cosmic-border text-rose-500 hover:text-rose-400 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {schedules.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-8 text-center text-cosmic-muted text-xs">
-                      No active report deliveries configured. Use the form above to add one!
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3.5 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                      <button
+                        onClick={() => handleTriggerTest(sch)}
+                        title="Trigger Test Dispatch"
+                        className="p-1.5 rounded-lg bg-cosmic-bg hover:bg-cosmic-card-hover border border-cosmic-border text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                      >
+                        <Send size={11} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSchedule(sch.id, sch.name)}
+                        title="Delete Schedule"
+                        className="p-1.5 rounded-lg bg-cosmic-bg hover:bg-cosmic-card-hover border border-cosmic-border text-rose-500 hover:text-rose-400 transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {schedules.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-cosmic-muted text-xs">
+                    No active report deliveries configured. Use the form above to add one!
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
