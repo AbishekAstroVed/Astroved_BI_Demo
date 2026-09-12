@@ -1315,7 +1315,10 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
     await browser.close();
 
-    return tempPdfPath;
+    const pdfBuffer = fs.readFileSync(tempPdfPath);
+    // Cleanup
+    fs.unlinkSync(tempPdfPath);
+    return { buffer: pdfBuffer, filename: `${safeName}_Report_${period}.pdf` };
   } catch (err) {
     console.error('[PDF Engine] Failed to generate live screenshot PDF:', err);
     throw err;
