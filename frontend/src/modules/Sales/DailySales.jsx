@@ -121,61 +121,7 @@ const DailySales = ({ eventSalesChartPage,
 
       </div>
 
-      {/* Revenue Source as per Event Big Card */}
-      <div className="w-full mt-6 mb-6">
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
-          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
-            <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-              <input
-                type="text"
-                placeholder="Search events, products, sources..."
-                value={revenueSourceSearch}
-                onChange={(e) => setRevenueSourceSearch(e.target.value)}
-                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto flex-1">
-            <div className="overflow-auto w-full ">
-              <table className="w-full text-left text-xs border-collapse relative ">
-                <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="py-2 px-3 font-medium w-8">#</th>
-                    <th className="py-2 px-3 font-medium">Event Name</th>
-                    <th className="py-2 px-3 font-medium">Product Name</th>
-                    <th className="py-2 px-3 font-medium">Source</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).length > 0 ? (
-                    (isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
-                        <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
-                        <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
-                        <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
-                        <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
-                        <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="py-6 text-center text-cosmic-muted text-sm italic">
-                        No revenue source data available for {displayDate}.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {!isExportingPDF && <Pagination {...revenueSourcePage} />}
-        </div>
-      </div>
+
 
       {/* Event Revenue Summary Tables */}
       <div className={isExportingPDF ? "flex w-full justify-between items-start mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"}>
@@ -278,6 +224,62 @@ const DailySales = ({ eventSalesChartPage,
               <div className="flex items-center space-x-1.5"><span className="w-2 h-2 rounded-full bg-[#eab308]"></span> <span>MYR - Malaysia, Philippines, China, Singapore</span></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Revenue Source as per Event Big Card */}
+      <div className="w-full mt-6 mb-6">
+        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
+          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
+            <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+              <input
+                type="text"
+                placeholder="Search events, products, sources..."
+                value={revenueSourceSearch}
+                onChange={(e) => setRevenueSourceSearch(e.target.value)}
+                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+              />
+            </div>
+          </div>
+          <div className="overflow-x-auto flex-1">
+            <div className="overflow-auto w-full ">
+              <table className="w-full text-left text-xs border-collapse relative ">
+                <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="py-2 px-3 font-medium w-8">#</th>
+                    <th className="py-2 px-3 font-medium">Event Name</th>
+                    <th className="py-2 px-3 font-medium">Product Name</th>
+                    <th className="py-2 px-3 font-medium">Source</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
+                  {(isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).length > 0 ? (
+                    (isExportingPDF ? (filteredRevenueSource || []) : revenueSourcePage.currentData).map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
+                        <td className="py-2 px-3 text-cosmic-muted">{idx + 1}.</td>
+                        <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
+                        <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
+                        <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
+                        <td className="py-2 px-3 text-right text-cosmic-success">
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="py-6 text-center text-cosmic-muted text-sm italic">
+                        No revenue source data available for {displayDate}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {!isExportingPDF && <Pagination {...revenueSourcePage} />}
         </div>
       </div>
 

@@ -55,12 +55,12 @@ const DraggableExitButton = ({ onExit }) => {
 
   const handlePointerMove = (e) => {
     if (!isDragging) return;
-    
+
     const dx = e.clientX - dragInfo.current.startX;
     const dy = e.clientY - dragInfo.current.startY;
-    
+
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-        dragInfo.current.moved = true;
+      dragInfo.current.moved = true;
     }
 
     setOffset({
@@ -82,9 +82,9 @@ const DraggableExitButton = ({ onExit }) => {
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      style={{ 
+      style={{
         transform: `translate(${offset.x}px, ${offset.y}px)`,
-        touchAction: 'none' 
+        touchAction: 'none'
       }}
       className={`fixed bottom-6 right-6 z-[100] bg-indigo-600 text-white p-3 rounded-full shadow-2xl hover:bg-indigo-700 flex items-center gap-2 font-bold cursor-move select-none ${isDragging ? 'opacity-90 scale-105' : 'transition-transform'}`}
     >
@@ -227,6 +227,7 @@ function MainAppContent() {
     const permissionMap = {
       executive: 'executive',
       sales: 'sales',
+      'sales-monthly': 'sales',
       marketing: 'marketing',
       newsletter: 'newsletter',
       seo: 'seo',
@@ -252,6 +253,8 @@ function MainAppContent() {
         return <Executive />;
       case 'sales':
         return <Sales />;
+      case 'sales-monthly':
+        return <Sales forceTab="monthly" />;
       case 'marketing':
         return <Marketing setCurrentModule={setCurrentModule} />;
       case 'home-banner':
@@ -307,6 +310,7 @@ function MainAppContent() {
     const titles = {
       executive: 'Executive Performance ',
       sales: 'Sales Performance',
+      'sales-monthly': 'Sales Performance',
       'home-banner': 'Home Page Banner Clicks Dashboard',
       marketing: 'Marketing Performance',
       newsletter: "Newsletter Performance",

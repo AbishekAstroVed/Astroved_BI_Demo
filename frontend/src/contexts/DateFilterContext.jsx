@@ -38,21 +38,20 @@ export const DateFilterProvider = ({ children }) => {
       case 'weekly':
         initialPreset = 'custom';
         initialEnd = new Date(yesterday);
-        // Start of week (Sunday)
-        initialStart = new Date(today);
-        initialStart.setDate(today.getDate() - today.getDay());
+        // Start of week (Sunday) relative to yesterday
+        initialStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() - yesterday.getDay());
         break;
       case 'monthly':
         initialPreset = 'custom';
         initialEnd = new Date(yesterday);
-        // Start of month
-        initialStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        // Start of month relative to yesterday
+        initialStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
         break;
       case 'yearly':
         initialPreset = 'custom';
         initialEnd = new Date(yesterday);
-        // Start of year
-        initialStart = new Date(today.getFullYear(), 0, 1);
+        // Start of year relative to yesterday
+        initialStart = new Date(yesterday.getFullYear(), 0, 1);
         break;
     }
   }
@@ -69,6 +68,7 @@ export const DateFilterProvider = ({ children }) => {
 
   const selectPreset = (preset) => {
     setDatePreset(preset);
+    localStorage.setItem('astroved_report_period', preset);
     const end = new Date();
     let start = new Date();
 
@@ -146,3 +146,4 @@ export const DateFilterProvider = ({ children }) => {
     </DateFilterContext.Provider>
   );
 };
+

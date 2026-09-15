@@ -227,7 +227,12 @@ const HomePageBanner = ({ showRevenue = true }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 md:space-y-6">
+      {/* Header section (visible only in PDF) */}
+      <div className="hidden print:block mb-6 text-center">
+        <h2 className="text-2xl font-bold text-slate-800">Home Page Banner Clicks Dashboard</h2>
+      </div>
+
       {loading ? (
         <div className="flex flex-col items-center justify-center h-96 space-y-4 w-full">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#6868f9]"></div>
@@ -360,22 +365,22 @@ const HomePageBanner = ({ showRevenue = true }) => {
                   </thead>
                   <tbody className="divide-y divide-cosmic-border text-cosmic-text bg-cosmic-card">
                     {paginatedDataMain.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-cosmic-bg transition-colors h-[60px]">
-                          <td className="py-2 px-3 text-cosmic-text font-medium border-r border-cosmic-border/30">{row.code}</td>
-                          <td className="py-2 px-3 border-r border-cosmic-border/30">{row.product}</td>
-                          <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.global.qty}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.global.usd.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.india.qty}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.india.inr.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.india.usd.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.mysg.qty}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.mysg.myr.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.mysg.usd.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.clicks}</td>
-                          <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.discount.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-right font-semibold border-r border-cosmic-border/30">{row.totalUsd.toFixed(2)}</td>
-                          <td className="py-2 px-2 text-right font-bold">{row.netTotalUsd.toFixed(2)}</td>
-                        </tr>
+                      <tr key={idx} className="hover:bg-cosmic-bg transition-colors h-[60px]">
+                        <td className="py-2 px-3 text-cosmic-text font-medium border-r border-cosmic-border/30">{row.code}</td>
+                        <td className="py-2 px-3 border-r border-cosmic-border/30">{row.product}</td>
+                        <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.global.qty}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.global.usd.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.india.qty}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.india.inr.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.india.usd.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.mysg.qty}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.mysg.myr.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.mysg.usd.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-center border-r border-cosmic-border/30">{row.clicks}</td>
+                        <td className="py-2 px-2 text-right border-r border-cosmic-border/30">{row.discount.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right font-semibold border-r border-cosmic-border/30">{row.totalUsd.toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right font-bold">{row.netTotalUsd.toFixed(2)}</td>
+                      </tr>
                     ))}
                     {filteredData.length === 0 && (
                       <tr>

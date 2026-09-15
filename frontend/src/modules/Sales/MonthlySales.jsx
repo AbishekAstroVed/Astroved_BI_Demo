@@ -17,8 +17,13 @@ const MonthlySales = ({ eventSalesChartPage,
   showAllQuarterSpecials,
   setShowAllQuarterSpecials,
   startDate,
-  endDate
+  endDate,
+  activePeriod
 }) => {
+  const periodFromUrlOrStorage = new URLSearchParams(window.location.search).get('period') || localStorage.getItem('astroved_report_period');
+  const validPeriods = ['Weekly', 'Monthly', 'Yearly'];
+  const displayPeriod = validPeriods.find(p => p.toLowerCase() === periodFromUrlOrStorage?.toLowerCase()) || activePeriod || 'Monthly';
+
   const monthRevenueCards = data?.salesKpiData?.monthRevenueCards;
 
   const productSales = data?.tablesData?.productSales;
@@ -117,12 +122,12 @@ const MonthlySales = ({ eventSalesChartPage,
   return (
     <div id="dashboard-export-area" className="flex flex-col space-y-6 mb-6">
       {/* Banner and Export */}
-      <div className="relative w-full flex flex-col md:flex-row justify-center items-center gap-4">
-        <div className="text-cosmic-text text-center font-bold text-base tracking-wide">
-          Total Sales Insights {dateStr && <span className="text-sm font-normal ml-2">({dateStr})</span>}
+      <div className="relative w-full flex flex-col md:flex-row justify-center items-center relative z-[100] gap-4 mt-6 mb-8">
+        <div className="text-cosmic-text text-center font-bold text-base tracking-wide flex items-center justify-center">
+          Total Sales Insights {startDate && endDate && <span className="text-sm font-normal ml-2">({startDate} to {endDate})</span>}
         </div>
         <div className="md:absolute md:right-0">
-          <ExportReportsCard data={{ ...data, geoData }} defaultPeriod="Monthly" pageTitle="Monthly Sales" showPeriodTabs={false} variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
+          <ExportReportsCard data={{ ...data, geoData }} defaultPeriod={displayPeriod} pageTitle={`${displayPeriod} Sales`} showPeriodTabs={false} variant="inline" onPrepareExport={handlePrepareExport} onRestoreExport={handleRestoreExport} />
         </div>
       </div>
 
@@ -151,61 +156,6 @@ const MonthlySales = ({ eventSalesChartPage,
         </div>
       </div>
 
-      {/* Revenue Source as per Event Big Card */}
-      <div className="w-full mt-6 mb-6">
-        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
-          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
-            <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
-              <input
-                type="text"
-                placeholder="Search events, products, sources..."
-                value={revenueSourceSearch}
-                onChange={(e) => setRevenueSourceSearch(e.target.value)}
-                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
-              />
-            </div>
-          </div>
-          <div className="overflow-x-auto flex-1">
-            <div className="overflow-auto w-full ">
-              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
-                <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="py-2 px-3 font-medium w-8">#</th>
-                    <th className="py-2 px-3 font-medium">Event Name</th>
-                    <th className="py-2 px-3 font-medium">Product Name</th>
-                    <th className="py-2 px-3 font-medium">Source</th>
-                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
-                  {(isExportingPDF ? filteredRevenueSource : revSourcePage.currentData) && (isExportingPDF ? filteredRevenueSource : revSourcePage.currentData).length > 0 ? (
-                    (isExportingPDF ? filteredRevenueSource : revSourcePage.currentData).map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
-                        <td className="py-2 px-3 text-cosmic-muted">{((revSourcePage.currentPage - 1) * 10) + idx + 1}.</td>
-                        <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
-                        <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
-                        <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
-                        <td className="py-2 px-3 text-right text-cosmic-success">
-                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="py-6 text-center text-cosmic-muted text-sm italic">
-                        No revenue source data available for this period.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {!isExportingPDF && <Pagination {...revSourcePage} />}
-          </div>
-        </div>
-      </div>
 
       {/* Event Revenue Summary Tables */}
       <div className={isExportingPDF ? "flex w-full justify-between items-start mb-6" : "grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"}>
@@ -239,7 +189,7 @@ const MonthlySales = ({ eventSalesChartPage,
                   {(isExportingPDF ? filteredEventSales : evtSalesPage.currentData) && (isExportingPDF ? filteredEventSales : evtSalesPage.currentData).length > 0 ? (
                     (isExportingPDF ? filteredEventSales : evtSalesPage.currentData).map((item, idx) => (
                       <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
-                        <td className="py-2 px-3 text-cosmic-muted">{((evtSalesPage.currentPage - 1) * 10) + idx + 1}.</td>
+                        <td className="py-2 px-3 text-cosmic-muted">{isExportingPDF ? idx + 1 : ((evtSalesPage.currentPage - 1) * 10) + idx + 1}.</td>
                         <td className="py-2 px-3">{item.name}</td>
                         <td className="py-2 px-3 text-right font-mono text-cosmic-muted">{item.qty}</td>
                         <td className="py-2 px-3 text-right text-cosmic-text font-medium">
@@ -307,6 +257,63 @@ const MonthlySales = ({ eventSalesChartPage,
               <div className="flex items-center space-x-1.5"><span className="w-2 h-2 rounded-full bg-[#16a34a]"></span> <span>USD - USA & Others</span></div>
               <div className="flex items-center space-x-1.5"><span className="w-2 h-2 rounded-full bg-[#eab308]"></span> <span>MYR - Malaysia, Philippines, China, Singapore</span></div>
             </div>
+          </div>
+        </div>
+      </div>
+
+
+      {/* Revenue Source as per Event Big Card */}
+      <div className="w-full mt-6 mb-6">
+        <div className="bg-cosmic-card border border-cosmic-border rounded-xl overflow-hidden flex flex-col">
+          <div className="bg-[#f97316] p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-white">
+            <h4 className="font-semibold text-sm">Revenue Source as per Event</h4>
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/70" />
+              <input
+                type="text"
+                placeholder="Search events, products, sources..."
+                value={revenueSourceSearch}
+                onChange={(e) => setRevenueSourceSearch(e.target.value)}
+                className="bg-white/20 border border-white/30 text-[11px] text-white pl-8 pr-3 py-1.5 rounded-full focus:outline-none focus:bg-white/30 placeholder-white/70 w-full sm:w-48 lg:w-64 transition-all"
+              />
+            </div>
+          </div>
+          <div className="overflow-x-auto flex-1">
+            <div className="overflow-auto w-full ">
+              <table className="w-full text-left text-xs border-collapse relative whitespace-nowrap">
+                <thead className="bg-[#6868f9] text-white sticky top-0 z-10 shadow-sm">
+                  <tr>
+                    <th className="py-2 px-3 font-medium w-8">#</th>
+                    <th className="py-2 px-3 font-medium">Event Name</th>
+                    <th className="py-2 px-3 font-medium">Product Name</th>
+                    <th className="py-2 px-3 font-medium">Source</th>
+                    <th className="py-2 px-3 font-medium text-right">Revenue ($)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-cosmic-border/30 text-cosmic-text">
+                  {(isExportingPDF ? filteredRevenueSource : revSourcePage.currentData) && (isExportingPDF ? filteredRevenueSource : revSourcePage.currentData).length > 0 ? (
+                    (isExportingPDF ? filteredRevenueSource : revSourcePage.currentData).map((item, idx) => (
+                      <tr key={item.id} className="hover:bg-cosmic-card-hover transition-colors">
+                        <td className="py-2 px-3 text-cosmic-muted">{isExportingPDF ? idx + 1 : ((revSourcePage.currentPage - 1) * 10) + idx + 1}.</td>
+                        <td className="py-2 px-3">{item.eventName || item.name || '-'}</td>
+                        <td className="py-2 px-3 text-xs text-cosmic-muted">{item.productName || item.name || '-'}</td>
+                        <td className="py-2 px-3 text-cosmic-muted">{item.source}</td>
+                        <td className="py-2 px-3 text-right text-cosmic-success">
+                          {showRevenue ? `${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '🔒'}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="py-6 text-center text-cosmic-muted text-sm italic">
+                        No revenue source data available for this period.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {!isExportingPDF && <Pagination {...revSourcePage} />}
           </div>
         </div>
       </div>

@@ -10,15 +10,40 @@ import { usePagination } from '../../hooks/usePagination';
 
 const salesCache = {};
 
-const Sales = () => {
+const Sales = ({ forceTab }) => {
   const { startDate, endDate, setStartDate, setEndDate, dailyDate, setCalendarHidden } = useDateFilter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
-    const savedPeriod = localStorage.getItem('astroved_report_period');
-    if (savedPeriod && (savedPeriod.toLowerCase() === 'monthly' || savedPeriod.toLowerCase() === 'yearly')) {
-      return 'monthly';
+    if (forceTab) return forceTab;
+    
+    // Foolproof URL parsing directly from the full href string
+    // This bypasses any issues with HashRouter stripping or relocating search params
+    const urlString = window.location.href;
+    const isPrint = urlString.includes('print=true');
+    const periodMatch = urlString.match(/period=([^&#]+)/);
+    const queryPeriod = periodMatch ? decodeURIComponent(periodMatch[1]) : null;
+
+    if (periodMatch && periodMatch[1]) {
+      const qp = periodMatch[1].toLowerCase();
+      if (qp.includes('daily')) {
+        return 'daily';
+      }
+      if (qp.includes('monthly') || qp.includes('yearly') || qp.includes('weekly')) {
+        return 'monthly';
+      }
     }
+
+    const savedPeriod = localStorage.getItem('astroved_report_period');
+    if (savedPeriod) {
+      if (savedPeriod.toLowerCase() === 'daily') {
+        return 'daily';
+      }
+      if (savedPeriod.toLowerCase() === 'monthly' || savedPeriod.toLowerCase() === 'yearly' || savedPeriod.toLowerCase() === 'weekly') {
+        return 'monthly';
+      }
+    }
+    // Default to daily sales globally when opening the Sales Dashboard
     return 'daily';
   });
 

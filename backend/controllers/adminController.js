@@ -945,7 +945,7 @@ const fetchDashboardDataForReport = async (dashboardName, period = 'Daily') => {
     if (dashboardName === 'Executive Dashboard') {
       await getExecutiveDashboard(mockReq, mockRes);
     } else if (dashboardName === 'Sales Dashboard') {
-      if (period === 'Daily' || period === 'Weekly') {
+      if (period === 'Daily') {
         await getDailySalesDashboard(mockReq, mockRes);
       } else {
         await getMonthlySalesDashboard(mockReq, mockRes);
@@ -1245,70 +1245,138 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
     const browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
     });
 
     const tempDir = path.join(process.cwd(), 'temp_reports');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-    const pdfPage = await browser.newPage();
-    // Use a large viewport to make sure the dashboard fits well horizontally
-    await pdfPage.setViewport({ width: 1440, height: 1080 });
-    
-    // 2 minutes timeout for rendering
-    pdfPage.setDefaultNavigationTimeout(120000);
-    pdfPage.setDefaultTimeout(120000);
-
-    // Build the target URL for the frontend
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    // Handle array or string for dashboards
-    const dashboardQuery = Array.isArray(dashboards) && dashboards.length > 0 ? dashboards[0] : (dashboards || 'Executive');
-    
-    // Convert friendly name to module route id (e.g. Executive Dashboard -> executive)
-    let moduleId = dashboardQuery.toLowerCase().replace(' dashboard', '').replace(/\s+/g, '-');
-    if (moduleId === 'executive') moduleId = 'executive';
 
-    const targetUrl = `${frontendUrl}/?print=true&module=${encodeURIComponent(moduleId)}&token=astroved_pdf_secret_123&period=${encodeURIComponent(period)}&theme=light`;
+    // Convert 'All Dashboards' into an explicit list if selected
+    let dashboardList = Array.isArray(dashboards) ? dashboards : [dashboards];
+    if (dashboardList.length === 1 && dashboardList[0] === 'All Dashboards') {
+      dashboardList = ['Executive Dashboard', 'Sales Dashboard', 'Marketing Dashboard', 'Newsletter Performance', 'SEO Dashboard', 'Customer Dashboard', 'Funnel Analysis', 'Operations Dashboard'];
+    }
 
-    console.log(`[Report Scheduler] Navigating Puppeteer to: ${targetUrl}`);
-    
-    // Navigate to the React frontend
-    await pdfPage.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 120000 });
+    const base64Images = [];
+    let totalHeight = 0;
+    let maxWidth = 0;
 
-    // Wait an extra seconds for recharts animations or final data fetching to settle
-    await new Promise(r => setTimeout(r, 4000));
+    for (let dashboard of dashboardList) {
+      if (!dashboard || dashboard === 'All Dashboards') continue;
 
-    // Inject html2canvas-pro to comply with requirement
-    await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
+      const pdfPage = await browser.newPage();
+      await pdfPage.setViewport({ width: 1920, height: 2160, deviceScaleFactor: 1 });
+      pdfPage.setDefaultNavigationTimeout(120000);
+      pdfPage.setDefaultTimeout(120000);
 
-    // Run html2canvas on the backend's hidden page and replace body with the image
-    await pdfPage.evaluate(async () => {
-      const dashboardElement = document.querySelector('main') || document.body;
+      // Convert friendly name to module route id
+      const moduleMap = {
+        'Executive Dashboard': 'executive',
+        'Sales Dashboard': 'sales',
+        'Newsletter Performance': 'newsletter',
+        'Customer Dashboard': 'customer',
+        'Operations Dashboard': 'operations',
+        'Home Page Banner Clicks': 'home-banner',
+        'All Dashboards': 'executive'
+      };
+      const moduleId = moduleMap[dashboard];
 
-      // Allow a brief moment for dynamic styling to settle
-      await new Promise(r => setTimeout(r, 500));
+      const targetUrl = `${frontendUrl}/?print=true&module=${encodeURIComponent(moduleId)}&token=astroved_pdf_secret_123&period=${encodeURIComponent(period)}&theme=light`;
+      console.log(`[Report Scheduler] Navigating Puppeteer to: ${targetUrl}`);
 
-      const html2canvasFunc = window.html2canvasPro || window.html2canvas;
-      if (!html2canvasFunc) {
-        throw new Error('html2canvas-pro failed to load in Puppeteer');
-      }
-      const canvas = await html2canvasFunc(dashboardElement, { scale: 1, useCORS: true, logging: false });
+      await pdfPage.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 120000 });
 
-      // Clear the body and append only the generated canvas image
-      document.body.innerHTML = '';
-      document.body.style.margin = '0';
-      document.body.style.padding = '0';
-      document.body.style.background = '#ffffff';
-      document.body.appendChild(canvas);
-    });
+      // Wait until any loading spinners on the dashboard disappear
+      await pdfPage.waitForFunction(() => {
+        return document.querySelectorAll('.animate-spin').length === 0;
+      }, { timeout: 120000 });
+
+      // Wait a few extra seconds for recharts animations to complete after data loads
+      await new Promise(r => setTimeout(r, 4000));
+
+      // Inject html2canvas-pro
+      await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
+
+      // Extract Base64 Image
+      const imgData = await pdfPage.evaluate(async () => {
+        // Force all scrolling containers to expand to their full content height
+        const appContainer = document.querySelector('.flex.h-screen');
+        if (appContainer) {
+          appContainer.style.height = 'auto';
+          appContainer.style.overflow = 'visible';
+        }
+
+        const dashboardElement = document.querySelector('main') || document.body;
+        if (dashboardElement) {
+          dashboardElement.style.height = 'auto';
+          dashboardElement.style.overflow = 'visible';
+          dashboardElement.style.maxHeight = 'none';
+        }
+
+        document.body.style.height = 'auto';
+        document.body.style.overflow = 'visible';
+        document.documentElement.style.height = 'auto';
+        document.documentElement.style.overflow = 'visible';
+
+        // Wait a tiny bit for the browser to reflow the DOM
+        await new Promise(r => setTimeout(r, 500));
+
+        const html2canvasFunc = window.html2canvasPro || window.html2canvas;
+        if (!html2canvasFunc) {
+          throw new Error('html2canvas-pro failed to load in Puppeteer');
+        }
+        const canvas = await html2canvasFunc(dashboardElement, {
+          scale: 1,
+          useCORS: true,
+          logging: false,
+          windowHeight: document.documentElement.scrollHeight // explicitly tell it the new full height
+        });
+        return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
+      });
+
+      base64Images.push({ ...imgData, name: dashboard });
+      totalHeight += imgData.height + 120; // 120px for the title header and spacing
+      if (imgData.width > maxWidth) maxWidth = imgData.width;
+
+      await pdfPage.close();
+    }
+
+    // Stitch images together into a master HTML document
+    const masterPage = await browser.newPage();
+    masterPage.setDefaultNavigationTimeout(120000);
+    masterPage.setDefaultTimeout(120000);
+
+    const masterHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700&display=swap" rel="stylesheet">
+        <style>
+          body { margin: 0; padding: 0; background: #ffffff; font-family: 'Inter', sans-serif; }
+        </style>
+      </head>
+      <body>
+        ${base64Images.map(img => `
+          <div style="padding: 30px 50px; background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+            <h1 style="margin: 0; font-size: 36px; color: #1e293b;">${img.name}</h1>
+          </div>
+          <img src="${img.dataUrl}" style="display: block; width: 100%; margin-bottom: 20px;" />
+        `).join('')}
+      </body>
+      </html>
+    `;
+
+    await masterPage.setContent(masterHtml, { waitUntil: 'load', timeout: 120000 });
 
     const tempPdfPath = path.join(tempDir, `temp_report_${Date.now()}.pdf`);
 
-    // Capture the canvas image natively using Puppeteer's PDF engine
-    await pdfPage.pdf({
+    // Capture the final stitched PDF
+    await masterPage.pdf({
       path: tempPdfPath,
-      format: 'A3', // A3 gives more breathing room for complex dashboards
-      landscape: true,
+      width: maxWidth > 0 ? maxWidth + 'px' : '1920px',
+      height: totalHeight > 0 ? (totalHeight + (base64Images.length * 20)) + 'px' : '2160px',
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
@@ -1419,11 +1487,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   }
 
   if (dashboards.includes('Sales Dashboard') || dashboards.includes('All Dashboards')) {
-    const data = await fetchDashboardDataInternal(period.toLowerCase() === 'monthly' || period.toLowerCase() === 'yearly' ? getMonthlySalesDashboard : getDailySalesDashboard, dateRange);
+    const dashboardName = period.charAt(0).toUpperCase() + period.slice(1).toLowerCase() + ' Sales Dashboard';
+    const data = await fetchDashboardDataInternal(period.toLowerCase() === 'daily' ? getDailySalesDashboard : getMonthlySalesDashboard, dateRange);
     if (data && data.salesKpiData) {
       extractedDataHtml += `
         <div style="margin-bottom: 25px; padding: 25px; background: #ffffff; border-left: 4px solid #ec4899; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
-          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">Sales Dashboard</h4>
+          <h4 style="margin: 0 0 15px 0; color: #1e293b; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">${dashboardName}</h4>
           <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Data Period: <span style="color: #ec4899;">${dateRange.startDate} to ${dateRange.endDate}</span></p>
           <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
             <tr>
@@ -1493,7 +1562,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const safeName = name.replace(/\s+/g, '_');
 
   const formatStr = Array.isArray(format) ? format.join(',') : String(format);
-  const includePDF = true; // Always include PDF regardless of what is selected in the UI
+  const includePDF = formatStr.toUpperCase().includes('PDF') || formatStr === 'All Formats';
   const includeExcel = formatStr.toUpperCase().includes('EXCEL') || formatStr === 'All Formats';
   const includeCSV = formatStr.toUpperCase().includes('CSV') || formatStr === 'All Formats';
   let pdfErrorMessage = null;
@@ -1517,81 +1586,85 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
   // --- 2. GENERATE EXCEL ---
 
-  try {
-    const wb = XLSX.utils.book_new();
-    if (dashboards && dashboards.length > 0) {
-      for (const dashboard of dashboards) {
-        const sections = await fetchDashboardDataForReport(dashboard, period);
-        let flatData = [];
-        sections.forEach(sec => {
-          flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
-          if (sec.isCards) {
-            sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
-          } else if (sec.data) {
-            sec.data.forEach(row => {
-              let valObj = row.Value;
-              if (valObj !== null && typeof valObj === 'object') {
-                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-              }
-              flatData.push({ Metric: row.Metric, Value: valObj });
-            });
-          }
-        });
-        const wsData = flatData.length > 0 ? flatData : [{ Metric: 'No Data', Value: 0 }];
-        const ws = XLSX.utils.json_to_sheet(wsData);
-        XLSX.utils.book_append_sheet(wb, ws, dashboard.substring(0, 31));
+  if (includeExcel) {
+    try {
+      const wb = XLSX.utils.book_new();
+      if (dashboards && dashboards.length > 0) {
+        for (const dashboard of dashboards) {
+          const sections = await fetchDashboardDataForReport(dashboard, period);
+          let flatData = [];
+          sections.forEach(sec => {
+            flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+            if (sec.isCards) {
+              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+            } else if (sec.data) {
+              sec.data.forEach(row => {
+                let valObj = row.Value;
+                if (valObj !== null && typeof valObj === 'object') {
+                  valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+                }
+                flatData.push({ Metric: row.Metric, Value: valObj });
+              });
+            }
+          });
+          const wsData = flatData.length > 0 ? flatData : [{ Metric: 'No Data', Value: 0 }];
+          const ws = XLSX.utils.json_to_sheet(wsData);
+          XLSX.utils.book_append_sheet(wb, ws, dashboard.substring(0, 31));
+        }
+      } else {
+        const ws = XLSX.utils.json_to_sheet([{ Notice: 'No dashboards selected' }]);
+        XLSX.utils.book_append_sheet(wb, ws, 'Report Data');
       }
-    } else {
-      const ws = XLSX.utils.json_to_sheet([{ Notice: 'No dashboards selected' }]);
-      XLSX.utils.book_append_sheet(wb, ws, 'Report Data');
+      const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      attachments.push({ filename: `${safeName}_Report.xlsx`, content: excelBuffer });
+    } catch (err) {
+      console.error("Failed to attach Excel", err);
     }
-    const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    attachments.push({ filename: `${safeName}_Report.xlsx`, content: excelBuffer });
-  } catch (err) {
-    console.error("Failed to attach Excel", err);
   }
 
   // --- 3. GENERATE CSV ---
-  try {
-    if (dashboards && dashboards.length > 0) {
-      for (const dashboard of dashboards) {
-        let csvString = '';
-        const sections = await fetchDashboardDataForReport(dashboard, period);
-        let flatData = [];
-        sections.forEach(sec => {
-          flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
-          if (sec.isCards) {
-            sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
-          } else if (sec.data) {
-            sec.data.forEach(row => {
-              let valObj = row.Value;
-              if (valObj !== null && typeof valObj === 'object') {
-                valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
-              }
-              flatData.push({ Metric: row.Metric, Value: valObj });
-            });
-          }
-        });
-        if (flatData.length > 0) {
-          csvString += Object.keys(flatData[0]).join(',') + '\n';
-          flatData.forEach(row => {
-            csvString += Object.values(row).map(v => {
-              if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
-              let valStr = String(v).replace(/"/g, '""');
-              if (valStr.includes(',') || valStr.includes('\n') || valStr.includes('"')) {
-                return `"${valStr}"`;
-              }
-              return valStr;
-            }).join(',') + '\n';
+  if (includeCSV) {
+    try {
+      if (dashboards && dashboards.length > 0) {
+        for (const dashboard of dashboards) {
+          let csvString = '';
+          const sections = await fetchDashboardDataForReport(dashboard, period);
+          let flatData = [];
+          sections.forEach(sec => {
+            flatData.push({ Metric: `--- ${sec.title} ---`, Value: '' });
+            if (sec.isCards) {
+              sec.data.forEach(card => flatData.push({ Metric: card.title, Value: card.value }));
+            } else if (sec.data) {
+              sec.data.forEach(row => {
+                let valObj = row.Value;
+                if (valObj !== null && typeof valObj === 'object') {
+                  valObj = valObj.value !== undefined ? valObj.value : (valObj.current !== undefined ? valObj.current : valObj.count);
+                }
+                flatData.push({ Metric: row.Metric, Value: valObj });
+              });
+            }
           });
-          attachments.push({ filename: `${safeName}_${dashboard.replace(/\s+/g, '_')}.csv`, content: csvString });
+          if (flatData.length > 0) {
+            csvString += Object.keys(flatData[0]).join(',') + '\n';
+            flatData.forEach(row => {
+              csvString += Object.values(row).map(v => {
+                if (typeof v === 'object' && v !== null) return v.value ?? v.current ?? v.count ?? 0;
+                let valStr = String(v).replace(/"/g, '""');
+                if (valStr.includes(',') || valStr.includes('\n') || valStr.includes('"')) {
+                  return `"${valStr}"`;
+                }
+                return valStr;
+              }).join(',') + '\n';
+            });
+            attachments.push({ filename: `${safeName}_${dashboard.replace(/\s+/g, '_')}.csv`, content: csvString });
+          }
         }
+      } else {
+        attachments.push({ filename: `${safeName}_Report.csv`, content: 'Notice\nNo dashboards selected\n' });
       }
-    } else {
-      attachments.push({ filename: `${safeName}_Report.csv`, content: 'Notice\nNo dashboards selected\n' });
+    } catch (err) {
+      console.error("Failed to attach CSV", err);
     }
-  } catch (err) {
-    console.error("Failed to attach CSV", err);
   }
 
   await transporter.sendMail({
@@ -2067,3 +2140,5 @@ export const startAlertCronJobs = () => {
 
   console.log('[Alert Cron] Initialized alert cron job to run every minute.');
 };
+
+
