@@ -16,7 +16,7 @@ const Sales = ({ forceTab }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
     if (forceTab) return forceTab;
-    
+
     // Foolproof URL parsing directly from the full href string
     // This bypasses any issues with HashRouter stripping or relocating search params
     const urlString = window.location.href;
@@ -43,8 +43,8 @@ const Sales = ({ forceTab }) => {
         return 'monthly';
       }
     }
-    // Default to daily sales globally when opening the Sales Dashboard
-    return 'daily';
+    // Default to monthly sales globally when opening the Sales Dashboard
+    return 'monthly';
   });
 
   useEffect(() => {

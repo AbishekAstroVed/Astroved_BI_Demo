@@ -1274,7 +1274,7 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
       // Convert friendly name to module route id
       const moduleMap = {
         'Executive Dashboard': 'executive',
-        'Sales Dashboard': 'sales',
+        'Sales Dashboard': 'sales-monthly', // Always use the monthly tab layout for all email reports
         'Newsletter Performance': 'newsletter',
         'Customer Dashboard': 'customer',
         'Operations Dashboard': 'operations',
@@ -1293,8 +1293,8 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
         return document.querySelectorAll('.animate-spin').length === 0;
       }, { timeout: 120000 });
 
-      // Wait a few extra seconds for recharts animations to complete after data loads
-      await new Promise(r => setTimeout(r, 4000));
+      // Give extra time for ALL dashboards to ensure APIs finish fetching and charts fully render
+      await new Promise(r => setTimeout(r, 15000));
 
       // Inject html2canvas-pro
       await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
