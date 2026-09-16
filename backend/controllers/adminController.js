@@ -1238,14 +1238,23 @@ const fetchDashboardDataInternal = async (controllerFn, queryParams) => {
 
 export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
   const safeName = scheduleName.replace(/\s+/g, '_');
+  let browser = null;
   try {
     const puppeteer = (await import('puppeteer')).default;
     const path = await import('path');
     const fs = await import('fs');
-
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-accelerated-2d-canvas',
+        '--disable-software-rasterizer'
+      ],
+      protocolTimeout: 240000
     });
 
     const tempDir = path.join(process.cwd(), 'temp_reports');
@@ -1296,11 +1305,8 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
       // Give extra time for ALL dashboards to ensure APIs finish fetching and charts fully render
       await new Promise(r => setTimeout(r, 15000));
 
-      // Inject html2canvas-pro
-      await pdfPage.addScriptTag({ url: 'https://cdn.jsdelivr.net/npm/html2canvas-pro@2.3.8/dist/html2canvas-pro.js' });
-
-      // Extract Base64 Image
-      const imgData = await pdfPage.evaluate(async () => {
+      // Extract Base64 Image using native Puppeteer screenshot
+      await pdfPage.evaluate(async () => {
         // Force all scrolling containers to expand to their full content height
         const appContainer = document.querySelector('.flex.h-screen');
         if (appContainer) {
@@ -1322,19 +1328,27 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
         // Wait a tiny bit for the browser to reflow the DOM
         await new Promise(r => setTimeout(r, 500));
-
-        const html2canvasFunc = window.html2canvasPro || window.html2canvas;
-        if (!html2canvasFunc) {
-          throw new Error('html2canvas-pro failed to load in Puppeteer');
-        }
-        const canvas = await html2canvasFunc(dashboardElement, {
-          scale: 1,
-          useCORS: true,
-          logging: false,
-          windowHeight: document.documentElement.scrollHeight // explicitly tell it the new full height
-        });
-        return { dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height };
       });
+
+      const dimensions = await pdfPage.evaluate(() => {
+        return {
+          width: document.documentElement.scrollWidth || 1920,
+          height: document.documentElement.scrollHeight || 2160
+        };
+      });
+
+      const base64Str = await pdfPage.screenshot({
+        fullPage: true,
+        encoding: 'base64',
+        type: 'jpeg',
+        quality: 80
+      });
+
+      const imgData = {
+        dataUrl: 'data:image/jpeg;base64,' + base64Str,
+        width: dimensions.width,
+        height: dimensions.height
+      };
 
       base64Images.push({ ...imgData, name: dashboard });
       totalHeight += imgData.height + 120; // 120px for the title header and spacing
@@ -1387,6 +1401,10 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
   } catch (err) {
     console.error('[PDF Engine] Failed to generate live screenshot PDF:', err);
     throw err;
+  } finally {
+    if (browser) {
+      try { await browser.close(); } catch (e) { }
+    }
   }
 };
 
@@ -1403,7 +1421,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const fromEmailEnv = process.env.SMTP_FROM;
 
   // Use the SMTP user as the Display Name, and the system email as the actual sender.
-  const smtpUser = process.env.SMTP_USER || 'Astrovedpepi';
+  const smtpUser = 'AstroVed';
   const systemEmail = fromEmailEnv || (user.includes('@') ? user : 'support@astroved.com');
   const from = `"${smtpUser}" <${systemEmail}>`;
 
@@ -1551,7 +1569,6 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
             <h3 style="margin-top: 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Dispatch Details</h3>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Report Name:</strong> ${name}</p>
             <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Data Period:</strong> ${period}</p>
-            <p style="margin: 8px 0; font-size: 14px;"><strong style="color: #0f172a;">Dashboards Included:</strong> ${dashboards.join(', ') || 'None'}</p>
           </div>
         </div>
       </div>
