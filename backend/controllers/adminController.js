@@ -1297,22 +1297,23 @@ export const generateAndSavePDF = async (scheduleName, dashboards, period) => {
 
       await pdfPage.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 120000 });
 
-      // Wait until any loading spinners on the dashboard disappear
+      // Wait until any loading spinners and skeletons on the dashboard disappear
       await pdfPage.waitForFunction(() => {
-        return document.querySelectorAll('.animate-spin').length === 0;
+        return document.querySelectorAll('.animate-spin, .animate-pulse').length === 0;
       }, { timeout: 120000 });
 
       // Give extra time for ALL dashboards to ensure APIs finish fetching and charts fully render
-      await new Promise(r => setTimeout(r, 15000));
+      await new Promise(r => setTimeout(r, 20000));
 
       // Extract Base64 Image using native Puppeteer screenshot
       await pdfPage.evaluate(async () => {
         // Force all scrolling containers to expand to their full content height
-        const appContainer = document.querySelector('.flex.h-screen');
-        if (appContainer) {
-          appContainer.style.height = 'auto';
-          appContainer.style.overflow = 'visible';
-        }
+        const containers = document.querySelectorAll('.h-\\[100dvh\\], .overflow-hidden, .overflow-y-auto');
+        containers.forEach(c => {
+          c.style.height = 'auto';
+          c.style.overflow = 'visible';
+          c.style.maxHeight = 'none';
+        });
 
         const dashboardElement = document.querySelector('main') || document.body;
         if (dashboardElement) {
