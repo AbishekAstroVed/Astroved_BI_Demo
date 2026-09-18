@@ -14,8 +14,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
     { id: 'home-banner', name: 'Home Page Banner Clicks', icon: LayoutDashboard },
     { id: 'newsletter', name: "Newsletter Performance", icon: Newspaper },
     { id: 'customer', name: 'Customer Dashboard', icon: Users },
-    { id: 'operations', name: 'Operations Dashboard', icon: Activity },
-    { id: 'ai-insights', name: 'AI Insights', icon: Sparkles }
+    { id: 'operations', name: 'Operations Dashboard', icon: Activity }
   ];
 
   const permissionMap = {
@@ -39,8 +38,7 @@ const Sidebar = ({ currentModule, setCurrentModule, collapsed, setCollapsed, mob
 
   const adminPanel = [
     { id: 'user-management', name: 'User Management', icon: User },
-    { id: 'report-scheduler', name: 'Report Scheduler', icon: Calendar },
-    { id: 'ai-settings', name: 'AI Settings', icon: Sparkles },
+    { id: 'report-scheduler', name: 'Report Scheduler', icon: Calendar }
   ];
 
   const adminPanelMap = {

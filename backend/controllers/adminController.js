@@ -555,18 +555,20 @@ export const generateAIInsights = async (req, res) => {
     const mockReq = { query: { period: period, startDate, endDate } };
 
     if (isDbConnected) {
-      console.log("Starting to fetch live dashboard data...");
+      console.log("Starting to fetch live dashboard data concurrently...");
       const createMockRes = (name, setter) => ({
         json: (d) => { console.log(`${name} fetched successfully`); setter(d); },
         status: (code) => { console.log(`${name} status: ${code}`); return createMockRes(name, setter); }
       });
 
       try {
-        await getExecutiveDashboard(mockReq, createMockRes('Executive', d => { execData = d; })).catch(e => console.error("Exec error", e));
-        await getMonthlySalesDashboard(mockReq, createMockRes('Sales', d => { salesData = d; })).catch(e => console.error("Sales error", e));
-        await getNewsletterDashboard(mockReq, createMockRes('Newsletter', d => { newsletterData = d; })).catch(e => console.error("News error", e));
-        await getOperationalDashboard(mockReq, createMockRes('Operations', d => { opsData = d; })).catch(e => console.error("Ops error", e));
-        await getCustomerDashboard(mockReq, createMockRes('Customer', d => { customerData = d; })).catch(e => console.error("Cust error", e));
+        await Promise.all([
+          getExecutiveDashboard(mockReq, createMockRes('Executive', d => { execData = d; })).catch(e => console.error("Exec error", e)),
+          getMonthlySalesDashboard(mockReq, createMockRes('Sales', d => { salesData = d; })).catch(e => console.error("Sales error", e)),
+          getNewsletterDashboard(mockReq, createMockRes('Newsletter', d => { newsletterData = d; })).catch(e => console.error("News error", e)),
+          getOperationalDashboard(mockReq, createMockRes('Operations', d => { opsData = d; })).catch(e => console.error("Ops error", e)),
+          getCustomerDashboard(mockReq, createMockRes('Customer', d => { customerData = d; })).catch(e => console.error("Cust error", e))
+        ]);
         console.log("All dashboard data fetched successfully");
       } catch (err) {
         console.warn("Failed to fetch live dashboard data for AI:", err.message);
@@ -575,37 +577,19 @@ export const generateAIInsights = async (req, res) => {
       console.warn("MongoDB is offline. Skipping real-time dashboard data aggregation to prevent timeout.");
     }
 
-    // Dynamic AstroVed business metrics to analyze (Live Data)
     const businessMetrics = {
       period: period,
-      executive: execData ? {
-        kpi: execData.kpi,
-        topProducts: (execData.topProductsMonth || []).slice(0, 10)
-      } : null,
-      sales: salesData ? {
-        kpi: salesData.salesKpiData,
-        bestSellers: (salesData.bestSellers || []).slice(0, 10),
-        lowPerformers: (salesData.lowPerformers || []).slice(0, 10)
-      } : null,
-      newsletter: newsletterData ? {
-        kpi: newsletterData.kpiData
-      } : null,
-      operations: opsData ? {
-        kpi: opsData.kpis,
-        trends: (opsData.trends || []).slice(0, 10)
-      } : null,
-      customer: customerData ? {
-        kpi: customerData.kpiData,
-        segments: (customerData.segments || []).slice(0, 5)
-      } : null
+      executive: execData ? { kpi: execData.kpi, topProducts: (execData.topProductsMonth || []).slice(0, 10) } : null,
+      sales: salesData ? { kpi: salesData.salesKpiData, bestSellers: (salesData.bestSellers || []).slice(0, 10), lowPerformers: (salesData.lowPerformers || []).slice(0, 10) } : null,
+      newsletter: newsletterData ? { kpi: newsletterData.kpiData } : null,
+      operations: opsData ? { kpi: opsData.kpis, trends: (opsData.trends || []).slice(0, 10) } : null,
+      customer: customerData ? { kpi: customerData.kpiData, segments: (customerData.segments || []).slice(0, 5) } : null
     };
 
-    // Ignore the prompt from settings as per user request to force a detailed analysis
-    const userPrompt = 'Perform a comprehensive, detailed, and highly analytical deep-dive into ALL provided dashboard metrics (Executive, Sales, Newsletter, Operations, Customer). You MUST generate exactly 6 unique, diverse, and completely novel insights. Ensure you generate at least one insight for different dashboards. Explicitly categorize them into Positives, Negatives, and areas for Improvement.';
-
+    const userPrompt = 'Perform a comprehensive, detailed, and highly analytical deep-dive into ALL provided dashboard metrics (Executive, Sales, Newsletter, Operations, Customer). You MUST generate multiple unique, diverse, and completely novel insights. Ensure you generate at least one insight for different dashboards. Explicitly categorize them into Positives, Negatives, and areas for Improvement.';
     const systemPrompt = `You are an advanced business intelligence AI analyst specialized in the AstroVed platform.
 You perform deeply comprehensive and detailed analysis of all dashboard data including user behavior, traffic performance, purchase trends, and operational checkouts.
-Your job is to generate exactly 6 strategic, highly actionable, and completely unique insights.
+Your job is to generate strategic, highly actionable, and completely unique insights.
 CRITICAL: You must ensure you generate entirely novel and distinct insights from any previous analysis. Do NOT repeat standard or generic advice. Base your insights on the exact numbers provided.
 Request Timestamp (to guarantee variation): ${new Date().toISOString()}
 Random Seed: ${Math.random()}
@@ -636,7 +620,6 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
 ]`;
 
     try {
-      // Validate and sanitize the inputs for OpenAI
       const cleanModel = (model && model.includes('gpt-5.5')) ? 'gpt-4o' : (model || 'gpt-4o');
       const cleanTemp = Number(temperature) || 0.7;
       const cleanTokens = Number(maxTokens) || 4096;
@@ -654,26 +637,31 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
       console.log("Sending request to OpenAI API...");
       console.log("Payload size:", JSON.stringify(businessMetrics).length, "characters");
 
-      // Make the native fetch call
+      // Implement an explicit timeout to prevent hanging that leads to 504 Gateway Timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second limit
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errBody = await response.text();
         console.error("OpenAI Error Response:", errBody);
-        throw new Error(`OpenAI API failed with status ${response.status}: ${errBody}`);
+        throw new Error(`OpenAI API rejected the request with status ${response.status}: ${errBody}`);
       }
 
       const data = await response.json();
       let content = data.choices[0].message.content.trim();
 
-      // Clean up markdown code block markers if returned by OpenAI
       if (content.startsWith('```')) {
         content = content.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
       }
@@ -682,6 +670,9 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
       return res.json({ insights, rawData: businessMetrics });
     } catch (apiError) {
       console.error('OpenAI request failed:', apiError.message);
+      if (apiError.name === 'AbortError') {
+        return res.status(504).json({ message: 'OpenAI API took too long to respond (over 30 seconds) and was aborted.' });
+      }
       return res.status(500).json({ message: `AI Engine Error: ${apiError.message}` });
     }
 
