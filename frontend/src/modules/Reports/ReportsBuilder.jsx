@@ -31,6 +31,13 @@ const ReportsBuilder = () => {
   const [selectedDashboards, setSelectedDashboards] = useState([]);
   const [schedules, setSchedules] = useState([]);
 
+  // HTML Template Sender state
+  const [htmlScheduleName, setHtmlScheduleName] = useState('');
+  const [htmlDashboards, setHtmlDashboards] = useState([]);
+  const [htmlRecipientEmails, setHtmlRecipientEmails] = useState([]);
+  const [htmlEmailInput, setHtmlEmailInput] = useState('');
+  const [htmlScheduleTime, setHtmlScheduleTime] = useState('');
+
   const loadSchedules = async () => {
     try {
       const data = await api.getSchedules();
@@ -150,6 +157,66 @@ const ReportsBuilder = () => {
       toast.error('Failed to register schedule: ' + err.message);
     }
   };
+
+  const handleAddHtmlSchedule = async (e) => {
+    e.preventDefault();
+    const userPermissions = JSON.parse(localStorage.getItem('astroved_permissions') || '{}');
+    if (userPermissions && userPermissions.crud && userPermissions.crud.create === false) {
+      toast.error('Access Denied: Your role does not have Create permissions.');
+      return;
+    }
+    if (htmlEmailInput.trim()) {
+      handleAddHtmlEmail(new Event('submit'));
+    }
+    if (!htmlScheduleName || htmlRecipientEmails.length === 0 || !htmlScheduleTime) {
+      toast.error('Please provide a schedule name, recipient email, and select a time.');
+      return;
+    }
+
+    try {
+      const user = JSON.parse(localStorage.getItem('astroved_user') || '{}');
+      const senderEmail = user.email || 'no-reply@astroved.com';
+
+      // Submit as a special HTML schedule
+      const newSch = {
+        name: htmlScheduleName,
+        frequency: 'Daily',
+        recipients: htmlRecipientEmails,
+        format: 'HTML',
+        time: htmlScheduleTime,
+        period: 'Daily',
+        senderEmail: senderEmail,
+        dashboards: htmlDashboards.length > 0
+          ? htmlDashboards.map(d => typeof d === 'string' ? d : d.value)
+          : DASHBOARD_OPTIONS.map(d => d.value),
+        status: 'Active'
+      };
+
+      await api.createSchedule(newSch);
+      toast.success(`Successfully registered Automatic Template HTML Sender for ${htmlScheduleTime}!`);
+      loadSchedules();
+
+      // Log audit log
+      await api.createAuditLog({
+        user: user.name || user.email || 'System User',
+        action: `Created new HTML Template automated schedule`,
+        module: 'Reports Scheduler',
+        ip: '127.0.0.1',
+        browser: navigator.userAgent
+      });
+
+      // reset form
+      setHtmlScheduleName('');
+      setHtmlDashboards([]);
+      setHtmlRecipientEmails([]);
+      setHtmlEmailInput('');
+      setHtmlScheduleTime('');
+    } catch (err) {
+      toast.error('Failed to register HTML schedule: ' + err.message);
+    }
+  };
+
+
 
   const handleDeleteSchedule = (id, name) => {
     const userPermissions = JSON.parse(localStorage.getItem('astroved_permissions') || '{}');
@@ -447,6 +514,155 @@ const ReportsBuilder = () => {
                 >
                   <Calendar size={16} className="text-white" />
                   <span>Register Schedule</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Automatic Template Html Sender */}
+        <div className="bg-cosmic-card border border-cosmic-border shadow-sm p-6 rounded-2xl flex flex-col justify-between mt-2">
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-cosmic-text font-extrabold text-base flex items-center">
+                <Mail size={18} className="text-indigo-400 mr-2" />
+                Automatic Template HTML Sender
+              </h4>
+              <p className="text-xs text-cosmic-muted mt-1">
+                Schedule dynamic, real-time HTML email templates (e.g. Sales Data) directly to recipients.
+              </p>
+            </div>
+
+            <form onSubmit={handleAddHtmlSchedule} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                {/* Schedule Name */}
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-1 xl:col-span-1">
+                  <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Schedule Name</label>
+                  <input
+                    type="text"
+                    placeholder="Weekly KPI Summary..."
+                    value={htmlScheduleName}
+                    onChange={(e) => setHtmlScheduleName(e.target.value)}
+                    className="w-full bg-cosmic-bg border border-cosmic-border px-4 py-2.5 rounded-xl text-sm text-cosmic-text placeholder-cosmic-muted focus:outline-none focus:border-indigo-500/50 transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Select Dashboards */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Select Dashboard(s)</label>
+                  <div className="border border-cosmic-border rounded-xl transition-colors focus-within:border-indigo-500/50">
+                    <MultiSelectDropdown
+                      options={DASHBOARD_OPTIONS}
+                      selected={htmlDashboards}
+                      onChange={setHtmlDashboards}
+                      placeholder="All Dashboards"
+                    />
+                  </div>
+                </div>
+
+                {/* Send Hour (UTC) */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Send Time (UTC)</label>
+                  <div className="flex items-center space-x-2 w-full">
+                    <select
+                      value={htmlScheduleTime ? (() => { let h = parseInt(htmlScheduleTime.split(':')[0], 10); return String(h % 12 || 12).padStart(2, '0'); })() : ''}
+                      onChange={(e) => {
+                        const m = htmlScheduleTime ? htmlScheduleTime.split(':')[1] : '00';
+                        const p = htmlScheduleTime && parseInt(htmlScheduleTime.split(':')[0], 10) >= 12 ? 'PM' : 'AM';
+                        let hr = parseInt(e.target.value, 10);
+                        if (p === 'PM' && hr !== 12) hr += 12;
+                        if (p === 'AM' && hr === 12) hr = 0;
+                        setHtmlScheduleTime(`${String(hr).padStart(2, '0')}:${m}`);
+                      }}
+                      className="flex-1 bg-cosmic-bg border border-cosmic-border px-3 py-2.5 rounded-xl text-sm text-cosmic-text focus:outline-none focus:border-indigo-500/50 text-center transition-colors cursor-pointer"
+                      required
+                    >
+                      <option value="" disabled>HH</option>
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <span className="text-cosmic-text font-extrabold">:</span>
+                    <select
+                      value={htmlScheduleTime ? htmlScheduleTime.split(':')[1] : ''}
+                      onChange={(e) => {
+                        let hr = htmlScheduleTime ? parseInt(htmlScheduleTime.split(':')[0], 10) : 12;
+                        setHtmlScheduleTime(`${String(hr).padStart(2, '0')}:${e.target.value}`);
+                      }}
+                      className="flex-1 bg-cosmic-bg border border-cosmic-border px-3 py-2.5 rounded-xl text-sm text-cosmic-text focus:outline-none focus:border-indigo-500/50 text-center transition-colors cursor-pointer"
+                      required
+                    >
+                      <option value="" disabled>MM</option>
+                      {Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <select
+                      value={htmlScheduleTime && parseInt(htmlScheduleTime.split(':')[0], 10) >= 12 ? 'PM' : 'AM'}
+                      onChange={(e) => {
+                        if (!htmlScheduleTime) return;
+                        const m = htmlScheduleTime.split(':')[1];
+                        let hr = parseInt(htmlScheduleTime.split(':')[0], 10);
+                        const p = e.target.value;
+                        if (p === 'PM' && hr < 12) hr += 12;
+                        if (p === 'AM' && hr >= 12) hr -= 12;
+                        setHtmlScheduleTime(`${String(hr).padStart(2, '0')}:${m}`);
+                      }}
+                      className="flex-1 bg-cosmic-bg border border-cosmic-border px-3 py-2.5 rounded-xl text-sm text-cosmic-text focus:outline-none focus:border-indigo-500/50 text-center font-bold transition-colors cursor-pointer"
+                    >
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Recipients Email */}
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                  <label className="text-[10px] font-bold text-cosmic-muted uppercase tracking-wider block">Recipients Email (Press Enter)</label>
+                  <div className="w-full bg-cosmic-bg border border-cosmic-border rounded-xl flex flex-wrap gap-2 p-2 min-h-[46px] items-center focus-within:border-indigo-500/50 transition-colors">
+                    {htmlRecipientEmails.map((email, index) => (
+                      <div key={index} className="flex items-center space-x-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border border-indigo-100/50">
+                        <span>{email}</span>
+                        <button
+                          type="button"
+                          onClick={() => setHtmlRecipientEmails(htmlRecipientEmails.filter((_, i) => i !== index))}
+                          className="text-indigo-400 hover:text-red-500 focus:outline-none ml-1 transition-colors cursor-pointer"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      type="email"
+                      placeholder={htmlRecipientEmails.length === 0 ? "name@company.com" : ""}
+                      value={htmlEmailInput}
+                      onChange={(e) => setHtmlEmailInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = htmlEmailInput.trim().replace(',', '');
+                          if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !htmlRecipientEmails.includes(val)) {
+                            setHtmlRecipientEmails([...htmlRecipientEmails, val]);
+                            setHtmlEmailInput('');
+                          } else if (val) {
+                            toast.error('Please enter a valid email address.');
+                          }
+                        } else if (e.key === 'Backspace' && htmlEmailInput === '' && htmlRecipientEmails.length > 0) {
+                          setHtmlRecipientEmails(htmlRecipientEmails.slice(0, -1));
+                        }
+                      }}
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-cosmic-text placeholder-cosmic-muted min-w-[150px] py-1 px-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="flex justify-end pt-6 mt-4 border-t border-cosmic-border/30">
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[#6868f9] hover:bg-[#5a5af0] text-white text-sm font-bold flex items-center justify-center space-x-2 transition-all shadow-lg shadow-[#6868f9]/20 active:scale-95 cursor-pointer"
+                >
+                  <Mail size={16} className="text-white" />
+                  <span>Register HTML Template Sender</span>
                 </button>
               </div>
             </form>

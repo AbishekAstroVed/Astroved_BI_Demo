@@ -1,0 +1,599 @@
+{
+  "users": [
+    {
+      "_id": "6a58614c5dc159302edc483c",
+      "empId": "EMP001",
+      "__v": 0,
+      "createdDate": "2025-01-01",
+      "department": "Analytics",
+      "designation": "Super Admin",
+      "email": "admin@astroved.com",
+      "lastLogin": "2026-07-14 16:30",
+      "name": "System Admin",
+      "password": "admin123",
+      "phone": "+91 98765 43200",
+      "role": "Super Admin",
+      "status": "Inactive"
+    },
+    {
+      "_id": "6a759727d074a3b5cb56ba31",
+      "empId": "EMP002",
+      "name": "Ak",
+      "email": "abishek@astroved.com",
+      "password": "astroved123",
+      "phone": "",
+      "department": "Support",
+      "designation": "",
+      "role": "Super Admin",
+      "status": "Inactive",
+      "createdDate": "2026-08-07",
+      "lastLogin": "2026-08-10 11:34",
+      "__v": 0
+    }
+  ],
+  "roles": [
+    {
+      "permissions": {
+        "dashboard": {
+          "executive": true,
+          "sales": true,
+          "marketing": true,
+          "newsletter": true,
+          "seo": true,
+          "customer": true,
+          "funnel": true,
+          "operations": true,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": true,
+          "download": true,
+          "drillDown": true,
+          "viewCost": true,
+          "viewRevenue": true,
+          "viewProfit": true,
+          "viewCustomer": true
+        },
+        "management": {
+          "users": true,
+          "roles": true,
+          "kpis": true,
+          "targets": true,
+          "reports": true,
+          "ai": true,
+          "notifications": true,
+          "integrations": true,
+          "apis": true
+        },
+        "crud": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "publish": true
+        }
+      },
+      "_id": "6a58614c5dc159302edc483d",
+      "role": "Super Admin",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "executive": true,
+          "sales": true,
+          "marketing": false,
+          "newsletter": false,
+          "seo": false,
+          "customer": true,
+          "funnel": false,
+          "operations": false,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": false,
+          "download": true,
+          "drillDown": true,
+          "viewCost": false,
+          "viewRevenue": true,
+          "viewProfit": false,
+          "viewCustomer": false
+        },
+        "management": {
+          "users": false,
+          "roles": false,
+          "kpis": false,
+          "targets": false,
+          "reports": true,
+          "ai": false,
+          "notifications": false,
+          "integrations": false,
+          "apis": false
+        },
+        "crud": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "publish": false
+        }
+      },
+      "_id": "6a58614c5dc159302edc483e",
+      "role": "Analyst",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "executive": true,
+          "sales": true,
+          "marketing": true,
+          "newsletter": true,
+          "seo": true,
+          "customer": true,
+          "funnel": true,
+          "operations": true,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": true,
+          "download": true,
+          "drillDown": true,
+          "viewCost": true,
+          "viewRevenue": true,
+          "viewProfit": true,
+          "viewCustomer": true
+        },
+        "management": {
+          "users": true,
+          "roles": false,
+          "kpis": true,
+          "targets": true,
+          "reports": true,
+          "ai": true,
+          "notifications": true,
+          "integrations": true,
+          "apis": true
+        },
+        "crud": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": false,
+          "approve": true,
+          "publish": true
+        }
+      },
+      "_id": "6a58614c5dc159302edc483f",
+      "role": "Admin",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "newsletter": false,
+          "executive": false,
+          "sales": true,
+          "marketing": false,
+          "seo": true,
+          "customer": false,
+          "funnel": false,
+          "operations": true,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": false,
+          "download": false,
+          "drillDown": false,
+          "viewCost": true,
+          "viewRevenue": true,
+          "viewProfit": true,
+          "viewCustomer": true
+        },
+        "management": {
+          "users": false,
+          "roles": false,
+          "kpis": false,
+          "targets": false,
+          "reports": false,
+          "ai": false,
+          "notifications": false,
+          "integrations": false,
+          "apis": false
+        },
+        "crud": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "publish": false
+        }
+      },
+      "_id": "6a58637a5dc159302edc4870",
+      "role": "Support Lead",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "newsletter": false,
+          "executive": false,
+          "sales": false,
+          "marketing": false,
+          "seo": false,
+          "customer": false,
+          "funnel": false,
+          "operations": false,
+          "ai": false
+        },
+        "data": {
+          "view": false,
+          "export": false,
+          "download": false,
+          "drillDown": false,
+          "viewCost": false,
+          "viewRevenue": false,
+          "viewProfit": false,
+          "viewCustomer": false
+        },
+        "management": {
+          "users": false,
+          "roles": false,
+          "kpis": false,
+          "targets": false,
+          "reports": false,
+          "ai": false,
+          "notifications": false,
+          "integrations": true,
+          "apis": false
+        },
+        "crud": {
+          "view": false,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "publish": false
+        }
+      },
+      "_id": "6a58a2845dc159302edc4e01",
+      "role": "Developer",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "newsletter": false,
+          "executive": true,
+          "sales": true,
+          "marketing": false,
+          "seo": false,
+          "customer": true,
+          "funnel": false,
+          "operations": false,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": false,
+          "download": true,
+          "drillDown": true,
+          "viewCost": false,
+          "viewRevenue": true,
+          "viewProfit": false,
+          "viewCustomer": false
+        },
+        "management": {
+          "users": false,
+          "roles": false,
+          "kpis": false,
+          "targets": false,
+          "reports": true,
+          "ai": false,
+          "notifications": false,
+          "integrations": false,
+          "apis": false
+        },
+        "crud": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "publish": false
+        }
+      },
+      "_id": "6a61bfbbdaf38eddb1f3d24a",
+      "role": "CEO",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "executive": true,
+          "sales": true,
+          "marketing": true,
+          "newsletter": true,
+          "seo": true,
+          "customer": true,
+          "funnel": true,
+          "operations": true,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": true,
+          "download": true,
+          "drillDown": true,
+          "viewCost": true,
+          "viewRevenue": true,
+          "viewProfit": true,
+          "viewCustomer": true
+        },
+        "management": {
+          "users": true,
+          "roles": true,
+          "kpis": true,
+          "targets": true,
+          "reports": true,
+          "ai": true,
+          "notifications": true,
+          "integrations": true,
+          "apis": true
+        },
+        "crud": {
+          "view": true,
+          "create": true,
+          "edit": true,
+          "delete": true,
+          "approve": true,
+          "publish": true
+        }
+      },
+      "_id": "6a69f4b0d03b124300c4c38c",
+      "role": "System Admin",
+      "__v": 0
+    },
+    {
+      "permissions": {
+        "dashboard": {
+          "executive": true,
+          "sales": true,
+          "marketing": true,
+          "newsletter": false,
+          "seo": true,
+          "customer": true,
+          "funnel": true,
+          "operations": false,
+          "ai": true
+        },
+        "data": {
+          "view": true,
+          "export": false,
+          "download": true,
+          "drillDown": true,
+          "viewCost": false,
+          "viewRevenue": true,
+          "viewProfit": false,
+          "viewCustomer": false
+        },
+        "management": {
+          "users": false,
+          "roles": false,
+          "kpis": false,
+          "targets": false,
+          "reports": true,
+          "ai": false,
+          "notifications": false,
+          "integrations": false,
+          "apis": false
+        },
+        "crud": {
+          "view": true,
+          "create": false,
+          "edit": false,
+          "delete": false,
+          "approve": false,
+          "publish": false
+        }
+      },
+      "_id": "6a69f53ed03b124300c4c399",
+      "role": "COO",
+      "__v": 0
+    }
+  ],
+  "kpis": [],
+  "targets": [],
+  "schedules": [
+    {
+      "_id": "6aae2cf547c03a57e527868b",
+      "id": 1,
+      "name": "asasas",
+      "dashboards": [
+        "Sales Dashboard"
+      ],
+      "frequency": "Daily",
+      "format": "JPEG",
+      "recipients": [
+        "abisheknavas500@gmail.com"
+      ],
+      "time": "03:00",
+      "period": "Monthly",
+      "timeZone": "GMT+5:30",
+      "senderEmail": "admin@astroved.com",
+      "preGeneratedPdfPath": null,
+      "pdfGeneratedAt": null,
+      "__v": 0,
+      "lastRunAt": "2026-09-19T21:30:38.671Z",
+      "lastRunStatus": "Success"
+    }
+  ],
+  "notifications": [
+    {
+      "rules": {
+        "revenueAlerts": true,
+        "kpiAlerts": true,
+        "failedPaymentAlerts": true,
+        "aiInsightAlerts": true
+      },
+      "_id": "6a58614cf7542908a47cd6d8",
+      "emailNotif": true,
+      "dashboardAlerts": true,
+      "slackWebhook": "https://hooks.slack.com/services/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",
+      "teamsWebhook": "",
+      "__v": 0
+    }
+  ],
+  "ai": [
+    {
+      "_id": "6a5864f4b9c1ee4e726c8829",
+      "apiKey": "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",
+      "model": "gpt-5.5",
+      "refreshInterval": "1 Hour",
+      "maxTokens": 2048,
+      "temperature": 0.7,
+      "enabled": true,
+      "prompts": "You are AstroVed's Lead BI Analyst. Analyze the platform's multi-channel metrics (Puja Services, Gemstones, Consultation, Products), traffic acquisition channels (Organic vs Paid), conversion funnel drop-offs (especially Add-to-Cart to Purchase), and operational checkouts (payment gateway success, refund rates, bank latency). Identify key trends, opportunities, and critical anomalies. For every insight, provide a precise explanation of why it occurred and outline exactly 2 concrete, strategic recommendations (e.g., budget reallocations, email campaigns, checkout flow adjustments) to maximize growth or mitigate issues.",
+      "__v": 0
+    }
+  ],
+  "integrations": [
+    {
+      "_id": "6a58650f0119e64e67ecc380",
+      "id": "payment-gateway",
+      "name": "Razorpay / Stripe",
+      "connected": true,
+      "lastSync": "Real-time",
+      "config": {
+        "stripeAccount": "",
+        "stripePublishableKey": "",
+        "stripeSecretKey": "",
+        "stripeWebhookSecret": "whsec_mockWebhookSecretKey456",
+        "razorpayKeyId": "rzp_test_mockKeyId123",
+        "razorpayKeySecret": "mockRazorpayKeySecret789",
+        "webhook": ""
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a58650f0119e64e67ecc37d",
+      "id": "meta-ads",
+      "name": "Meta Ads Manager",
+      "connected": false,
+      "lastSync": "Never",
+      "config": {
+        "appId": "",
+        "appSecret": "",
+        "accessToken": "mock_meta_ads_long_lived_token_xyz",
+        "adAccountId": "",
+        "businessManagerId": "",
+        "pixelId": "123456789012345"
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a58650f0119e64e67ecc381",
+      "id": "sql-database",
+      "name": "BigQuery / PostgreSQL",
+      "connected": true,
+      "lastSync": "15 min ago",
+      "config": {
+        "host": "localhost",
+        "port": "5432",
+        "database": "astroved_bi",
+        "username": "astroved_readonly",
+        "password": "mock_db_password_456"
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a58650f0119e64e67ecc37b",
+      "id": "google-analytics",
+      "name": "Google Analytics (GA4)",
+      "connected": false,
+      "lastSync": "Never",
+      "config": {
+        "measurementId": "G-KTDRH6FFBS",
+        "apiSecret": "81K-3pa0TkearOxg4yRsbA",
+        "propertyId": "388055358",
+        "oauthConnected": "false"
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a58650f0119e64e67ecc37c",
+      "id": "google-search-console",
+      "name": "Google Search Console",
+      "connected": true,
+      "lastSync": "1 hour ago",
+      "config": {
+        "siteUrl": "https://www.astroved.com",
+        "clientEmail": "gsc-sync@astroved.iam.gserviceaccount.com",
+        "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC6...\n-----END PRIVATE KEY-----"
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a58650f0119e64e67ecc37e",
+      "id": "google-ads",
+      "name": "Google Ads",
+      "connected": true,
+      "lastSync": "30 min ago",
+      "config": {
+        "developerToken": "mock_dev_token_9876",
+        "clientId": "mock_google_ads_client_id.apps.googleusercontent.com",
+        "clientSecret": "mock_google_ads_client_secret_654321",
+        "refreshToken": "",
+        "customerId": "123-456-7890"
+      },
+      "__v": 0
+    },
+    {
+      "_id": "6a5e065432e1593232bc912c",
+      "id": "zoho-crm",
+      "__v": 0,
+      "config": {
+        "clientId": "",
+        "clientSecret": "",
+        "refreshToken": "",
+        "organizationId": "",
+        "dataCenterUrl": ""
+      },
+      "connected": false,
+      "lastSync": "Never",
+      "name": "Zoho CRM"
+    }
+  ],
+  "system": [
+    {
+      "_id": "6a58614df7542908a47cd6ed",
+      "companyName": "AstroVed Business Solutions",
+      "logoUrl": "https://cdn.astroved.com/images/images-av/AstroVed-Logo.svg",
+      "themeMode": "light",
+      "currency": "₹ (INR)",
+      "timeZone": "GMT+5:30 (IST)",
+      "fiscalYear": "April - March",
+      "dateFormat": "DD-MM-YYYY",
+      "timeFormat": "12-hour",
+      "language": "English (US)",
+      "companyEmail": "contact@astroved.com",
+      "companyPhone": "+91 44 43419800",
+      "companyAddress": "AstroVed Business Solutions, Chennai, India",
+      "autoBackup": true,
+      "backupInterval": "Daily",
+      "smtpHost": "",
+      "smtpPort": 587,
+      "smtpUser": "",
+      "smtpPass": "",
+      "smtpFrom": "",
+      "__v": 0
+    }
+  ]
+}

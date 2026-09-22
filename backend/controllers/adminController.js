@@ -1213,14 +1213,18 @@ function getDateRangeForPeriod(period) {
 const fetchDashboardDataInternal = async (controllerFn, queryParams) => {
   return new Promise((resolve) => {
     const req = { query: queryParams };
-    const res = {
-      json: (data) => resolve(data),
-      status: (code) => res, // ignore errors for now, return null if needed
-      send: (data) => resolve(data)
-    };
+    const res = {};
+    res.json = (data) => resolve(data);
+    res.send = (data) => resolve(data);
+    res.status = (code) => res;
+    
     try {
-      controllerFn(req, res).catch(() => resolve(null));
+      controllerFn(req, res).catch((err) => {
+        console.error("Error in fetchDashboardDataInternal (async):", err);
+        resolve(null);
+      });
     } catch (e) {
+      console.error("Error in fetchDashboardDataInternal (sync):", e);
       resolve(null);
     }
   });
@@ -1424,7 +1428,203 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
     return { success: true, message: `Report sent successfully to: ${recipients}` };
   }
 
+  const formatStr = Array.isArray(format) ? format.join(',') : String(format);
   const dateRange = getDateRangeForPeriod(period);
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port: Number(port) || 587,
+    secure: Number(port) === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false }
+  });
+
+  // ============================================================================
+  // EXPLICIT ROUTING: HTML TEMPLATE SENDER
+  // If format is HTML, we completely bypass the Report Scheduler logic
+  // and use the dedicated HTML template utility.
+  // ============================================================================
+  if (formatStr.toUpperCase() === 'HTML') {
+    let htmlHandled = false;
+
+    if (dashboards.includes('Sales Dashboard') || dashboards.includes('All Dashboards')) {
+      htmlHandled = true;
+      const { sendSalesDataEmail } = await import('../utils/emailUtils.js');
+
+      // We need both the Daily range and the Monthly range so the DB queries correctly
+      const dailyDateRange = getDateRangeForPeriod('Daily');
+      const monthlyDateRange = getDateRangeForPeriod('Monthly');
+
+      // Fetch both Daily and Monthly data simultaneously using their respective correct date ranges
+      const [dailyData, monthlyData] = await Promise.all([
+        fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
+        fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
+      ]);
+      
+      // 1 & 2. Total Sales Insights (Cards)
+      const extractTotalSales = (data) => {
+        if (!data || !data.salesKpiData) return null;
+        
+        // Daily returns { todayRevenueCards: [...] }, Monthly returns { monthRevenueCards: [...] }
+        const kpiArray = data.salesKpiData.todayRevenueCards || data.salesKpiData.monthRevenueCards || (Array.isArray(data.salesKpiData) ? data.salesKpiData : null);
+
+        if (!kpiArray || !kpiArray.length) return null;
+
+        return {
+          totalUsd: kpiArray[0]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
+          usdSales: kpiArray[1]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
+          inr: kpiArray[2]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
+          myr: kpiArray[3]?.value?.replace(/[^0-9.-]+/g,"") || '0.00'
+        };
+      };
+
+      const dailyTotalSales = extractTotalSales(dailyData);
+      const monthlyTotalSales = extractTotalSales(monthlyData);
+
+      // Helper to format event arrays
+      const extractEvents = (data, limit) => data?.bestSellers ? data.bestSellers.slice(0, limit).map(b => ({
+        eventName: b.category || b.name || 'N/A',
+        qty: b.sales || 0,
+        revenue: b.revenue || '0.00'
+      })) : null;
+
+      const extractRevenueSource = (data, limit) => data?.bestSellers ? data.bestSellers.slice(0, limit).map(b => ({
+        eventName: b.category || 'Services',
+        productName: b.name || 'N/A',
+        source: 'Organic Search',
+        revenue: b.revenue || '0.00'
+      })) : null;
+
+      // 3 & 4. Total Sales By Event Name (Limit 15)
+      const dailySalesByEvent = extractEvents(dailyData, 15);
+      const monthlySalesByEvent = extractEvents(monthlyData, 15);
+
+      // 5 & 6. Revenue Source as per Event (Limit 10)
+      const dailyRevenueSource = extractRevenueSource(dailyData, 10);
+      const monthlyRevenueSource = extractRevenueSource(monthlyData, 10);
+
+      // Specials Store Items (Limit 10)
+      const extractSpecialsStoreItems = (data, limit) => data?.specialsStoreItems ? data.specialsStoreItems.slice(0, limit).map(b => ({
+        name: b.name || 'N/A',
+        qty: b.qty || 0,
+        revenue: b.revenue || '0.00'
+      })) : null;
+
+      const dailySpecialsStoreItems = extractSpecialsStoreItems(dailyData, 10);
+      const monthlySpecialsStoreItems = extractSpecialsStoreItems(monthlyData, 10);
+
+      // 7, 8, 9, 10. Best/Low Performing Products (Limit 5)
+      const dailyBestSelling = dailyData?.bestSellers ? dailyData.bestSellers.slice(0, 5) : null;
+      const dailyLowPerforming = dailyData?.lowPerformers ? dailyData.lowPerformers.slice(0, 5) : null;
+      const monthlyBestSelling = monthlyData?.bestSellers ? monthlyData.bestSellers.slice(0, 5) : null;
+      const monthlyLowPerforming = monthlyData?.lowPerformers ? monthlyData.lowPerformers.slice(0, 5) : null;
+
+      // Removed image generation to avoid large attachments
+
+      await sendSalesDataEmail({
+        to: recipients,
+        subject: name,
+        dateStr: dateRange.endDate,
+        
+        dailyTotalSales,
+        monthlyTotalSales,
+        dailySalesByEvent,
+        monthlySalesByEvent,
+        dailyRevenueSource,
+        monthlyRevenueSource,
+        dailySpecialsStoreItems,
+        monthlySpecialsStoreItems,
+        dailyBestSelling,
+        dailyLowPerforming,
+        monthlyBestSelling,
+        monthlyLowPerforming,
+        
+        transporterOverride: transporter
+      });
+
+      console.log(`[Report Scheduler] SUCCESS: Sent Master Sales HTML Template to ${recipients}`);
+    } 
+    
+    if (dashboards.includes('Newsletter Performance') || dashboards.includes('All Dashboards')) {
+      htmlHandled = true;
+      const { sendNewsletterDataEmail } = await import('../utils/emailUtils.js');
+
+      const dailyDateRange = getDateRangeForPeriod('Daily');
+      const monthlyDateRange = getDateRangeForPeriod('Monthly');
+
+      // Newsletter Controller is getNewsletterDashboard
+      const { getNewsletterDashboard } = await import('./dashboardController.js');
+
+      const [dailyData, monthlyData] = await Promise.all([
+        fetchDashboardDataInternal(getNewsletterDashboard, dailyDateRange),
+        fetchDashboardDataInternal(getNewsletterDashboard, monthlyDateRange)
+      ]);
+
+      const processCategorySales = (data) => {
+        if (!data?.specialEventsData) return null;
+        return data.specialEventsData.map(item => ({
+          name: item.name,
+          revenue: item.nlw + item.nli + item.oml
+        })).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
+      };
+
+      const processDateWisePerf = (data) => {
+        if (!data?.dateWisePerformance) return null;
+        return data.dateWisePerformance.slice(0, 10);
+      };
+
+      const processBreakupSummary = (data) => data?.breakupSummaryData ? data.breakupSummaryData.slice(0, 5) : null;
+      const processTypesCompared = (data) => data?.typesComparedData ? data.typesComparedData : null;
+      const processOverallEvents = (data) => data?.overallEventsData ? data.overallEventsData.slice(0, 5) : null;
+      const processSpecialEvents = (data) => data?.specialEventsData ? data.specialEventsData.slice(0, 10) : null;
+
+      const dailyCategorySales = processCategorySales(dailyData);
+      const monthlyCategorySales = processCategorySales(monthlyData);
+      
+      const dailyDateWisePerf = processDateWisePerf(dailyData);
+      const monthlyDateWisePerf = processDateWisePerf(monthlyData);
+
+      const dailyBreakupSummary = processBreakupSummary(dailyData);
+      const monthlyBreakupSummary = processBreakupSummary(monthlyData);
+
+      const dailyTypesCompared = processTypesCompared(dailyData);
+      const monthlyTypesCompared = processTypesCompared(monthlyData);
+
+      const dailyOverallEvents = processOverallEvents(dailyData);
+      const monthlyOverallEvents = processOverallEvents(monthlyData);
+
+      const dailySpecialEvents = processSpecialEvents(dailyData);
+      const monthlySpecialEvents = processSpecialEvents(monthlyData);
+
+      await sendNewsletterDataEmail({
+        to: recipients,
+        subject: name,
+        scheduleName: name,
+        dailyKpi: dailyData?.kpiData || null,
+        monthlyKpi: monthlyData?.kpiData || null,
+        dailyCategorySales,
+        monthlyCategorySales,
+        dailyDateWisePerf,
+        monthlyDateWisePerf,
+        dailyBreakupSummary,
+        monthlyBreakupSummary,
+        dailyTypesCompared,
+        monthlyTypesCompared,
+        dailyOverallEvents,
+        monthlyOverallEvents,
+        dailySpecialEvents,
+        monthlySpecialEvents,
+        transporterOverride: transporter
+      });
+
+      console.log(`[Report Scheduler] SUCCESS: Sent Newsletter HTML Template to ${recipients}`);
+    }
+
+    if (htmlHandled) {
+      return { success: true, message: `HTML Templates successfully sent to: ${recipients}` };
+    }
+  }
+
   let extractedDataHtml = '';
 
   if (dashboards.includes('Executive Dashboard') || dashboards.includes('All Dashboards')) {
@@ -1534,14 +1734,12 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       `;
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port: Number(port) || 587,
-    secure: Number(port) === 465,
-    auth: { user, pass },
-    tls: { rejectUnauthorized: false }
-  });
+  // Transporter initialization moved up for HTML template access
 
+  // ============================================================================
+  // THIS TEMPLATE IS ONLY FOR AUTOMATIC REPORT SCHEDULER
+  // THIS IS NOT FOR HTML TEMPLATE
+  // ============================================================================
   const emailHtml = `
     <div style="font-family: 'Inter', sans-serif; padding: 30px; color: #1e293b; background-color: #f1f5f9;">
       <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -1570,7 +1768,6 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
   const attachments = [];
   const safeName = name.replace(/\s+/g, '_');
 
-  const formatStr = Array.isArray(format) ? format.join(',') : String(format);
   const includePDF = formatStr.toUpperCase().includes('PDF') || formatStr === 'All Formats';
   const includeExcel = formatStr.toUpperCase().includes('EXCEL') || formatStr === 'All Formats';
   const includeCSV = formatStr.toUpperCase().includes('CSV') || formatStr === 'All Formats';
