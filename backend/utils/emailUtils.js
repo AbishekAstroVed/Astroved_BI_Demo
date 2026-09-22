@@ -60,8 +60,8 @@ export const sendDashboardEmail = async ({ to, subject, imageBuffer, dateStr }) 
 
 const generateTableHtml = (title, headers, rows) => `
   <div style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; width: 100%; max-width: 100%; -webkit-overflow-scrolling: touch;">
-    <h3 style="background-color: #f8fafc; margin: 0; padding: 12px; font-size: 16px; color: #334155; border-bottom: 1px solid #e2e8f0; min-width: 500px;">${title}</h3>
-    <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 500px;">
+    <h3 style="background-color: #f8fafc; margin: 0; padding: 12px; font-size: 16px; color: #334155; border-bottom: 1px solid #e2e8f0;">${title}</h3>
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
       <thead>
         <tr style="background-color: #6868f9; color: white;">
           ${headers.map(h => `<th style="padding: 10px; font-size: 14px;">${h}</th>`).join('')}
@@ -81,28 +81,24 @@ const generateTableHtml = (title, headers, rows) => `
 const renderTotalSales = (sales) => `
         <div style="text-align: center; margin-bottom: 20px;">
           <!-- Card 1 -->
-          <div style="display: inline-block; width: 100%; max-width: 120px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
+          <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
             <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">Total (USD)</p>
             <h3 style="margin: 10px 0; font-size: 20px; color: #1e293b; font-weight: 500;">$${sales.totalUsd || '0.00'}</h3>
-            <p style="margin: 0; color: #16a34a; font-size: 10px; font-weight: 700;">+100.0%</p>
           </div>
           <!-- Card 2 -->
-          <div style="display: inline-block; width: 100%; max-width: 120px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
+          <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
             <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">Sales (USD)</p>
             <h3 style="margin: 10px 0; font-size: 20px; color: #1e293b; font-weight: 500;">$${sales.usdSales || '0.00'}</h3>
-            <p style="margin: 0; color: #16a34a; font-size: 10px; font-weight: 700;">+100.0%</p>
           </div>
           <!-- Card 3 -->
-          <div style="display: inline-block; width: 100%; max-width: 120px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
+          <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
             <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">INR Rev</p>
             <h3 style="margin: 10px 0; font-size: 20px; color: #1e293b; font-weight: 500;">$${sales.inr || '0.00'}</h3>
-            <p style="margin: 0; color: #16a34a; font-size: 10px; font-weight: 700;">0.0%</p>
           </div>
           <!-- Card 4 -->
-          <div style="display: inline-block; width: 100%; max-width: 120px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
+          <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; padding: 20px 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); vertical-align: top; box-sizing: border-box;">
             <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">MYR Rev</p>
             <h3 style="margin: 10px 0; font-size: 20px; color: #1e293b; font-weight: 500;">$${sales.myr || '0.00'}</h3>
-            <p style="margin: 0; color: #dc2626; font-size: 10px; font-weight: 700;">0.0%</p>
           </div>
         </div>
 `;
@@ -168,13 +164,13 @@ export const sendSalesDataEmail = async ({
 
         ${monthlySpecialsStoreItems ? generateTableHtml('Revenue as per Specials Store Items (Monthly)', ['#', 'Store Item Name', 'Qty', 'Revenue ($)'], monthlySpecialsStoreItems.map((item, index) => [index + 1, item.name, item.qty, item.revenue])) : ''}
 
-        ${dailyBestSelling ? generateTableHtml('Best Selling Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyBestSelling.map(item => [item.id, item.name, item.category, item.sales, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${dailyBestSelling ? generateTableHtml('Best Selling Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyBestSelling.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
 
-        ${dailyLowPerforming ? generateTableHtml('Low Performing Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyLowPerforming.map(item => [item.id, item.name, item.category, item.sales, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${dailyLowPerforming ? generateTableHtml('Low Performing Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyLowPerforming.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
 
-        ${monthlyBestSelling ? generateTableHtml('Best Selling Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyBestSelling.map(item => [item.id, item.name, item.category, item.sales, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${monthlyBestSelling ? generateTableHtml('Best Selling Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyBestSelling.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
 
-        ${monthlyLowPerforming ? generateTableHtml('Low Performing Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyLowPerforming.map(item => [item.id, item.name, item.category, item.sales, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${monthlyLowPerforming ? generateTableHtml('Low Performing Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyLowPerforming.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
 
         <!-- Removed Map and Chart sections -->
 
@@ -225,7 +221,9 @@ export const sendNewsletterDataEmail = async ({
   const smtpUser = process.env.SMTP_USER || '';
   const fromEmail = fromEmailOverride || process.env.SMTP_FROM || (smtpUser.includes('@') ? smtpUser : 'support@astroved.com');
 
-  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const dateStr = yesterday.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const renderKpiCards = (kpi) => {
     return `
@@ -236,7 +234,7 @@ export const sendNewsletterDataEmail = async ({
         { title: 'India NL (NLI)', value: kpi.india, color: '#10b981' },
         { title: 'Overall NL', value: kpi.overall, color: '#f59e0b' }
       ].map(card => `
-          <div style="display: inline-block; width: 100%; max-width: 130px; margin: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-align: left; vertical-align: top; box-sizing: border-box;">
+          <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-align: left; vertical-align: top; box-sizing: border-box;">
             <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; text-align: center;">
               ${card.title}
             </div>

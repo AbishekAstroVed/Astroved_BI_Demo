@@ -1482,9 +1482,9 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const monthlyTotalSales = extractTotalSales(monthlyData);
 
       // Helper to format event arrays
-      const extractEvents = (data, limit) => data?.bestSellers ? data.bestSellers.slice(0, limit).map(b => ({
-        eventName: b.category || b.name || 'N/A',
-        qty: b.sales || 0,
+      const extractEvents = (data, limit) => data?.salesByEventName ? data.salesByEventName.slice(0, limit).map(b => ({
+        eventName: b.name || 'N/A',
+        qty: b.qty || 0,
         revenue: b.revenue || '0.00'
       })) : null;
 
