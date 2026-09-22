@@ -650,7 +650,7 @@ You MUST respond with a strict, valid JSON array of objects matching this exact 
         body: JSON.stringify(requestBody),
         signal: controller.signal
       });
-      
+
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -1217,7 +1217,7 @@ const fetchDashboardDataInternal = async (controllerFn, queryParams) => {
     res.json = (data) => resolve(data);
     res.send = (data) => resolve(data);
     res.status = (code) => res;
-    
+
     try {
       controllerFn(req, res).catch((err) => {
         console.error("Error in fetchDashboardDataInternal (async):", err);
@@ -1460,21 +1460,21 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
         fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
       ]);
-      
+
       // 1 & 2. Total Sales Insights (Cards)
       const extractTotalSales = (data) => {
         if (!data || !data.salesKpiData) return null;
-        
+
         // Daily returns { todayRevenueCards: [...] }, Monthly returns { monthRevenueCards: [...] }
         const kpiArray = data.salesKpiData.todayRevenueCards || data.salesKpiData.monthRevenueCards || (Array.isArray(data.salesKpiData) ? data.salesKpiData : null);
 
         if (!kpiArray || !kpiArray.length) return null;
 
         return {
-          totalUsd: kpiArray[0]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
-          usdSales: kpiArray[1]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
-          inr: kpiArray[2]?.value?.replace(/[^0-9.-]+/g,"") || '0.00',
-          myr: kpiArray[3]?.value?.replace(/[^0-9.-]+/g,"") || '0.00'
+          totalUsd: kpiArray[0]?.value?.replace(/[^0-9.-]+/g, "") || '0.00',
+          usdSales: kpiArray[1]?.value?.replace(/[^0-9.-]+/g, "") || '0.00',
+          inr: kpiArray[2]?.value?.replace(/[^0-9.-]+/g, "") || '0.00',
+          myr: kpiArray[3]?.value?.replace(/[^0-9.-]+/g, "") || '0.00'
         };
       };
 
@@ -1525,7 +1525,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         to: recipients,
         subject: name,
         dateStr: dateRange.endDate,
-        
+
         dailyTotalSales,
         monthlyTotalSales,
         dailySalesByEvent,
@@ -1538,13 +1538,13 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         dailyLowPerforming,
         monthlyBestSelling,
         monthlyLowPerforming,
-        
+
         transporterOverride: transporter
       });
 
       console.log(`[Report Scheduler] SUCCESS: Sent Master Sales HTML Template to ${recipients}`);
-    } 
-    
+    }
+
     if (dashboards.includes('Newsletter Performance') || dashboards.includes('All Dashboards')) {
       htmlHandled = true;
       const { sendNewsletterDataEmail } = await import('../utils/emailUtils.js');
@@ -1559,6 +1559,13 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         fetchDashboardDataInternal(getNewsletterDashboard, dailyDateRange),
         fetchDashboardDataInternal(getNewsletterDashboard, monthlyDateRange)
       ]);
+
+
+
+
+
+
+
 
       const processCategorySales = (data) => {
         if (!data?.specialEventsData) return null;
@@ -1580,7 +1587,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       const dailyCategorySales = processCategorySales(dailyData);
       const monthlyCategorySales = processCategorySales(monthlyData);
-      
+
       const dailyDateWisePerf = processDateWisePerf(dailyData);
       const monthlyDateWisePerf = processDateWisePerf(monthlyData);
 

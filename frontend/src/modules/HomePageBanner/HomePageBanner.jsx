@@ -233,6 +233,9 @@ const HomePageBanner = ({ showRevenue = true }) => {
         <h2 className="text-2xl font-bold text-slate-800">Home Page Banner Clicks Dashboard</h2>
       </div>
 
+
+
+
       {loading ? (
         <div className="flex flex-col items-center justify-center h-96 space-y-4 w-full">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#6868f9]"></div>
