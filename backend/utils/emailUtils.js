@@ -58,21 +58,21 @@ export const sendDashboardEmail = async ({ to, subject, imageBuffer, dateStr }) 
   }
 };
 
-const generateTableHtml = (title, headers, rows) => `
-  <div style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; width: 100%; max-width: 100%; -webkit-overflow-scrolling: touch;">
+const generateTableHtml = (title, headers, rows, colWidths = []) => `
+  <div style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 8px; width: 100%; max-width: 100%;">
     <h3 style="background-color: #f8fafc; margin: 0; padding: 12px; font-size: 16px; color: #334155; border-bottom: 1px solid #e2e8f0;">${title}</h3>
-    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+    <table style="width: 100%; border-collapse: collapse; text-align: left; table-layout: fixed;">
       <thead>
         <tr style="background-color: #6868f9; color: white;">
-          ${headers.map(h => `<th style="padding: 10px; font-size: 14px;">${h}</th>`).join('')}
+          ${headers.map((h, i) => `<th style="padding: 10px; font-size: 14px; word-wrap: break-word; overflow-wrap: break-word;${colWidths[i] ? ` width: ${colWidths[i]};` : ''}">${h}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
         ${rows.length > 0 ? rows.map((row, i) => `
           <tr style="background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-bottom: 1px solid #e2e8f0;">
-            ${row.map(cell => `<td style="padding: 10px; font-size: 14px; color: #475569;">${cell}</td>`).join('')}
+            ${row.map(cell => `<td style="padding: 10px; font-size: 14px; color: #475569; word-wrap: break-word; overflow-wrap: break-word;">${cell}</td>`).join('')}
           </tr>
-        `).join('') : `<tr><td colspan="${headers.length}" style="padding: 10px; text-align: center; color: #94a3b8;">No data available</td></tr>`}
+        `).join('') : `<tr><td colspan="${headers.length}" style="padding: 10px; text-align: center; color: #94a3b8; word-wrap: break-word; overflow-wrap: break-word;">No data available</td></tr>`}
       </tbody>
     </table>
   </div>
@@ -152,25 +152,25 @@ export const sendSalesDataEmail = async ({
         <h3 style="color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px;">2. Monthly Sales Insight</h3>
         ${monthlyTotalSales ? renderTotalSales(monthlyTotalSales) : ''}
 
-        ${dailySalesByEvent ? generateTableHtml('Total Sales By Event Name (Daily)', ['#', 'Event Name', 'Qty', 'Revenue ($)'], dailySalesByEvent.map((item, index) => [index + 1, item.eventName, item.qty, item.revenue])) : ''}
+        ${dailySalesByEvent ? generateTableHtml('Total Sales By Event Name (Daily)', ['Event Name', 'Qty', 'Revenue ($)'], dailySalesByEvent.map((item, index) => [item.eventName, item.qty, item.revenue]), ['60%', '15%', '25%']) : ''}
 
-        ${monthlySalesByEvent ? generateTableHtml('Total Sales By Event Name (Monthly)', ['#', 'Event Name', 'Qty', 'Revenue ($)'], monthlySalesByEvent.map((item, index) => [index + 1, item.eventName, item.qty, item.revenue])) : ''}
+        ${monthlySalesByEvent ? generateTableHtml('Total Sales By Event Name (Monthly)', ['Event Name', 'Qty', 'Revenue ($)'], monthlySalesByEvent.map((item, index) => [item.eventName, item.qty, item.revenue]), ['60%', '15%', '25%']) : ''}
 
-        ${dailyRevenueSource ? generateTableHtml('Revenue Source as per Event (Daily)', ['#', 'Event Name', 'Product Name', 'Source', 'Revenue ($)'], dailyRevenueSource.map((item, index) => [index + 1, item.eventName, item.productName, item.source, item.revenue])) : ''}
+        ${dailyRevenueSource ? generateTableHtml('Revenue Source as per Event (Daily)', ['Event Name', 'Product Name', 'Source', 'Revenue ($)'], dailyRevenueSource.map((item, index) => [item.eventName, item.productName, item.source, item.revenue])) : ''}
 
-        ${monthlyRevenueSource ? generateTableHtml('Revenue Source as per Event (Monthly)', ['#', 'Event Name', 'Product Name', 'Source', 'Revenue ($)'], monthlyRevenueSource.map((item, index) => [index + 1, item.eventName, item.productName, item.source, item.revenue])) : ''}
+        ${monthlyRevenueSource ? generateTableHtml('Revenue Source as per Event (Monthly)', ['Event Name', 'Product Name', 'Source', 'Revenue ($)'], monthlyRevenueSource.map((item, index) => [item.eventName, item.productName, item.source, item.revenue])) : ''}
 
-        ${dailySpecialsStoreItems ? generateTableHtml('Revenue as per Specials Store Items (Daily)', ['#', 'Store Item Name', 'Qty', 'Revenue ($)'], dailySpecialsStoreItems.map((item, index) => [index + 1, item.name, item.qty, item.revenue])) : ''}
+        ${dailySpecialsStoreItems ? generateTableHtml('Revenue as per Specials Store Items (Daily)', ['Store Item Name', 'Qty', 'Revenue ($)'], dailySpecialsStoreItems.map((item, index) => [item.name, item.qty, item.revenue]), ['60%', '15%', '25%']) : ''}
 
-        ${monthlySpecialsStoreItems ? generateTableHtml('Revenue as per Specials Store Items (Monthly)', ['#', 'Store Item Name', 'Qty', 'Revenue ($)'], monthlySpecialsStoreItems.map((item, index) => [index + 1, item.name, item.qty, item.revenue])) : ''}
+        ${monthlySpecialsStoreItems ? generateTableHtml('Revenue as per Specials Store Items (Monthly)', ['Store Item Name', 'Qty', 'Revenue ($)'], monthlySpecialsStoreItems.map((item, index) => [item.name, item.qty, item.revenue]), ['60%', '15%', '25%']) : ''}
 
-        ${dailyBestSelling ? generateTableHtml('Best Selling Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyBestSelling.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${dailyBestSelling ? generateTableHtml('Best Selling Products (Daily)', ['Product Name', 'Category', 'Units Sold', 'TotalRevenue ($)'], dailyBestSelling.map(item => [item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`]), ['40%', '23%', '15%', '22%']) : ''}
 
-        ${dailyLowPerforming ? generateTableHtml('Low Performing Products (Daily)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], dailyLowPerforming.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${dailyLowPerforming ? generateTableHtml('Low Performing Products (Daily)', ['Product Name', 'Category', 'Units Sold', 'TotalRevenue ($)'], dailyLowPerforming.map(item => [item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`]), ['40%', '23%', '15%', '22%']) : ''}
 
-        ${monthlyBestSelling ? generateTableHtml('Best Selling Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyBestSelling.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${monthlyBestSelling ? generateTableHtml('Best Selling Products (Monthly)', ['Product Name', 'Category', 'Units Sold', 'TotalRevenue ($)'], monthlyBestSelling.map(item => [item.name, item.category, item.sales || item.orders || 0, `<span style="color: #16a34a; font-weight: bold;">${item.revenue}</span>`]), ['40%', '23%', '15%', '22%']) : ''}
 
-        ${monthlyLowPerforming ? generateTableHtml('Low Performing Products (Monthly)', ['Code', 'Product Name', 'Category', 'Units Sold', 'Total Revenue ($)'], monthlyLowPerforming.map(item => [item.id, item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`])) : ''}
+        ${monthlyLowPerforming ? generateTableHtml('Low Performing Products (Monthly)', ['Product Name', 'Category', 'Units Sold', 'TotalRevenue ($)'], monthlyLowPerforming.map(item => [item.name, item.category, item.sales || item.orders || 0, `<span style="color: #dc2626; font-weight: bold;">${item.revenue}</span>`]), ['40%', '23%', '15%', '22%']) : ''}
 
         <!-- Removed Map and Chart sections -->
 
@@ -279,8 +279,8 @@ export const sendNewsletterDataEmail = async ({
         ${monthlyBreakupSummary ? generateTableHtml('Breakup Summary of Overall Newsletters (Monthly)', ['NewsLetter Type', 'NewsLetter Count', 'Net Revenue ($)'], monthlyBreakupSummary.map(item => [item.type, item.count, item.revenue])) : ''}
 
         
-        ${dailyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Month (Daily)', ['News Letter Type', 'News Letter Count', '% Change', 'Net Revenue ($)', '% Change'], dailyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
-        ${monthlyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Month (Monthly)', ['News Letter Type', 'News Letter Count', '% Change', 'Net Revenue ($)', '% Change'], monthlyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
+        ${dailyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Day (Daily)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], dailyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
+        ${monthlyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Month (Monthly)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], monthlyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
 
         
         ${dailyOverallEvents ? generateTableHtml('Overall Newsletters Performance (Daily)', ['Event Name', 'NLW', 'NLI', 'OML'], dailyOverallEvents.map(item => [item.name, item.nlw, item.nli, item.oml])) : ''}

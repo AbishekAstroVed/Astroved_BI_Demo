@@ -1488,10 +1488,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         revenue: b.revenue || '0.00'
       })) : null;
 
-      const extractRevenueSource = (data, limit) => data?.bestSellers ? data.bestSellers.slice(0, limit).map(b => ({
-        eventName: b.category || 'Services',
-        productName: b.name || 'N/A',
-        source: 'Organic Search',
+      const extractRevenueSource = (data, limit) => data?.revenueSource ? data.revenueSource.slice(0, limit).map(b => ({
+        eventName: b.eventName || b.name || 'N/A',
+        productName: b.productName || 'N/A',
+        source: b.source || 'Organic Search',
         revenue: b.revenue || '0.00'
       })) : null;
 
@@ -1572,7 +1572,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         return data.specialEventsData.map(item => ({
           name: item.name,
           revenue: item.nlw + item.nli + item.oml
-        })).sort((a, b) => b.revenue - a.revenue).slice(0, 6);
+        })).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
       };
 
       const processDateWisePerf = (data) => {
@@ -1580,9 +1580,9 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         return data.dateWisePerformance.slice(0, 10);
       };
 
-      const processBreakupSummary = (data) => data?.breakupSummaryData ? data.breakupSummaryData.slice(0, 5) : null;
-      const processTypesCompared = (data) => data?.typesComparedData ? data.typesComparedData : null;
-      const processOverallEvents = (data) => data?.overallEventsData ? data.overallEventsData.slice(0, 5) : null;
+      const processBreakupSummary = (data) => data?.breakupSummaryData ? data.breakupSummaryData.slice(0, 10) : null;
+      const processTypesCompared = (data) => data?.typesComparedData ? data.typesComparedData.slice(0, 10) : null;
+      const processOverallEvents = (data) => data?.overallEventsData ? data.overallEventsData.slice(0, 10) : null;
       const processSpecialEvents = (data) => data?.specialEventsData ? data.specialEventsData.slice(0, 10) : null;
 
       const dailyCategorySales = processCategorySales(dailyData);
