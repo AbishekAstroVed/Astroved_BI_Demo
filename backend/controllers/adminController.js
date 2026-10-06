@@ -1460,7 +1460,6 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
         fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
       ]);
-
       // 1 & 2. Total Sales Insights (Cards)
       const extractTotalSales = (data) => {
         if (!data || !data.salesKpiData) return null;
@@ -1543,6 +1542,26 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       });
 
       console.log(`[Report Scheduler] SUCCESS: Sent Master Sales HTML Template to ${recipients}`);
+    } else if (dashboards.includes('Daily Sales Dashboard')) {
+      htmlHandled = true;
+      const { sendDailySalesTemplateEmail } = await import('../utils/emailUtils.js');
+      const dailyDateRange = getDateRangeForPeriod('Daily');
+      const monthlyDateRange = getDateRangeForPeriod('Monthly');
+      
+      const [dailyData, monthlyData] = await Promise.all([
+        fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
+        fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
+      ]);
+
+      await sendDailySalesTemplateEmail({
+        to: recipients,
+        subject: name,
+        dateStr: dateRange.endDate,
+        dailyData,
+        monthlyData,
+        transporterOverride: transporter
+      });
+      console.log(`[Report Scheduler] SUCCESS: Sent Daily Sales Template HTML to ${recipients}`);
     }
 
     if (dashboards.includes('Newsletter Performance') || dashboards.includes('All Dashboards')) {

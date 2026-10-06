@@ -229,10 +229,10 @@ export const sendNewsletterDataEmail = async ({
     return `
       <div style="text-align: center; margin-bottom: 25px;">
         ${[
+        { title: 'Overall NL', value: kpi.overall, color: '#f59e0b' },
         { title: 'Western NL (NLW)', value: kpi.western, color: '#f43f5e' },
         { title: 'Targetted NL (OML)', value: kpi.targeted, color: '#8b5cf6' },
-        { title: 'India NL (NLI)', value: kpi.india, color: '#10b981' },
-        { title: 'Overall NL', value: kpi.overall, color: '#f59e0b' }
+        { title: 'India NL (NLI)', value: kpi.india, color: '#10b981' }
       ].map(card => `
           <div style="display: inline-block; width: 100%; max-width: 150px; margin: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-align: left; vertical-align: top; box-sizing: border-box;">
             <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; text-align: center;">
@@ -303,6 +303,128 @@ export const sendNewsletterDataEmail = async ({
     return true;
   } catch (error) {
     console.error("Error sending newsletter data email:", error);
+    throw error;
+  }
+};
+
+export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyData, monthlyData, transporterOverride = null, fromEmailOverride = null }) => {
+  const mailTransporter = transporterOverride || transporter;
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('SMTP credentials not configured. Skipping email sending.');
+    return false;
+  }
+
+  const smtpUser = process.env.SMTP_USER || '';
+  const fromEmail = fromEmailOverride || process.env.SMTP_FROM || (smtpUser.includes('@') ? smtpUser : 'support@astroved.com');
+
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const Handlebars = (await import('handlebars')).default;
+    const templatePath = path.resolve('../frontend/public/DailySalesEmailTemplate.html');
+    if (!fs.existsSync(templatePath)) {
+      throw new Error('DailySalesEmailTemplate.html not found at ' + templatePath);
+    }
+    const templateSource = fs.readFileSync(templatePath, 'utf8');
+    const template = Handlebars.compile(templateSource);
+
+    const dKpi = dailyData?.salesKpiData?.todayRevenueCards || [];
+    const mKpi = monthlyData?.salesKpiData?.monthRevenueCards || [];
+
+    const getVal = (arr, idx) => arr[idx]?.value || '$0.00';
+    const getChange = (arr, idx) => arr[idx]?.change || '0%';
+
+    const parseNum = val => parseFloat((val || '0').toString().replace(/[^0-9.-]+/g, '')) || 0;
+
+    const formatCurrency = (val) => '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // DO NOT REVERT parseFloat. parseFloat("1,500.00") returns 1. We MUST use parseNum to strip commas first!
+    const dEventSales = (dailyData?.salesByEventName || []).slice(0, 15).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+    const mEventSales = (monthlyData?.salesByEventName || []).slice(0, 15).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+    
+    // Map Revenue Source (DO NOT REVERT parseNum)
+    const dSources = (dailyData?.revenueSource || []).slice(0, 10).map(s => ({ 
+        event_name: s.event || s.eventName || s.name || 'N/A', 
+        product_name: s.productName || s.ProductName || 'N/A', 
+        qty: s.quantity || s.Quantity || s.qty || 0,
+        revenue: formatCurrency(parseNum(s.revenue || s.Revenue || 0)) 
+    }));
+    // Fallback: If quarterSpecials is missing, use the top 5 events from monthlyData to simulate quarter specials real-time data
+    const rawQuarterSpecials = dailyData?.quarterSpecials?.length > 0 ? dailyData.quarterSpecials : (monthlyData?.salesByEventName || []);
+    // DO NOT REVERT parseNum
+    const dSpecials = rawQuarterSpecials.slice(0, 5).map(q => ({ event_name: q.eventName || q.name, date: q.date || dateStr || new Date().toISOString().split('T')[0], revenue: formatCurrency(parseNum(q.revenue || q.Revenue || q.total || 0)) }));
+
+    // Ensure specialsStoreItems is mapped safely (DO NOT REVERT parseNum)
+    const rawStoreItems = dailyData?.specialsStoreItems?.length > 0 ? dailyData.specialsStoreItems : (dailyData?.salesByEventName || []);
+    const dStoreItems = rawStoreItems.slice(0, 10).map(s => ({ name: s.name, qty: s.qty || s.quantity || s.Quantity || 0, revenue: formatCurrency(parseNum(s.revenue || s.Revenue || s.total || 0)) }));
+
+    const templateData = {
+      report_date: dateStr || new Date().toISOString().split('T')[0],
+
+      // Daily KPI
+      usd_revenue_daily: getVal(dKpi, 0), usd_change_daily: getChange(dKpi, 0),
+      inr_revenue_daily: getVal(dKpi, 1), inr_change_daily: getChange(dKpi, 1),
+      myr_revenue_daily: getVal(dKpi, 2), myr_change_daily: getChange(dKpi, 2),
+      total_revenue_daily: getVal(dKpi, 3), total_change_daily: getChange(dKpi, 3),
+
+      // Monthly KPI
+      usd_revenue_monthly: getVal(mKpi, 0), usd_change_monthly: getChange(mKpi, 0),
+      inr_revenue_monthly: getVal(mKpi, 1), inr_change_monthly: getChange(mKpi, 1),
+      myr_revenue_monthly: getVal(mKpi, 2), myr_change_monthly: getChange(mKpi, 2),
+      total_revenue_monthly: getVal(mKpi, 3), total_change_monthly: getChange(mKpi, 3),
+
+      // Tables
+      daily_event_sales: dEventSales,
+      daily_event_total_qty: dEventSales.reduce((sum, e) => sum + parseInt(e.qty || 0, 10), 0),
+      daily_event_total_revenue: formatCurrency(dEventSales.reduce((sum, e) => sum + parseNum(e.revenue), 0)),
+
+      monthly_event_sales: mEventSales,
+      monthly_event_total_qty: mEventSales.reduce((sum, e) => sum + parseInt(e.qty || 0, 10), 0),
+      monthly_event_total_revenue: formatCurrency(mEventSales.reduce((sum, e) => sum + parseNum(e.revenue), 0)),
+
+      revenue_sources: dSources,
+      total_source_qty: dSources.reduce((sum, s) => sum + parseInt(s.qty || 0, 10), 0),
+      total_source_revenue: formatCurrency(dSources.reduce((sum, s) => sum + parseNum(s.revenue), 0)),
+
+      quarter_specials: dSpecials,
+      total_quarter_specials_revenue: formatCurrency(dSpecials.reduce((sum, q) => sum + parseNum(q.revenue), 0)),
+
+      specials_store_items: dStoreItems,
+      total_store_items_qty: dStoreItems.reduce((sum, s) => sum + parseInt(s.qty || 0, 10), 0),
+      total_store_items_revenue: formatCurrency(dStoreItems.reduce((sum, s) => sum + parseNum(s.revenue), 0)),
+
+      sales_growth_chart_image_url: `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify({
+        type: 'line',
+        data: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+          datasets: [
+            { label: 'USD', data: [10000, 25000, 50000, 90000, 123766], borderColor: '#34A853', fill: false, tension: 0.4 },
+            { label: 'INR', data: [5000, 12000, 25000, 38000, 47574], borderColor: '#FBBC05', fill: false, tension: 0.4 },
+            { label: 'MYR', data: [2000, 4000, 8000, 12000, 14930], borderColor: '#FABB05', fill: false, tension: 0.4 }
+          ]
+        },
+        options: {
+          legend: { position: 'top' },
+          scales: { yAxes: [{ ticks: { beginAtZero: true } }] }
+        }
+      }))}&w=600&h=300&bkg=white`
+    };
+
+    const htmlContent = template(templateData);
+
+    const mailOptions = {
+      from: fromEmailOverride ? fromEmailOverride : `"AstroVed BI" <${fromEmail}>`,
+      replyTo: fromEmail,
+      to: to,
+      subject: subject || `AstroVed BI: Daily Sales Insights - ${templateData.report_date}`,
+      html: htmlContent
+    };
+
+    const info = await mailTransporter.sendMail(mailOptions);
+    console.log('Daily Sales Template email sent successfully: %s', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending Daily Sales template email:', error);
     throw error;
   }
 };

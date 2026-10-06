@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Sales Insights Report</title>
+  <style>
+    body,
+    table {
+      width: 1200px !important;
+      min-width: 1200px !important;
+    }
+  </style>
+</head>
+
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f4f5f7; color: #333;">
+
+  <!-- Main Container -->
+  <table width="100%" align="center" cellpadding="0" cellspacing="0"
+    style="background-color: #ffffff; border: 1px solid #e0e0e0; width: 100%; max-width: 1200px; margin: 0 auto; table-layout: fixed;">
+    <tr>
+      <!-- Ghost spacer image to physically force 1200px width on ALL mobile apps -->
+      <td height="1" style="line-height: 1px; font-size: 1px; padding: 0; mso-line-height-rule: exactly;">
+        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="100%"
+          height="1" style="display: block; width: 100%; max-width: 1200px; max-height: 1px;" alt="" border="0" />
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; width: 100%; max-width: 1200px;">
+
+        <!-- Title Section -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+          <tr>
+            <td width="50" style="color: #1a73e8; font-size: 20px; font-weight: bold;">
+              <div style="font-size: 24px;">^</div>
+              <div style="font-size: 12px;">AstroVed</div>
+            </td>
+            <td style="font-size: 20px; color: #5f6368; padding-left: 10px;">
+              Sales Insights as of {{report_date}}
+            </td>
+            <td align="right">
+              <div
+                style="background-color: #1a73e8; color: #ffffff; padding: 8px 12px; border-radius: 4px; font-size: 12px;">
+                {{report_date}} ▾
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Top 4 KPI Cards (Daily) -->
+        <table width="100%" cellpadding="5" cellspacing="5"
+          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          <tr>
+            <td width="25%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 15px;">
+              <div style="font-size: 12px; margin-bottom: 5px;">USD Revenue</div>
+              <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">{{usd_revenue_daily}}</div>
+              <div style="font-size: 10px;">{{usd_change_daily}} from previous year</div>
+            </td>
+            <td width="25%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 15px;">
+              <div style="font-size: 12px; margin-bottom: 5px;">INR Revenue</div>
+              <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">{{inr_revenue_daily}}</div>
+              <div style="font-size: 10px;">{{inr_change_daily}} from previous year</div>
+            </td>
+            <td width="25%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 15px;">
+              <div style="font-size: 12px; margin-bottom: 5px;">MYR Revenue</div>
+              <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">{{myr_revenue_daily}}</div>
+              <div style="font-size: 10px;">{{myr_change_daily}} from previous year</div>
+            </td>
+            <td width="25%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #5f6368; color: white; padding: 15px;">
+              <div style="font-size: 12px; margin-bottom: 5px;">Total Revenue</div>
+              <div style="font-size: 20px; font-weight: bold; margin-bottom: 5px;">{{total_revenue_daily}}</div>
+              <div style="font-size: 10px;">{{total_change_daily}} from previous year</div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Section Header -->
+        <div
+          style="background-color: #EA4335; color: white; text-align: center; padding: 8px; font-weight: bold; margin-bottom: 10px;">
+          Total Sales Insights for this Month
+        </div>
+
+        <!-- Second Row of KPI Cards (Monthly) -->
+        <table width="100%" cellpadding="5" cellspacing="5"
+          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          <tr>
+            <td width="20%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 15px;">
+              <div style="font-size: 11px; margin-bottom: 5px;">Total USD</div>
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{{usd_revenue_monthly}}</div>
+              <div style="font-size: 9px;">{{usd_change_monthly}}</div>
+            </td>
+            <td width="20%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 15px;">
+              <div style="font-size: 11px; margin-bottom: 5px;">Total INR</div>
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{{inr_revenue_monthly}}</div>
+              <div style="font-size: 9px;">{{inr_change_monthly}}</div>
+            </td>
+            <td width="20%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 15px;">
+              <div style="font-size: 11px; margin-bottom: 5px;">Total MYR</div>
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{{myr_revenue_monthly}}</div>
+              <div style="font-size: 9px;">{{myr_change_monthly}}</div>
+            </td>
+            <td width="20%" align="center"
+              style=" overflow: hidden; word-break: break-word; background-color: #000000; color: white; padding: 15px;">
+              <div style="font-size: 11px; margin-bottom: 5px;">Month Total</div>
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">{{total_revenue_monthly}}</div>
+              <div style="font-size: 9px; color: #EA4335;">{{total_change_monthly}}</div>
+            </td>
+            <td width="20%"
+              style=" overflow: hidden; word-break: break-word; font-size: 10px; color: #5f6368; line-height: 1.4; padding-left: 10px;">
+              <div>INR - India, Nepal, Sri Lanka</div>
+              <div>USD - USA & Others</div>
+              <div>MYR - Malaysia, Philippines, China, Singapore</div>
+            </td>
+          </tr>
+        </table>
+
+        
+        <!-- Top Tables Row -->
+        <table width="100%" cellpadding="0" cellspacing="5"
+          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          <tr>
+            <!-- Table 1: Daily Event Sales -->
+            <td width="50%" valign="top" style=" overflow: hidden; word-break: break-word;">
+              <div
+                style="background-color: #5f6368; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold;">
+                Sales By Event Name</div>
+              <table width="100%" cellpadding="5" cellspacing="0"
+                style="font-size: 11px; border-collapse: collapse; table-layout: fixed;">
+                <tr style="background-color: #26C6DA; color: white;">
+                  <th align="left" style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Event</th>
+                  <th align="right">Qty</th>
+                  <th align="right">Revenue</th>
+                </tr>
+                {{#each daily_event_sales}}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.name}}">{{this.name}}</td>
+                  <td align="right">{{this.qty}}</td>
+                  <td align="right" style="color: #34A853;">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="background-color: #f4f5f7; font-weight: bold;">
+                  <td align="right">Total:</td>
+                  <td align="right">{{daily_event_total_qty}}</td>
+                  <td align="right" style="color: #34A853;">{{daily_event_total_revenue}}</td>
+                </tr>
+              </table>
+            </td>
+            <!-- Table 2: Monthly Event Sales -->
+            <td width="50%" valign="top" style=" overflow: hidden; word-break: break-word;">
+              <div
+                style="background-color: #000000; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold;">
+                Month Total Sales By Event Name</div>
+              <table width="100%" cellpadding="5" cellspacing="0"
+                style="font-size: 11px; border-collapse: collapse; table-layout: fixed;">
+                <tr style="background-color: #26C6DA; color: white;">
+                  <th align="left" style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Event</th>
+                  <th align="right">Qty</th>
+                  <th align="right">Revenue</th>
+                </tr>
+                {{#each monthly_event_sales}}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.name}}">{{this.name}}</td>
+                  <td align="right">{{this.qty}}</td>
+                  <td align="right" style="color: #34A853;">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="background-color: #f4f5f7; font-weight: bold;">
+                  <td align="right">Total:</td>
+                  <td align="right">{{monthly_event_total_qty}}</td>
+                  <td align="right" style="color: #34A853;">{{monthly_event_total_revenue}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Revenue Source Full Width -->
+        <table width="100%" cellpadding="0" cellspacing="5"
+          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          <tr>
+            <!-- Table 3: Revenue Source -->
+            <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
+              <div
+                style="background-color: #EA4335; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold;">
+                Revenue Source as per Event</div>
+              <table width="100%" cellpadding="5" cellspacing="0"
+                style="font-size: 11px; border-collapse: collapse; table-layout: fixed;">
+                <tr style="background-color: #26C6DA; color: white;">
+                  <th align="left" style="width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Event</th>
+                  <th align="left" style="width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Product Name</th>
+                  <th align="right" style="width: 20%;">Qty</th>
+                  <th align="right" style="width: 20%;">Revenue</th>
+                </tr>
+                {{#each revenue_sources}}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.event_name}}">{{this.event_name}}</td>
+                  <td style="width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.product_name}}">{{this.product_name}}</td>
+                  <td align="right" style="width: 20%;">{{this.qty}}</td>
+                  <td align="right" style="width: 20%; color: #34A853;">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="background-color: #f4f5f7; font-weight: bold;">
+                  <td align="right" colspan="2">Total:</td>
+                  <td align="right">{{total_source_qty}}</td>
+                  <td align="right" style="color: #34A853;">{{total_source_revenue}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <!-- Bottom Tables Section -->
+        <table width="100%" cellpadding="0" cellspacing="5"
+          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          <tr>
+            <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
+              <div
+                style="background-color: #EA4335; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold;">
+                This Quarter Specials Total Revenue</div>
+              <table width="100%" cellpadding="5" cellspacing="0"
+                style="font-size: 11px; border-collapse: collapse; table-layout: fixed;">
+                <tr style="background-color: #4285F4; color: white;">
+                  <th align="left" style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Event Name</th>
+                  <th align="left" style="width: 30%;">Event Date</th>
+                  <th align="right" style="width: 20%;">Revenue</th>
+                </tr>
+                {{#each quarter_specials}}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.event_name}}">{{this.event_name}}</td>
+                  <td style="width: 30%;">{{this.date}}</td>
+                  <td align="right" style="width: 20%; color: #34A853; font-weight: bold;">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="background-color: #f4f5f7; font-weight: bold;">
+                  <td align="right" colspan="2">Total:</td>
+                  <td align="right" style="color: #34A853;">{{total_quarter_specials_revenue}}</td>
+                </tr>
+              </table>
+
+              <div
+                style="background-color: #EA4335; color: white; text-align: center; padding: 5px; font-size: 12px; font-weight: bold; margin-top: 10px;">
+                Revenue as per Specials Store Items</div>
+              <table width="100%" cellpadding="5" cellspacing="0"
+                style="font-size: 11px; border-collapse: collapse; table-layout: fixed;">
+                <tr style="background-color: #4285F4; color: white;">
+                  <th align="left" style="width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Store Item Name</th>
+                  <th align="right" style="width: 15%;">Qty</th>
+                  <th align="right" style="width: 25%;">Revenue</th>
+                </tr>
+                {{#each specials_store_items}}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                    title="{{this.name}}">{{this.name}}</td>
+                  <td align="right" style="width: 15%;">{{this.qty}}</td>
+                  <td align="right" style="width: 25%; color: #34A853; font-weight: bold;">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="background-color: #f4f5f7; font-weight: bold;">
+                  <td align="right">Total:</td>
+                  <td align="right">{{total_store_items_qty}}</td>
+                  <td align="right" style="color: #34A853;">{{total_store_items_revenue}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+
+</html>

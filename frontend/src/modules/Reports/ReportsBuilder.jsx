@@ -5,13 +5,10 @@ import { toast } from 'react-hot-toast';
 import MultiSelectDropdown from '../../components/MultiSelectDropdown';
 
 const DASHBOARD_OPTIONS = [
-  { label: 'Executive Dashboard', value: 'Executive Dashboard' },
-  { label: 'Customer Dashboard', value: 'Customer Dashboard' },
   { label: 'Sales Dashboard', value: 'Sales Dashboard' },
-  { label: 'Newsletter Performance', value: 'Newsletter Performance' },
-  { label: 'Operations Dashboard', value: 'Operations Dashboard' },
-  { label: 'Home Page Banner Clicks', value: 'Home Page Banner Clicks' }
-];
+  { label: 'Daily Sales Dashboard', value: 'Daily Sales Dashboard' },
+  { label: 'Newsletter Performance', value: 'Newsletter Performance' }
+]
 
 const ReportsBuilder = () => {
   const [reportType, setReportType] = useState('daily');
