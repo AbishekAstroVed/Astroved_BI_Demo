@@ -1547,7 +1547,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       const { sendDailySalesTemplateEmail } = await import('../utils/emailUtils.js');
       const dailyDateRange = getDateRangeForPeriod('Daily');
       const monthlyDateRange = getDateRangeForPeriod('Monthly');
-      
+
       const [dailyData, monthlyData] = await Promise.all([
         fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
         fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
@@ -1646,6 +1646,8 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       console.log(`[Report Scheduler] SUCCESS: Sent Newsletter HTML Template to ${recipients}`);
     }
 
+    let combinedHtml = '';
+
     if (dashboards.includes('NewsletterEmailTemplate.html')) {
       htmlHandled = true;
       try {
@@ -1662,15 +1664,75 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           fetchDashboardDataInternal(getNewsletterDashboard, monthlyDateRange)
         ]);
 
+        const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        const currentYearData = Array(12).fill(0);
+        if (dailyData?.currentYearSummaryData) {
+          dailyData.currentYearSummaryData.forEach(item => {
+            if (item.monthNum >= 1 && item.monthNum <= 12) {
+              currentYearData[item.monthNum - 1] = item.revenue;
+            }
+          });
+        }
+
+        const previousYearData = Array(12).fill(0);
+        if (dailyData?.previousYearSummaryData) {
+          dailyData.previousYearSummaryData.forEach(item => {
+            if (item.monthNum >= 1 && item.monthNum <= 12) {
+              previousYearData[item.monthNum - 1] = item.revenue;
+            }
+          });
+        }
+
+        const chartConfig = {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: 'Current Year', data: currentYearData, backgroundColor: '#f97316' },
+              { label: 'Previous Year', data: previousYearData, backgroundColor: '#6366f1' }
+            ]
+          },
+          options: {
+            title: { display: true, text: 'Over All NewsLetter Statistics Summary (Current vs Previous Year)' },
+            legend: { position: 'top' },
+            plugins: {
+              datalabels: { display: false }
+            }
+          }
+        };
+
+        const mapAndChartImageUrl = `https://quickchart.io/chart?width=700&height=350&c=${encodeURIComponent(JSON.stringify(chartConfig))}`;
+
+        const categoryChartConfig = {
+          type: 'doughnut',
+          data: {
+            labels: ['Western NL', 'India NL', 'Targetted NL'],
+            datasets: [{
+              data: [
+                parseFloat(dailyData?.kpiData?.western || 0),
+                parseFloat(dailyData?.kpiData?.india || 0),
+                parseFloat(dailyData?.kpiData?.targeted || 0)
+              ],
+              backgroundColor: ['#00bcd4', '#f97316', '#8b5cf6']
+            }]
+          },
+          options: {
+            title: { display: true, text: 'Category Wise Revenue Summary' },
+            legend: { position: 'bottom' }
+          }
+        };
+        const categoryChartImageUrl = `https://quickchart.io/chart?width=500&height=350&c=${encodeURIComponent(JSON.stringify(categoryChartConfig))}`;
+
         const context = {
           dateRange: `${dailyDateRange.startDate} to ${dailyDateRange.endDate}`,
           newslettersTop: dailyData?.kpiData?.overall ? [{ nlDate: dailyDateRange.endDate, newsletterName: 'Daily Newsletter', revenue: dailyData.kpiData.overall }] : [],
           newslettersTopGrandTotal: dailyData?.kpiData?.overall || '0.00',
           yesterdayRevenue: { val: dailyData?.kpiData?.overall || '0.00', change: '+0%', colorClass: 'green' },
           totalRevenue: { val: monthlyData?.kpiData?.overall || '0.00', change: '+0%', colorClass: 'green' },
-          westernNlRevenue: { val: dailyData?.kpiData?.nlw || '0.00', change: '+0%', colorClass: 'green' },
-          indiaNlRevenue: { val: dailyData?.kpiData?.nli || '0.00', change: '+0%', colorClass: 'green' },
-          targettedNlRevenue: { val: dailyData?.kpiData?.oml || '0.00', change: '+0%', colorClass: 'green' },
+          westernNlRevenue: { val: dailyData?.kpiData?.western || '0.00', change: '+0%', colorClass: 'green' },
+          indiaNlRevenue: { val: dailyData?.kpiData?.india || '0.00', change: '+0%', colorClass: 'green' },
+          targettedNlRevenue: { val: dailyData?.kpiData?.targeted || '0.00', change: '+0%', colorClass: 'green' },
           revenueByEvent: dailyData?.eventsComparedData ? dailyData.eventsComparedData.map(item => ({
             eventName: item.type,
             quantity: item.count,
@@ -1688,20 +1750,20 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           newsletterStatistics: [],
           dateWisePerformance: dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.slice(0, 10).map(item => ({ date: item.date, name: item.name, revenue: item.revenue })) : [],
           dateWisePerformanceTotalRevenue: dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.reduce((acc, curr) => acc + (parseFloat(curr.revenue) || 0), 0).toFixed(2) : '0.00',
-          mapAndChartImageUrl: ''
+          overallNewslettersPerformance: dailyData?.overallEventsData ? dailyData.overallEventsData.map(item => ({
+            eventName: item.name,
+            nlw: parseFloat(item.nlw || 0).toFixed(2),
+            nli: parseFloat(item.nli || 0).toFixed(2),
+            oml: parseFloat(item.oml || 0).toFixed(2)
+          })) : [],
+          mapAndChartImageUrl: mapAndChartImageUrl,
+          categoryChartImageUrl: categoryChartImageUrl
         };
 
-        const html = template(context);
-
-        await transporter.sendMail({
-          from,
-          to: recipients,
-          subject: name,
-          html
-        });
-        console.log(`[Report Scheduler] SUCCESS: Sent Custom NewsletterEmailTemplate.html to ${recipients}`);
+        combinedHtml += template(context);
+        console.log(`[Report Scheduler] SUCCESS: Processed NewsletterEmailTemplate.html for combined email`);
       } catch (err) {
-        console.error('Error sending custom template:', err);
+        console.error('Error processing custom template:', err);
       }
     }
 
@@ -1720,44 +1782,83 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           fetchDashboardDataInternal(getDailySalesDashboard, dailyDateRange),
           fetchDashboardDataInternal(getMonthlySalesDashboard, monthlyDateRange)
         ]);
-        
-        const context = {
-          report_date: dailyDateRange.endDate,
-          
-          usd_revenue_daily: dailySales?.salesKpiData?.usd || '0.00',
-          usd_change_daily: '+0%',
-          inr_revenue_daily: dailySales?.salesKpiData?.inr || '0.00',
-          inr_change_daily: '+0%',
-          myr_revenue_daily: dailySales?.salesKpiData?.myr || '0.00',
-          myr_change_daily: '+0%',
-          total_revenue_daily: dailySales?.salesKpiData?.overall || '0.00',
-          total_change_daily: '+0%',
-          
-          usd_revenue_monthly: monthlySales?.salesKpiData?.usd || '0.00',
-          usd_change_monthly: '+0%',
-          inr_revenue_monthly: monthlySales?.salesKpiData?.inr || '0.00',
-          inr_change_monthly: '+0%',
-          myr_revenue_monthly: monthlySales?.salesKpiData?.myr || '0.00',
-          myr_change_monthly: '+0%',
-          total_revenue_monthly: monthlySales?.salesKpiData?.overall || '0.00',
-          total_change_monthly: '+0%',
-          
-          daily_event_sales: dailySales?.salesByEventName ? dailySales.salesByEventName.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
-          daily_event_total_qty: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a,c) => a + (parseInt(c.qty||c.quantity)||0), 0) : 0,
-          daily_event_total_revenue: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a,c) => a + (parseFloat(c.revenue)||0), 0).toFixed(2) : '0.00',
-          
-          monthly_event_sales: monthlySales?.salesByEventName ? monthlySales.salesByEventName.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
-          monthly_event_total_qty: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a,c) => a + (parseInt(c.qty||c.quantity)||0), 0) : 0,
-          monthly_event_total_revenue: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a,c) => a + (parseFloat(c.revenue)||0), 0).toFixed(2) : '0.00',
-          
-          revenue_source: dailySales?.revenueSource ? dailySales.revenueSource.slice(0, 10).map(i => ({ name: i.name, source: i.source || 'Organic', revenue: parseFloat(i.revenue || 0).toFixed(2) })) : []
+
+        const extractValues = (kpiData, isMonthly) => {
+          const cards = isMonthly ? kpiData?.monthRevenueCards : kpiData?.todayRevenueCards;
+          if (!cards || !cards.length) return { total: '0.00', totalChange: '+0%', usd: '0.00', usdChange: '+0%', inr: '0.00', inrChange: '+0%', myr: '0.00', myrChange: '+0%' };
+          return {
+            total: cards[0]?.value || '0.00',
+            totalChange: cards[0]?.change || '+0%',
+            usd: cards[1]?.value || '0.00',
+            usdChange: cards[1]?.change || '+0%',
+            inr: cards[2]?.value || '0.00',
+            inrChange: cards[2]?.change || '+0%',
+            myr: cards[3]?.value || '0.00',
+            myrChange: cards[3]?.change || '+0%'
+          };
         };
 
-        const html = template(context);
-        await transporter.sendMail({ from, to: recipients, subject: name, html });
-        console.log(`[Report Scheduler] SUCCESS: Sent Custom DailySalesEmailTemplate.html to ${recipients}`);
+        const dailyKpi = extractValues(dailySales?.salesKpiData, false);
+        const monthlyKpi = extractValues(monthlySales?.salesKpiData, true);
+
+        const context = {
+          report_date: dailyDateRange.endDate,
+
+          usd_revenue_daily: dailyKpi.usd,
+          usd_change_daily: dailyKpi.usdChange,
+          inr_revenue_daily: dailyKpi.inr,
+          inr_change_daily: dailyKpi.inrChange,
+          myr_revenue_daily: dailyKpi.myr,
+          myr_change_daily: dailyKpi.myrChange,
+          total_revenue_daily: dailyKpi.total,
+          total_change_daily: dailyKpi.totalChange,
+
+          usd_revenue_monthly: monthlyKpi.usd,
+          usd_change_monthly: monthlyKpi.usdChange,
+          inr_revenue_monthly: monthlyKpi.inr,
+          inr_change_monthly: monthlyKpi.inrChange,
+          myr_revenue_monthly: monthlyKpi.myr,
+          myr_change_monthly: monthlyKpi.myrChange,
+          total_revenue_monthly: monthlyKpi.total,
+          total_change_monthly: monthlyKpi.totalChange,
+
+          daily_event_sales: dailySales?.salesByEventName ? dailySales.salesByEventName.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          daily_event_total_qty: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a, c) => a + (parseInt(c.qty || c.quantity) || 0), 0) : 0,
+          daily_event_total_revenue: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
+
+          monthly_event_sales: monthlySales?.salesByEventName ? monthlySales.salesByEventName.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          monthly_event_total_qty: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseInt(c.qty || c.quantity) || 0), 0) : 0,
+          monthly_event_total_revenue: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
+
+          revenue_sources: dailySales?.revenueSource ? dailySales.revenueSource.slice(0, 10).map(i => ({ event_name: i.source || 'Organic', product_name: i.name, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          total_source_qty: dailySales?.revenueSource ? dailySales.revenueSource.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
+          total_source_revenue: dailySales?.revenueSource ? dailySales.revenueSource.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
+
+          quarter_specials: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.slice(0, 10).map(i => ({ event_name: i.name, date: i.date || dailyDateRange.endDate, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          total_quarter_specials_qty: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
+          total_quarter_specials_revenue: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
+
+          specials_store_items: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          total_store_items_qty: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
+          total_store_items_revenue: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00'
+        };
+
+        if (combinedHtml !== '') {
+          combinedHtml += '<br><br><div style="border-top: 3px dashed #EA4335; margin: 30px 0;"></div><br><br>';
+        }
+        combinedHtml += template(context);
+        console.log(`[Report Scheduler] SUCCESS: Processed DailySalesEmailTemplate.html for combined email`);
       } catch (err) {
-        console.error('Error sending DailySales template:', err);
+        console.error('Error processing DailySales template:', err);
+      }
+    }
+
+    if (combinedHtml !== '') {
+      try {
+        await transporter.sendMail({ from, to: recipients, subject: name, html: combinedHtml });
+        console.log(`[Report Scheduler] SUCCESS: Sent Combined HTML Email to ${recipients}`);
+      } catch (err) {
+        console.error('Error sending combined HTML email:', err);
       }
     }
 
