@@ -1830,15 +1830,15 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           monthly_event_total_qty: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseInt(c.qty || c.quantity) || 0), 0) : 0,
           monthly_event_total_revenue: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
 
-          revenue_sources: dailySales?.revenueSource ? dailySales.revenueSource.slice(0, 10).map(i => ({ event_name: i.source || 'Organic', product_name: i.name, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          revenue_sources: dailySales?.revenueSource ? dailySales.revenueSource.slice(0, 10).map(i => ({ event_name: i.source || 'Organic', product_name: i.eventName || i.event || i.name || 'N/A', qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
           total_source_qty: dailySales?.revenueSource ? dailySales.revenueSource.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
           total_source_revenue: dailySales?.revenueSource ? dailySales.revenueSource.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
 
-          quarter_specials: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.slice(0, 10).map(i => ({ event_name: i.name, date: i.date || dailyDateRange.endDate, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          quarter_specials: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.slice(0, 10).map(i => ({ event_name: i.event || i.eventName || i.name || i.event_name || 'N/A', date: i.date || dailyDateRange.endDate, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
           total_quarter_specials_qty: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
           total_quarter_specials_revenue: monthlySales?.quarterSpecials ? monthlySales.quarterSpecials.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
 
-          specials_store_items: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.slice(0, 10).map(i => ({ name: i.name, qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          specials_store_items: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.slice(0, 10).map(i => ({ name: i.itemName || i.name || i.productName || 'N/A', qty: i.qty || i.quantity || 1, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
           total_store_items_qty: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.reduce((a, c) => a + (parseInt(c.qty || c.quantity || 1)), 0) : 0,
           total_store_items_revenue: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00'
         };
