@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter Performance Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 20px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    .data-table th {
+      background-color: #89e2e2;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .data-table .orange-header {
+      background-color: #e66627;
+      color: #fff;
+      text-align: center;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 10px;
+    }
+
+    .data-table tr:nth-child(even) {
+      background-color: #fdfdfd;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .kpi-box {
+      padding: 15px;
+      color: #fff;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .kpi-box.dark {
+      background-color: #4b4b4b;
+    }
+
+    .kpi-box.purple {
+      background-color: #5c3b9b;
+    }
+
+    .kpi-box h3 {
+      margin: 0 0 5px 0;
+      font-size: 13px;
+      font-weight: normal;
+    }
+
+    .kpi-box p {
+      margin: 0;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .sub {
+      font-size: 11px;
+      margin-top: 5px;
+    }
+
+    .sub.green {
+      color: #2ecc71;
+    }
+
+    .sub.red {
+      color: #e74c3c;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+      <tr>
+        <td width="150">
+          <img src="https://cdn.astroved.com/images/images-av/AstroVed-Logo.svg" alt="AstroVed Logo"
+            style="max-height: 45px; display: block;">
+        </td>
+        <td>
+          <h1 style="color: #5c3b9b; margin: 0; font-size: 24px; padding-left: 15px;">Newsletter Performance</h1>
+        </td>
+        <td align="right">
+          <div
+            style="background-color: #3b429b; color: #fff; padding: 8px 15px; border-radius: 4px; font-size: 14px; display: inline-block;">
+            {{dateRange}}
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Row 1: Top Newsletters & KPIs -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+      <tr>
+        <!-- Left Column: Table -->
+        <td width="48%" valign="top" style="padding-right: 15px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>NL Date</th>
+                <th>Newsletter Name</th>
+                <th class="text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each newslettersTop}}
+              <tr>
+                <td>{{this.nlDate}}</td>
+                <td>{{this.newsletterName}}</td>
+                <td class="text-right">{{this.revenue}}</td>
+              </tr>
+              {{/each}}
+
+              <tr style="font-weight: bold; background-color: #fff;">
+                <td colspan="2" class="text-right">Grand total</td>
+                <td class="text-right">{{newslettersTopGrandTotal}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+
+        <!-- Right Column: KPIs -->
+        <td width="52%" valign="top">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="48%" valign="top">
+                <div class="kpi-box dark">
+                  <h3>Yesterday Total Revenue</h3>
+                  <p>{{yesterdayRevenue.val}}</p>
+                </div>
+                <div class="kpi-box dark">
+                  <h3>Monthly Revenue</h3>
+                  <p>{{totalRevenue.val}}</p>
+                </div>
+              </td>
+              <td width="4%"></td>
+              <td width="48%" valign="top">
+                <div class="kpi-box purple">
+                  <h3>Yesterday Western NL Revenue</h3>
+                  <p>{{westernNlRevenue.val}}</p>
+                </div>
+                <div class="kpi-box purple">
+                  <h3>Yesterday India NL Revenue</h3>
+                  <p>{{indiaNlRevenue.val}}</p>
+                </div>
+                <div class="kpi-box purple">
+                  <h3>Yesterday Targetted NL Revenue</h3>
+                  <p>{{targettedNlRevenue.val}}</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Row 2: Event Revenue Table -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+      <tr>
+        <td>
+          <div class="data-table">
+            <div class="orange-header">Total Revenue From NewsLetter For Selected Period</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Event Name</th>
+                  <th>Quantity</th>
+                  <th class="text-right">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each revenueByEvent}}
+                <tr>
+                  <td>{{this.eventName}}</td>
+                  <td>{{this.quantity}}</td>
+                  <td class="text-right">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+
+                <tr style="font-weight: bold; background-color: #fff;">
+                  <td>Grand total</td>
+                  <td>{{revenueByEventTotalQty}}</td>
+                  <td class="text-right">{{revenueByEventTotalRevenue}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Row 3: Newsletter Types -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+      <tr>
+        <td>
+          <div class="data-table">
+            <div class="orange-header">Types of Newsletters Compared with Last Month</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Newsletter Type</th>
+                  <th>Count</th>
+                  <th>% Δ</th>
+                  <th class="text-right">Revenue</th>
+                  <th>% Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each newsletterTypesCompare}}
+                <tr>
+                  <td>{{this.newsletterType}}</td>
+                  <td>{{this.count}}</td>
+                  <td>{{this.countDelta}}</td>
+                  <td class="text-right">{{this.revenue}}</td>
+                  <td>{{this.revenueDelta}}</td>
+                </tr>
+                {{/each}}
+
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Row 4: Newsletter Statistics Table -->
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td>
+          <div class="data-table">
+            <div class="orange-header">Newsletter Statistics</div>
+            <table class="data-table">
+              <thead style="background-color: #89e2e2;">
+                <tr>
+                  <th>Newsletter Date</th>
+                  <th>Newsletter Name</th>
+                  <th>Newsletter Type</th>
+                  <th>Order Year</th>
+                  <th>Quantity</th>
+                  <th>USD_Sale</th>
+                  <th class="text-right">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each newsletterStatistics}}
+                <tr>
+                  <td>{{this.nlDate}}</td>
+                  <td>{{this.nlName}}</td>
+                  <td>{{this.nlType}}</td>
+                  <td>{{this.orderYear}}</td>
+                  <td>{{this.quantity}}</td>
+                  <td>{{this.usdSale}}</td>
+                  <td class="text-right">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Row 5: Date Wise Newsletter Performance -->
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td>
+          <div class="data-table">
+            <div class="orange-header">Date Wise Newsletter Performance</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>News Letter Sent Date</th>
+                  <th>NewsLetter Name</th>
+                  <th class="text-right">Net Revenue ($)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{#each dateWisePerformance}}
+                <tr>
+                  <td>{{this.date}}</td>
+                  <td>{{this.name}}</td>
+                  <td class="text-right">{{this.revenue}}</td>
+                </tr>
+                {{/each}}
+                <tr style="font-weight: bold; background-color: #fff;">
+                  <td colspan="2">Grand total</td>
+                  <td class="text-right">{{dateWisePerformanceTotalRevenue}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+  </div>
+</body>
+
+</html>

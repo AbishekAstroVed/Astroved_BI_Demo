@@ -1,0 +1,261 @@
+.ns-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.ns-header {
+  margin-bottom: 28px;
+}
+
+.ns-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ns-icon {
+  width: 18px;
+  height: 18px;
+  color: #6366f1;
+}
+
+.ns-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.ns-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.ns-field {
+  position: relative;
+}
+
+.ns-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ns-field input[type="text"],
+.ns-time-wrapper select,
+.ns-custom-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #334155;
+  background-color: #f8fafc;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+.ns-field input[type="text"]:focus,
+.ns-time-wrapper select:focus,
+.ns-email-input-container:focus-within {
+  border-color: #6366f1;
+  background-color: #ffffff;
+}
+
+/* Custom Select Dropdown */
+.ns-custom-select {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background-color: #ffffff;
+}
+
+.ns-chevron {
+  color: #64748b;
+  transition: transform 0.2s;
+}
+
+.ns-chevron.open {
+  transform: rotate(180deg);
+}
+
+.ns-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-top: 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  padding: 8px 0;
+}
+
+.ns-checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ns-checkbox-item:hover {
+  background-color: #f1f5f9;
+}
+
+.ns-checkbox-item input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.ns-checkmark {
+  width: 16px;
+  height: 16px;
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  margin-right: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ns-checkbox-item input:checked ~ .ns-checkmark {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.ns-checkbox-item input:checked ~ .ns-checkmark:after {
+  content: "";
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+/* Time Inputs */
+.ns-time-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ns-time-wrapper select {
+  padding: 10px 24px 10px 12px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px top 50%;
+  background-size: 8px auto;
+  cursor: pointer;
+  background-color: #f8fafc;
+}
+
+.ns-colon {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Email Input */
+.ns-email-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #f8fafc;
+  min-height: 40px;
+  align-items: center;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  max-width: 320px;
+}
+
+.ns-email-input-container input {
+  padding: 4px 0 !important;
+}
+
+.ns-email-input-container input:focus {
+  outline: none;
+}
+
+.ns-email-badge {
+  background-color: #e2e8f0;
+  color: #334155;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ns-email-badge button {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Footer / Action Button */
+.ns-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 32px;
+}
+
+.ns-register-btn {
+  background-color: #6366f1; /* Purple color matching screenshot */
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.ns-register-btn:hover {
+  background-color: #4f46e5;
+}
+
+.ns-register-btn svg {
+  width: 16px;
+  height: 16px;
+}

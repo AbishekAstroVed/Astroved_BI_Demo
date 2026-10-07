@@ -7,7 +7,9 @@ import MultiSelectDropdown from '../../components/MultiSelectDropdown';
 const DASHBOARD_OPTIONS = [
   { label: 'Sales Dashboard', value: 'Sales Dashboard' },
   { label: 'Daily Sales Dashboard', value: 'Daily Sales Dashboard' },
-  { label: 'Newsletter Performance', value: 'Newsletter Performance' }
+  { label: 'Newsletter Performance', value: 'Newsletter Performance' },
+  { label: 'DailySalesEmailTemplate.html', value: 'DailySalesEmailTemplate.html' },
+  { label: 'NewsletterEmailTemplate.html', value: 'NewsletterEmailTemplate.html' }
 ]
 
 const ReportsBuilder = () => {
