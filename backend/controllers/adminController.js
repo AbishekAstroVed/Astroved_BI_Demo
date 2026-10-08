@@ -1855,7 +1855,17 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
     if (combinedHtml !== '') {
       try {
-        await transporter.sendMail({ from, to: recipients, subject: name, html: combinedHtml });
+        await transporter.sendMail({ 
+          from, 
+          to: recipients, 
+          subject: name, 
+          html: combinedHtml,
+          attachments: [{
+            filename: 'AstroVed-Logo-High-res.png',
+            path: path.join(process.cwd(), '../frontend/public/AstroVed-Logo-High-res.png'),
+            cid: 'astrovedlogo'
+          }]
+        });
         console.log(`[Report Scheduler] SUCCESS: Sent Combined HTML Email to ${recipients}`);
       } catch (err) {
         console.error('Error sending combined HTML email:', err);

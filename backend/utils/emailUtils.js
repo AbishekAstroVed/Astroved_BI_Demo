@@ -339,8 +339,8 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
     const formatCurrency = (val) => '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // DO NOT REVERT parseFloat. parseFloat("1,500.00") returns 1. We MUST use parseNum to strip commas first!
-    const dEventSales = (dailyData?.salesByEventName || []).slice(0, 15).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
-    const mEventSales = (monthlyData?.salesByEventName || []).slice(0, 15).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+    const dEventSales = (dailyData?.salesByEventName || []).slice(0, 20).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+    const mEventSales = (monthlyData?.salesByEventName || []).slice(0, 25).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
     
     // Map Revenue Source (DO NOT REVERT parseNum)
     const dSources = (dailyData?.revenueSource || []).slice(0, 10).map(s => ({ 
@@ -352,7 +352,7 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
     // Fallback: If quarterSpecials is missing, use the top 5 events from monthlyData to simulate quarter specials real-time data
     const rawQuarterSpecials = dailyData?.quarterSpecials?.length > 0 ? dailyData.quarterSpecials : (monthlyData?.salesByEventName || []);
     // DO NOT REVERT parseNum
-    const dSpecials = rawQuarterSpecials.slice(0, 5).map(q => ({ event_name: q.eventName || q.name, date: q.date || dateStr || new Date().toISOString().split('T')[0], revenue: formatCurrency(parseNum(q.revenue || q.Revenue || q.total || 0)) }));
+    const dSpecials = rawQuarterSpecials.slice(0, 25).map(q => ({ event_name: q.eventName || q.name, date: q.date || dateStr || new Date().toISOString().split('T')[0], revenue: formatCurrency(parseNum(q.revenue || q.Revenue || q.total || 0)) }));
 
     // Ensure specialsStoreItems is mapped safely (DO NOT REVERT parseNum)
     const rawStoreItems = dailyData?.specialsStoreItems?.length > 0 ? dailyData.specialsStoreItems : (dailyData?.salesByEventName || []);
@@ -417,7 +417,12 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
       replyTo: fromEmail,
       to: to,
       subject: subject || `AstroVed BI: Daily Sales Insights - ${templateData.report_date}`,
-      html: htmlContent
+      html: htmlContent,
+      attachments: [{
+        filename: 'AstroVed-Logo-High-res.png',
+        path: path.resolve('../frontend/public/AstroVed-Logo-High-res.png'),
+        cid: 'astrovedlogo'
+      }]
     };
 
     const info = await mailTransporter.sendMail(mailOptions);
