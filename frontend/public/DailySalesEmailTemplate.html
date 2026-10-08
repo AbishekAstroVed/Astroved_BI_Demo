@@ -8,16 +8,16 @@
     }
   </style> <!-- Main Container -->
   <table width="100%" align="center" cellpadding="0" cellspacing="0"
-    style="background-color: #ffffff; width: 100%; max-width: 1200px; margin: 0 auto; table-layout: fixed;">
+    style="background-color: #ffffff; width: 1200px; margin: 0 auto; table-layout: fixed;">
     <tr>
       <!-- Ghost spacer image to physically force 1200px width on ALL mobile apps -->
       <td height="1" style="line-height: 1px; font-size: 1px; padding: 0; mso-line-height-rule: exactly;">
         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" width="100%"
-          height="1" style="display: block; width: 100%; max-width: 1200px; max-height: 1px;" alt="" border="0" />
+          height="1" style="display: block; width: 1200px; max-height: 1px;" alt="" border="0" />
       </td>
     </tr>
     <tr>
-      <td style="padding: 20px; width: 100%; max-width: 1200px;">
+      <td style="padding: 20px; width: 1200px;">
 
         <!-- Title Section -->
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
@@ -39,28 +39,28 @@
         </table>
 
         <!-- Top 4 KPI Cards (Daily) -->
-        <table width="100%" cellpadding="0" cellspacing="2"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+        <table width="100%" cellpadding="0" cellspacing="10"
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <td width="25%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; margin-bottom: 1px;">USD Revenue</div>
-              <div style="font-size: 11px; font-weight: bold; margin-bottom: 0px;">{{usd_revenue_daily}}</div>
+              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">USD Revenue</div>
+              <div style="font-size: 22px; font-weight: bold; margin-bottom: 0px;">{{usd_revenue_daily}}</div>
             </td>
             <td width="25%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; margin-bottom: 1px;">INR Revenue</div>
-              <div style="font-size: 11px; font-weight: bold; margin-bottom: 0px;">{{inr_revenue_daily}}</div>
+              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">INR Revenue</div>
+              <div style="font-size: 22px; font-weight: bold; margin-bottom: 0px;">{{inr_revenue_daily}}</div>
             </td>
             <td width="25%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; margin-bottom: 1px;">MYR Revenue</div>
-              <div style="font-size: 11px; font-weight: bold; margin-bottom: 0px;">{{myr_revenue_daily}}</div>
+              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">MYR Revenue</div>
+              <div style="font-size: 22px; font-weight: bold; margin-bottom: 0px;">{{myr_revenue_daily}}</div>
             </td>
             <td width="25%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #5f6368; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; margin-bottom: 1px;">Total Revenue</div>
-              <div style="font-size: 11px; font-weight: bold; margin-bottom: 0px;">{{total_revenue_daily}}</div>
+              style=" overflow: hidden; word-break: break-word; background-color: #5f6368; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total Revenue</div>
+              <div style="font-size: 22px; font-weight: bold; margin-bottom: 0px;">{{total_revenue_daily}}</div>
             </td>
           </tr>
         </table>
@@ -72,38 +72,38 @@
         </div>
 
         <!-- Second Row of KPI Cards (Monthly) -->
-        <table width="100%" cellpadding="0" cellspacing="2"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+        <table width="100%" cellpadding="0" cellspacing="10"
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <td width="20%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; line-height: 1; margin: 0;">Total USD</div>
-              <div style="font-size: 11px; line-height: 1; font-weight: bold; margin: 2px 0 0 0;">
+              style=" overflow: hidden; word-break: break-word; background-color: #34A853; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total USD</div>
+              <div style="font-size: 20px; font-weight: bold; margin: 0;">
                 {{usd_revenue_monthly}}</div>
             </td>
             <td width="20%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; line-height: 1; margin: 0;">Total INR</div>
-              <div style="font-size: 11px; line-height: 1; font-weight: bold; margin: 2px 0 0 0;">
+              style=" overflow: hidden; word-break: break-word; background-color: #FBBC05; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total INR</div>
+              <div style="font-size: 20px; font-weight: bold; margin: 0;">
                 {{inr_revenue_monthly}}</div>
             </td>
             <td width="20%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; line-height: 1; margin: 0;">Total MYR</div>
-              <div style="font-size: 11px; line-height: 1; font-weight: bold; margin: 2px 0 0 0;">
+              style=" overflow: hidden; word-break: break-word; background-color: #FABB05; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Total MYR</div>
+              <div style="font-size: 20px; font-weight: bold; margin: 0;">
                 {{myr_revenue_monthly}}</div>
             </td>
             <td width="20%" align="center"
-              style=" overflow: hidden; word-break: break-word; background-color: #000000; color: white; padding: 2px; border-radius: 4px;">
-              <div style="font-size: 9px; line-height: 1; margin: 0;">Month Total</div>
-              <div style="font-size: 11px; line-height: 1; font-weight: bold; margin: 2px 0 0 0;">
+              style=" overflow: hidden; word-break: break-word; background-color: #000000; color: white; padding: 12px; border-radius: 8px;">
+              <div style="font-size: 14px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Month Total</div>
+              <div style="font-size: 20px; font-weight: bold; margin: 0;">
                 {{total_revenue_monthly}}</div>
             </td>
             <td width="20%"
-              style=" overflow: hidden; word-break: break-word; font-size: 9px; color: #5f6368; line-height: 1.1; padding-left: 5px;">
-              <div>INR - India, Nepal, Sri Lanka</div>
-              <div>USD - USA & Others</div>
-              <div>MYR - Malaysia, Philippines, China, Singapore</div>
+              style=" overflow: hidden; word-break: break-word; font-size: 12px; color: #5f6368; line-height: 1.6; padding-left: 10px;">
+              <div><strong>INR</strong> - India, Nepal, Sri Lanka</div>
+              <div><strong>USD</strong> - USA & Others</div>
+              <div><strong>MYR</strong> - Malaysia, Philippines, China, Singapore</div>
             </td>
           </tr>
         </table>
@@ -111,7 +111,7 @@
 
         <!-- Top Tables Row: Daily Event Sales -->
         <table width="100%" cellpadding="0" cellspacing="5"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
               <div
@@ -145,7 +145,7 @@
 
         <!-- Monthly Event Sales Table -->
         <table width="100%" cellpadding="0" cellspacing="5"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
               <div
@@ -179,7 +179,7 @@
 
         <!-- Revenue Source Full Width -->
         <table width="100%" cellpadding="0" cellspacing="5"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <!-- Table 3: Revenue Source -->
             <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
@@ -217,7 +217,7 @@
         </table>
         <!-- Bottom Tables Section -->
         <table width="100%" cellpadding="0" cellspacing="5"
-          style="margin-bottom: 20px; table-layout: fixed; width: 100%; max-width: 1200px;">
+          style="margin-bottom: 20px; table-layout: fixed; width: 1200px;">
           <tr>
             <td width="100%" valign="top" style=" overflow: hidden; word-break: break-word;">
               <div
