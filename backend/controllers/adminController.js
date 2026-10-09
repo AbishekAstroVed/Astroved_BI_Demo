@@ -1815,7 +1815,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           newslettersTop: dailyData?.kpiData?.overall ? [{ nlDate: dailyDateRange.endDate, newsletterName: 'Daily Newsletter', revenue: dailyData.kpiData.overall }] : [],
           newslettersTopGrandTotal: dailyData?.kpiData?.overall || '0.00',
           yesterdayRevenue: { val: dailyData?.kpiData?.overall || '0.00', change: '+0%', colorClass: 'green' },
-          totalRevenue: { val: monthlyData?.kpiData?.overall || '0.00', change: '+0%', colorClass: 'green' },
+          totalRevenue: { val: monthlyData?.kpiData?.overall ? parseFloat(monthlyData.kpiData.overall).toFixed(2) : '0.00', change: '+0%', colorClass: 'green' },
           westernNlRevenue: { val: dailyData?.kpiData?.western || '0.00', change: '+0%', colorClass: 'green' },
           indiaNlRevenue: { val: dailyData?.kpiData?.india || '0.00', change: '+0%', colorClass: 'green' },
           targettedNlRevenue: { val: dailyData?.kpiData?.targeted || '0.00', change: '+0%', colorClass: 'green' },
