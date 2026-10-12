@@ -1430,6 +1430,16 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
   const formatStr = Array.isArray(format) ? format.join(',') : String(format);
   const dateRange = getDateRangeForPeriod(period);
+  const targetDateStr = dateRange.endDate; // Yesterday's date YYYY-MM-DD
+  let formattedFullDate = targetDateStr;
+  try {
+    const [y, m, d] = targetDateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    formattedFullDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); // e.g. "October 11, 2026"
+  } catch (e) {
+    formattedFullDate = targetDateStr;
+  }
+  const dynamicSubject = name.includes(formattedFullDate) || name.includes(targetDateStr) ? name : `${name} - ${formattedFullDate}`;
 
   const transporter = nodemailer.createTransport({
     host,
@@ -1522,7 +1532,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       await sendSalesDataEmail({
         to: recipients,
-        subject: name,
+        subject: dynamicSubject,
         dateStr: dateRange.endDate,
 
         dailyTotalSales,
@@ -1555,7 +1565,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       await sendDailySalesTemplateEmail({
         to: recipients,
-        subject: name,
+        subject: dynamicSubject,
         dateStr: dateRange.endDate,
         dailyData,
         monthlyData,
@@ -1624,7 +1634,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
 
       await sendNewsletterDataEmail({
         to: recipients,
-        subject: name,
+        subject: dynamicSubject,
         scheduleName: name,
         dailyKpi: dailyData?.kpiData || null,
         monthlyKpi: monthlyData?.kpiData || null,
@@ -1703,11 +1713,11 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           total_revenue_monthly: monthlyKpi.total,
           total_change_monthly: monthlyKpi.totalChange,
 
-          daily_event_sales: dailySales?.salesByEventName ? dailySales.salesByEventName.slice(0, 12).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          daily_event_sales: dailySales?.salesByEventName ? dailySales.salesByEventName.slice(0, 25).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
           daily_event_total_qty: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a, c) => a + (parseInt(c.qty || c.quantity) || 0), 0) : 0,
           daily_event_total_revenue: dailySales?.salesByEventName ? dailySales.salesByEventName.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
 
-          monthly_event_sales: monthlySales?.salesByEventName ? monthlySales.salesByEventName.slice(0, 12).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
+          monthly_event_sales: monthlySales?.salesByEventName ? monthlySales.salesByEventName.slice(0, 25).map(i => ({ name: i.name, qty: i.qty || i.quantity, revenue: parseFloat(i.revenue || 0).toFixed(2) })) : [],
           monthly_event_total_qty: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseInt(c.qty || c.quantity) || 0), 0) : 0,
           monthly_event_total_revenue: monthlySales?.salesByEventName ? monthlySales.salesByEventName.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00',
 
@@ -1858,7 +1868,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         await transporter.sendMail({
           from,
           to: recipients,
-          subject: name,
+          subject: dynamicSubject,
           html: combinedHtml,
           attachments: [{
             filename: 'AstroVed-Logo-High-res.png',

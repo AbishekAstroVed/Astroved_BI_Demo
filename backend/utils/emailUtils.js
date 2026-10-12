@@ -339,15 +339,15 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
     const formatCurrency = (val) => '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // DO NOT REVERT parseFloat. parseFloat("1,500.00") returns 1. We MUST use parseNum to strip commas first!
-    const dEventSales = (dailyData?.salesByEventName || []).slice(0, 12).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
-    const mEventSales = (monthlyData?.salesByEventName || []).slice(0, 12).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
-    
+    const dEventSales = (dailyData?.salesByEventName || []).slice(0, 25).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+    const mEventSales = (monthlyData?.salesByEventName || []).slice(0, 25).map(e => ({ name: e.name || e.eventName || 'N/A', qty: e.qty || e.quantity || e.Quantity || 0, revenue: formatCurrency(parseNum(e.revenue || e.Revenue || e.total || 0)) }));
+
     // Map Revenue Source (DO NOT REVERT parseNum)
-    const dSources = (dailyData?.revenueSource || []).slice(0, 15).map(s => ({ 
-        event_name: s.event || s.eventName || s.name || 'N/A', 
-        product_name: s.productName || s.ProductName || 'N/A', 
-        qty: s.quantity || s.Quantity || s.qty || 0,
-        revenue: formatCurrency(parseNum(s.revenue || s.Revenue || 0)) 
+    const dSources = (dailyData?.revenueSource || []).slice(0, 15).map(s => ({
+      event_name: s.event || s.eventName || s.name || 'N/A',
+      product_name: s.productName || s.ProductName || 'N/A',
+      qty: s.quantity || s.Quantity || s.qty || 0,
+      revenue: formatCurrency(parseNum(s.revenue || s.Revenue || 0))
     }));
     // Fallback: If quarterSpecials is missing, use the top 5 events from monthlyData to simulate quarter specials real-time data
     const rawQuarterSpecials = dailyData?.quarterSpecials?.length > 0 ? dailyData.quarterSpecials : (monthlyData?.salesByEventName || []);
