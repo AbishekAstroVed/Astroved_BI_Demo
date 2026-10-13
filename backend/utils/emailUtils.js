@@ -349,10 +349,22 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
       qty: s.quantity || s.Quantity || s.qty || 0,
       revenue: formatCurrency(parseNum(s.revenue || s.Revenue || 0))
     }));
-    // Fallback: If quarterSpecials is missing, use the top 5 events from monthlyData to simulate quarter specials real-time data
-    const rawQuarterSpecials = dailyData?.quarterSpecials?.length > 0 ? dailyData.quarterSpecials : (monthlyData?.salesByEventName || []);
+    // Check quarterSpecials from dailyData or monthlyData
+    const rawQuarterSpecials = dailyData?.quarterSpecials?.length > 0
+      ? dailyData.quarterSpecials
+      : (monthlyData?.quarterSpecials?.length > 0 ? monthlyData.quarterSpecials : (monthlyData?.salesByEventName || []));
     // DO NOT REVERT parseNum
-    const dSpecials = rawQuarterSpecials.slice(0, 25).map(q => ({ event_name: q.eventName || q.name, date: q.date || dateStr || new Date().toISOString().split('T')[0], revenue: formatCurrency(parseNum(q.revenue || q.Revenue || q.total || 0)) }));
+    const dSpecials = rawQuarterSpecials.slice(0, 25).map(q => {
+      const ev = (q.name || q.event || q.eventName || q.event_name || '').trim();
+      const title = ev && ev !== 'N/A' ? ev : (q.date ? `Special Event (${q.date})` : 'Special Event');
+      return {
+        name: title,
+        event_name: title,
+        date: q.date || dateStr || new Date().toISOString().split('T')[0],
+        qty: parseInt(q.qty !== undefined ? q.qty : (q.quantity !== undefined ? q.quantity : (q.Quantity || 0)), 10),
+        revenue: formatCurrency(parseNum(q.revenue || q.Revenue || q.total || 0))
+      };
+    });
 
     // Ensure specialsStoreItems is mapped safely (DO NOT REVERT parseNum)
     const rawStoreItems = dailyData?.specialsStoreItems?.length > 0 ? dailyData.specialsStoreItems : (dailyData?.salesByEventName || []);
@@ -387,6 +399,7 @@ export const sendDailySalesTemplateEmail = async ({ to, subject, dateStr, dailyD
       total_source_revenue: formatCurrency(dSources.reduce((sum, s) => sum + parseNum(s.revenue), 0)),
 
       quarter_specials: dSpecials,
+      total_quarter_specials_qty: dSpecials.reduce((sum, q) => sum + parseInt(q.qty || 0, 10), 0),
       total_quarter_specials_revenue: formatCurrency(dSpecials.reduce((sum, q) => sum + parseNum(q.revenue), 0)),
 
       specials_store_items: dStoreItems,

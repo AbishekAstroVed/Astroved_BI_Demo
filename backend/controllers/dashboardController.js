@@ -3048,7 +3048,8 @@ SELECT
                 PAT.Name AS ProductName,
                 S.Name AS ShopName,
                 P.ProductId,
-                ORD.OrderId
+                ORD.OrderId,
+                POD.Quantity
               FROM Payment AS PA WITH (NOLOCK)         
               INNER JOIN [Order] AS ORD WITH (NOLOCK) ON PA.OrderId = ORD.OrderId         
               INNER JOIN SelectedList AS SL WITH (NOLOCK) ON ORD.OrderId = SL.SelectedListId         
@@ -3066,17 +3067,22 @@ SELECT
               WHERE POD.USDPrice <> 0 AND PA.TypeId <> 19 AND ODE.OrderDetailStatusId <> 6 AND ORD.OrderStatusId <> 6 
                 AND SL.ShopId = 1 
                 AND (GP.Code <> '9999999999' OR GP.Code IS NULL) AND TestAccounts.CustomerId IS NULL
-              AND GP.OrderDate >= @prevRangeStart AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
+              AND GP.OrderDate >= DATEADD(day, -180, @rangeEnd) AND GP.OrderDate < DATEADD(day, 1, @rangeEnd)
 )
 SELECT 
+                EventName as name,
+                EventName as event,
+                EventName as eventName,
+                EventName as event_name,
                 EventName,
-                MIN(CASE WHEN OrderDate >= @rangeStart THEN OrderDate END) as EventDate,
-                SUM(CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) as currentRevenue,
-                SUM(CASE WHEN OrderDate >= @prevRangeStart AND OrderDate <= @prevRangeEnd THEN NetRevenue ELSE 0 END) as previousRevenue
+                MIN(CASE WHEN OrderDate >= DATEADD(day, -90, @rangeEnd) THEN OrderDate END) as EventDate,
+                SUM(CASE WHEN OrderDate >= DATEADD(day, -90, @rangeEnd) AND OrderDate <= @rangeEnd THEN ISNULL(Quantity, 1) ELSE 0 END) as quantity,
+                SUM(CASE WHEN OrderDate >= DATEADD(day, -90, @rangeEnd) AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) as currentRevenue,
+                SUM(CASE WHEN OrderDate >= DATEADD(day, -180, @rangeEnd) AND OrderDate < DATEADD(day, -90, @rangeEnd) THEN NetRevenue ELSE 0 END) as previousRevenue
               FROM BaseOrders 
               WHERE EventName != 'Regular Store Item'
               GROUP BY EventName 
-              HAVING SUM(CASE WHEN OrderDate >= @rangeStart AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) > 0
+              HAVING SUM(CASE WHEN OrderDate >= DATEADD(day, -90, @rangeEnd) AND OrderDate <= @rangeEnd THEN NetRevenue ELSE 0 END) > 0
               ORDER BY currentRevenue DESC;
 
               -- 8. Currency Growth (Daily) (Result Set 7)
@@ -3165,7 +3171,21 @@ SELECT
             const d = new Date(r.EventDate);
             dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           }
-          return { id: idx + 1, event: r.EventName, date: dateStr, revenue: cur, previousRevenue: prev, change: deltaStr };
+          const eventTitle = (r.name || r.event || r.EventName || r.eventName || r.eventname || '').trim() || (r.EventDate ? `Special Event (${dateStr})` : 'Special Event');
+          return {
+            id: idx + 1,
+            name: eventTitle,
+            event: eventTitle,
+            eventName: eventTitle,
+            event_name: eventTitle,
+            date: dateStr,
+            qty: r.quantity !== undefined ? r.quantity : (r.qty !== undefined ? r.qty : 0),
+            quantity: r.quantity !== undefined ? r.quantity : (r.qty !== undefined ? r.qty : 0),
+            revenue: cur,
+            currentRevenue: cur,
+            previousRevenue: prev,
+            change: deltaStr
+          };
         });
 
         (function processCurrencyGrowth() {
@@ -3229,7 +3249,7 @@ SELECT
         { id: 1, name: 'Special Item A', qty: 2, revenue: 400 }
       ];
       quarterSpecials = [
-        { id: 1, name: 'Quarter Special 1', currentRevenue: 1000, previousRevenue: 800, revenueDelta: '+25%' }
+        { id: 1, name: 'Quarter Special 1', event: 'Quarter Special 1', qty: 15, currentRevenue: 1000, revenue: 1000, previousRevenue: 800, revenueDelta: '+25%' }
       ];
       bestSellers = [
         { id: 'PROD-001', name: 'Best Seller 1', category: 'Services', sales: 20, revenue: 3000 }
