@@ -1,3 +1,6 @@
+// Set server timezone FIRST
+process.env.TZ = "America/New_York";
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -26,6 +29,8 @@ connectDB().then(async () => {
   // Start the Slack alert dispatcher
   startAlertCronJobs();
 });
+
+
 
 const app = express();
 

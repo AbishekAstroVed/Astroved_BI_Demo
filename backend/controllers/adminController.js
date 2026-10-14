@@ -2442,7 +2442,7 @@ export const startReportCronJobs = () => {
 
       const now = new Date();
       // Convert current time strictly to IST (Asia/Kolkata) for accurate schedule matching
-      const istDateStr = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+      const istDateStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' });
       const istNow = new Date(istDateStr);
 
       const currentHours = String(istNow.getHours()).padStart(2, '0');
