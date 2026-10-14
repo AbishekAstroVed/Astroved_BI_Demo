@@ -5,261 +5,435 @@
   <meta charset="UTF-8">
   <title>Newsletter Performance Report</title>
   <meta name="viewport" content="width=840, user-scalable=yes">
-<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
-<style>
-body, table, td, th { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
-table { mso-table-lspace:0pt; mso-table-rspace:0pt; }
-img { border:0; outline:none; text-decoration:none; }
-a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !important; }
-</style>
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+  <style>
+    body,
+    table,
+    td,
+    th {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    table {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+
+    img {
+      border: 0;
+      outline: none;
+      text-decoration: none;
+      -ms-interpolation-mode: bicubic;
+    }
+
+    .astroved-logo {
+      width: 50px !important;
+      height: 40px !important;
+      max-width: 50px !important;
+      max-height: 40px !important;
+    }
+
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+    }
+  </style>
 </head>
 
-<body style="margin:0; padding:0; background-color:#f4f6f9; font-family:Arial,sans-serif; color:#333333; -webkit-text-size-adjust:100%;">
+<body
+  style="margin:0; padding:0; background-color:#f4f6f9; font-family:Arial,sans-serif; color:#333333; -webkit-text-size-adjust:100%;">
   <!-- Fixed desktop layout on every device. Email app controls initial scaling and pinch zoom. -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6f9" style="table-layout:fixed; width:100%; "><tr><td align="center" style="padding:20px 0;">
-<table role="presentation" width="840" align="center" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="table-layout:fixed; width:840px; min-width:840px; max-width:840px; table-layout:fixed; margin:0 auto; background-color:#ffffff;"><tr><td style="padding:20px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6f9"
+    style="table-layout:fixed; width:100%; ">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table role="presentation" width="840" align="center" cellpadding="0" cellspacing="0" border="0"
+          bgcolor="#ffffff"
+          style="table-layout:fixed; width:840px; min-width:840px; max-width:840px; table-layout:fixed; margin:0 auto; background-color:#ffffff;">
+          <tr>
+            <td style="padding:20px;">
 
-    <!-- Header -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <td width="160">
-          <img src="cid:astrovedlogo" alt="AstroVed Logo" style="width:140px; height:auto; max-height:50px; display:block; max-height: 50px; display: block;" width="140">
-        </td>
-        <td align="center">
-          <h4 style="color: #5f6368; margin: 0; font-size: 30px; font-weight: bold;">Newsletter Performance</h4>
-        </td>
-        <td align="right">
-          <div style="background-color: #3b429b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; display: inline-block;">
-            {{dateRange}} ▾
-          </div>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Row 1: Top Newsletters & KPIs -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <!-- Left Column: Table -->
-        <td width="48%" valign="top" style="padding-right: 15px;">
-          <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
-            <thead>
-              <tr>
-                <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">NL Date</th>
-                <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Newsletter Name</th>
-                <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{#each newslettersTop}}
-              <tr>
-                <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.nlDate}}</td>
-                <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.newsletterName}}</td>
-                <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.revenue}}</td>
-              </tr>
-              {{/each}}
-
-              <tr style="font-weight: bold; background-color: #fff;">
-                <td colspan="2" class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">Grand total</td>
-                <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{newslettersTopGrandTotal}}</td>
-              </tr>
-            </tbody>
-          </table>
-        </td>
-
-        <!-- Right Column: KPIs -->
-        <td width="52%" valign="top">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="table-layout:fixed; width:100%; ">
-            <tr>
-              <td width="48%" valign="top">
-                <div class="kpi-box dark" style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#4b4b4b; overflow-wrap:break-word; ">
-                  <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Yesterday Total Revenue</h3>
-                  <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">{{yesterdayRevenue.val}}</p>
-                </div>
-                <div class="kpi-box dark" style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#4b4b4b; overflow-wrap:break-word; ">
-                  <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Monthly Revenue</h3>
-                  <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">{{totalRevenue.val}}</p>
-                </div>
-              </td>
-              <td width="4%"></td>
-              <td width="48%" valign="top">
-                <div class="kpi-box purple" style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
-                  <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Yesterday Western NL Revenue</h3>
-                  <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">{{westernNlRevenue.val}}</p>
-                </div>
-                <div class="kpi-box purple" style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
-                  <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Yesterday India NL Revenue</h3>
-                  <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">{{indiaNlRevenue.val}}</p>
-                </div>
-                <div class="kpi-box purple" style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
-                  <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Yesterday Targetted NL Revenue</h3>
-                  <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">{{targettedNlRevenue.val}}</p>
-                </div>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Row 1.5: Charts Side by Side -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <td width="48%" valign="top" style="padding-right: 15px;">
-          <!-- Chart Placeholder -->
-          {{#if mapAndChartImageUrl}}
-          <div style="text-align: center;">
-            <img src="{{mapAndChartImageUrl}}" alt="Newsletter Statistics Summary" style="display:block; width:367px; max-width:100%; height:auto; max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 8px;" width="367">
-          </div>
-          {{/if}}
-        </td>
-        <td width="52%" valign="top">
-          <!-- Category Chart Placeholder -->
-          {{#if categoryChartImageUrl}}
-          <div style="text-align: center;">
-            <img src="{{categoryChartImageUrl}}" alt="Category Wise Revenue Summary" style="display:block; width:414px; max-width:100%; height:auto; max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 8px;" width="414">
-          </div>
-          {{/if}}
-        </td>
-      </tr>
-    </table>
-
-    <!-- Row 2: Event Revenue Table -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <td>
-          <div class="data-table">
-            <div class="orange-header" style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">Total Revenue From NewsLetter For Selected Period</div>
-            <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
-              <thead>
+              <!-- Header -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
                 <tr>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Event Name</th>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Quantity</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">Revenue</th>
+                  <td width="140" valign="middle" style="width:140px;">
+                    <img src="cid:astrovedlogo" alt="AstroVed Logo" width="50" height="40" class="astroved-logo"
+                      style="display:block; width:50px; height:40px; max-width:50px; max-height:40px; border:0; outline:none; text-decoration:none;">
+                  </td>
+                  <td align="center">
+                    <h4 style="color: #5f6368; margin: 0; font-size: 30px; font-weight: bold;">Newsletter Performance
+                    </h4>
+                  </td>
+                  <td align="right">
+                    <div
+                      style="background-color: #3b429b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; display: inline-block;">
+                      {{dateRange}} ▾
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {{#each revenueByEvent}}
+              </table>
+
+              <!-- Row 1: Top Newsletters & KPIs -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
                 <tr>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.eventName}}</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.quantity}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.revenue}}</td>
-                </tr>
-                {{/each}}
+                  <!-- Left Column: Table -->
+                  <td width="48%" valign="top" style="padding-right: 15px;">
+                    <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%"
+                      style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
+                      <thead>
+                        <tr>
+                          <th bgcolor="#89e2e2" scope="col"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                            NL Date</th>
+                          <th bgcolor="#89e2e2" scope="col"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                            Newsletter Name</th>
+                          <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                            Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{#each newslettersTop}}
+                        <tr>
+                          <td
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                            {{this.nlDate}}</td>
+                          <td
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                            {{this.newsletterName}}</td>
+                          <td class="text-right" align="right"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                            {{this.revenue}}</td>
+                        </tr>
+                        {{/each}}
 
-                <tr style="font-weight: bold; background-color: #fff;">
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">Grand total</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{revenueByEventTotalQty}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{revenueByEventTotalRevenue}}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-    </table>
+                        <tr style="font-weight: bold; background-color: #fff;">
+                          <td colspan="2" class="text-right" align="right"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                            Grand total</td>
+                          <td class="text-right" align="right"
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                            {{newslettersTopGrandTotal}}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
 
-    <!-- Row 3: Newsletter Types -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <td>
-          <div class="data-table">
-            <div class="orange-header" style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">Types of Newsletters Compared with Last Month</div>
-            <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
-              <thead>
+                  <!-- Right Column: KPIs -->
+                  <td width="52%" valign="top">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation"
+                      style="table-layout:fixed; width:100%; ">
+                      <tr>
+                        <td width="48%" valign="top">
+                          <div class="kpi-box dark"
+                            style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#4b4b4b; overflow-wrap:break-word; ">
+                            <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">
+                              Yesterday Total Revenue</h3>
+                            <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">
+                              {{yesterdayRevenue.val}}</p>
+                          </div>
+                          <div class="kpi-box dark"
+                            style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#4b4b4b; overflow-wrap:break-word; ">
+                            <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">Monthly
+                              Revenue</h3>
+                            <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">
+                              {{totalRevenue.val}}</p>
+                          </div>
+                        </td>
+                        <td width="4%"></td>
+                        <td width="48%" valign="top">
+                          <div class="kpi-box purple"
+                            style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
+                            <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">
+                              Yesterday Western NL Revenue</h3>
+                            <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">
+                              {{westernNlRevenue.val}}</p>
+                          </div>
+                          <div class="kpi-box purple"
+                            style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
+                            <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">
+                              Yesterday India NL Revenue</h3>
+                            <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">
+                              {{indiaNlRevenue.val}}</p>
+                          </div>
+                          <div class="kpi-box purple"
+                            style="padding:10px; color:#ffffff; border-radius:4px; margin-bottom:10px; background-color:#5c3b9b; overflow-wrap:break-word; ">
+                            <h3 style="margin:0 0 3px 0; font-size:11px; line-height:16px; font-weight:normal; ">
+                              Yesterday Targetted NL Revenue</h3>
+                            <p style="margin:0; font-size:16px; line-height:22px; font-weight:bold; ">
+                              {{targettedNlRevenue.val}}</p>
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Row 1.5: Charts Side by Side -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
                 <tr>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Newsletter Type</th>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Count</th>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">% Δ</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">Revenue</th>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">% Δ</th>
+                  <td width="48%" valign="top" style="padding-right: 15px;">
+                    <!-- Chart Placeholder -->
+                    {{#if mapAndChartImageUrl}}
+                    <div style="text-align: center;">
+                      <img src="{{mapAndChartImageUrl}}" alt="Newsletter Statistics Summary"
+                        style="display:block; width:367px; max-width:100%; height:auto; max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 8px;"
+                        width="367">
+                    </div>
+                    {{/if}}
+                  </td>
+                  <td width="52%" valign="top">
+                    <!-- Category Chart Placeholder -->
+                    {{#if categoryChartImageUrl}}
+                    <div style="text-align: center;">
+                      <img src="{{categoryChartImageUrl}}" alt="Category Wise Revenue Summary"
+                        style="display:block; width:414px; max-width:100%; height:auto; max-width: 100%; height: auto; border: 1px solid #e0e0e0; border-radius: 8px;"
+                        width="414">
+                    </div>
+                    {{/if}}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {{#each newsletterTypesCompare}}
+              </table>
+
+              <!-- Row 2: Event Revenue Table -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
                 <tr>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.newsletterType}}</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.count}}</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.countDelta}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.revenue}}</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.revenueDelta}}</td>
+                  <td>
+                    <div class="data-table">
+                      <div class="orange-header"
+                        style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">
+                        Total Revenue From NewsLetter For Selected Period</div>
+                      <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%"
+                        style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
+                        <thead>
+                          <tr>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              Event Name</th>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              Quantity</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#each revenueByEvent}}
+                          <tr>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.eventName}}</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.quantity}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.revenue}}</td>
+                          </tr>
+                          {{/each}}
+
+                          <tr style="font-weight: bold; background-color: #fff;">
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              Grand total</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{revenueByEventTotalQty}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{revenueByEventTotalRevenue}}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
                 </tr>
-                {{/each}}
+              </table>
 
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-    </table>
-
-
-    <!-- Row 4: Overall Newsletters Performance Table -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
-      <tr>
-        <td>
-          <div class="data-table">
-            <div class="orange-header" style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; text-align: center;">Overall Newsletters Performance</div>
-            <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
-              <thead>
+              <!-- Row 3: Newsletter Types -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
                 <tr>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">Event Name</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">NLW</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">NLI</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">OML</th>
-                </tr>
-              </thead>
-              <tbody>
-                {{#each overallNewslettersPerformance}}
-                <tr>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.eventName}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.nlw}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.nli}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.oml}}</td>
-                </tr>
-                {{/each}}
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-    </table>
+                  <td>
+                    <div class="data-table">
+                      <div class="orange-header"
+                        style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">
+                        Types of Newsletters Compared with Last Month</div>
+                      <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%"
+                        style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
+                        <thead>
+                          <tr>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              Newsletter Type</th>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              Count</th>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              % Δ</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              Revenue</th>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              % Δ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#each newsletterTypesCompare}}
+                          <tr>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.newsletterType}}</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.count}}</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.countDelta}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.revenue}}</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.revenueDelta}}</td>
+                          </tr>
+                          {{/each}}
 
-    <!-- Row 5: Date Wise Newsletter Performance -->
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="table-layout:fixed; width:100%; ">
-      <tr>
-        <td>
-          <div class="data-table">
-            <div class="orange-header" style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">Date Wise Newsletter Performance</div>
-            <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
-              <thead>
-                <tr>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">News Letter Sent Date</th>
-                  <th bgcolor="#89e2e2" scope="col" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">NewsLetter Name</th>
-                  <th class="text-right" bgcolor="#89e2e2" scope="col" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">Net Revenue ($)</th>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {{#each dateWisePerformance}}
-                <tr>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.date}}</td>
-                  <td style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">{{this.name}}</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{this.revenue}}</td>
-                </tr>
-                {{/each}}
-                <tr style="font-weight: bold; background-color: #fff;">
-                  <td colspan="2" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">Grand total</td>
-                  <td class="text-right" align="right" style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">{{dateWisePerformanceTotalRevenue}}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </td>
-      </tr>
-    </table>
+              </table>
 
-  </td></tr></table></td></tr></table>
 
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"fc15846d6d58494f9e933bf09794a2f7","spa":2}' crossorigin="anonymous"></script>
+              <!-- Row 4: Overall Newsletters Performance Table -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="table-layout:fixed; width:100%; margin-bottom: 20px;" border="0" role="presentation">
+                <tr>
+                  <td>
+                    <div class="data-table">
+                      <div class="orange-header"
+                        style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; text-align: center;">
+                        Overall Newsletters Performance</div>
+                      <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%"
+                        style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
+                        <thead>
+                          <tr>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              Event Name</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              NLW</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              NLI</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              OML</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#each overallNewslettersPerformance}}
+                          <tr>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.eventName}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.nlw}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.nli}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.oml}}</td>
+                          </tr>
+                          {{/each}}
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Row 5: Date Wise Newsletter Performance -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation"
+                style="table-layout:fixed; width:100%; ">
+                <tr>
+                  <td>
+                    <div class="data-table">
+                      <div class="orange-header"
+                        style="background-color:#e66627; color:#ffffff; text-align:center; font-size:13px; line-height:18px; font-weight:bold; padding:10px; ">
+                        Date Wise Newsletter Performance</div>
+                      <table class="data-table" cellpadding="0" cellspacing="0" border="0" width="100%"
+                        style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
+                        <thead>
+                          <tr>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              News Letter Sent Date</th>
+                            <th bgcolor="#89e2e2" scope="col"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                              NewsLetter Name</th>
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                              Net Revenue ($)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {{#each dateWisePerformance}}
+                          <tr>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.date}}</td>
+                            <td
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              {{this.name}}</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{this.revenue}}</td>
+                          </tr>
+                          {{/each}}
+                          <tr style="font-weight: bold; background-color: #fff;">
+                            <td colspan="2"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
+                              Grand total</td>
+                            <td class="text-right" align="right"
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
+                              {{dateWisePerformanceTotalRevenue}}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <script type="module"
+    src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920"
+    integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA=="
+    data-cf-beacon='{"version":"2024.11.0","token":"fc15846d6d58494f9e933bf09794a2f7","spa":2}'
+    crossorigin="anonymous"></script>
 </body>
 
 </html>

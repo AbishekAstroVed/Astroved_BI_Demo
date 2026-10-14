@@ -4084,30 +4084,30 @@ export const getNewsletterDashboard = async (req, res) => {
 
     res.json({
       kpiData: {
-        western: Number(kpiResult.NLW || 0),
-        targeted: Number(kpiResult.OML || 0),
-        india: Number(kpiResult.NLI || 0),
-        overall: Number(kpiResult.NLW || 0) + Number(kpiResult.OML || 0) + Number(kpiResult.NLI || 0)
+        western: parseFloat(Number(kpiResult.NLW || 0).toFixed(2)),
+        targeted: parseFloat(Number(kpiResult.OML || 0).toFixed(2)),
+        india: parseFloat(Number(kpiResult.NLI || 0).toFixed(2)),
+        overall: parseFloat((Number(kpiResult.NLW || 0) + Number(kpiResult.OML || 0) + Number(kpiResult.NLI || 0)).toFixed(2))
       },
       overallEventsData: overallEventsResult.map((item, idx) => ({
         id: idx + 1,
         name: item.EventName,
-        nlw: Number(item.NLW || 0),
-        nli: Number(item.NLI || 0),
-        oml: Number(item.OML || 0)
+        nlw: parseFloat(Number(item.NLW || 0).toFixed(2)),
+        nli: parseFloat(Number(item.NLI || 0).toFixed(2)),
+        oml: parseFloat(Number(item.OML || 0).toFixed(2))
       })),
       specialEventsData: specialEventsResult.map((item, idx) => ({
         id: idx + 1,
         name: item.EventName,
-        nlw: Number(item.NLW || 0),
-        nli: Number(item.NLI || 0),
-        oml: Number(item.OML || 0)
+        nlw: parseFloat(Number(item.NLW || 0).toFixed(2)),
+        nli: parseFloat(Number(item.NLI || 0).toFixed(2)),
+        oml: parseFloat(Number(item.OML || 0).toFixed(2))
       })),
       dateWisePerformance: dateWiseResult.map((item, idx) => ({
         id: idx + 1,
         date: item.date,
         name: item.name,
-        revenue: Number(item.revenue || 0)
+        revenue: parseFloat(Number(item.revenue || 0).toFixed(2))
       })),
       specialEventsPerformanceData: specialEventsPerformanceResult.map((item, idx) => ({
         id: idx + 1,

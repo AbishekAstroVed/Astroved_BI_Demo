@@ -1600,7 +1600,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         if (!data?.specialEventsData) return null;
         return data.specialEventsData.map(item => ({
           name: item.name,
-          revenue: item.nlw + item.nli + item.oml
+          revenue: parseFloat((Number(item.nlw || 0) + Number(item.nli || 0) + Number(item.oml || 0)).toFixed(2))
         })).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
       };
 
@@ -1835,37 +1835,45 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
         };
         const categoryChartImageUrl = `https://quickchart.io/chart?width=500&height=350&c=${encodeURIComponent(JSON.stringify(categoryChartConfig))}`;
 
+        const formatDec = (val) => {
+          if (val === null || val === undefined) return '0.00';
+          const n = parseFloat(val);
+          return isNaN(n) ? '0.00' : n.toFixed(2);
+        };
+
         const context = {
           dateRange: `${dailyDateRange.startDate} to ${dailyDateRange.endDate}`,
-          newslettersTop: dailyData?.kpiData?.overall ? [{ nlDate: dailyDateRange.endDate, newsletterName: 'Daily Newsletter', revenue: dailyData.kpiData.overall }] : [],
-          newslettersTopGrandTotal: dailyData?.kpiData?.overall || '0.00',
-          yesterdayRevenue: { val: dailyData?.kpiData?.overall || '0.00', change: '+0%', colorClass: 'green' },
-          totalRevenue: { val: monthlyData?.kpiData?.overall ? parseFloat(monthlyData.kpiData.overall).toFixed(2) : '0.00', change: '+0%', colorClass: 'green' },
-          westernNlRevenue: { val: dailyData?.kpiData?.western || '0.00', change: '+0%', colorClass: 'green' },
-          indiaNlRevenue: { val: dailyData?.kpiData?.india || '0.00', change: '+0%', colorClass: 'green' },
-          targettedNlRevenue: { val: dailyData?.kpiData?.targeted || '0.00', change: '+0%', colorClass: 'green' },
+          newslettersTop: (dailyData?.kpiData?.overall !== undefined && dailyData?.kpiData?.overall !== null)
+            ? [{ nlDate: dailyDateRange.endDate, newsletterName: 'Daily Newsletter', revenue: formatDec(dailyData.kpiData.overall) }]
+            : [],
+          newslettersTopGrandTotal: formatDec(dailyData?.kpiData?.overall),
+          yesterdayRevenue: { val: formatDec(dailyData?.kpiData?.overall), change: '+0%', colorClass: 'green' },
+          totalRevenue: { val: formatDec(monthlyData?.kpiData?.overall), change: '+0%', colorClass: 'green' },
+          westernNlRevenue: { val: formatDec(dailyData?.kpiData?.western), change: '+0%', colorClass: 'green' },
+          indiaNlRevenue: { val: formatDec(dailyData?.kpiData?.india), change: '+0%', colorClass: 'green' },
+          targettedNlRevenue: { val: formatDec(dailyData?.kpiData?.targeted), change: '+0%', colorClass: 'green' },
           revenueByEvent: dailyData?.eventsComparedData ? dailyData.eventsComparedData.map(item => ({
             eventName: item.type,
             quantity: item.count,
-            revenue: parseFloat(item.revenue || 0).toFixed(2)
+            revenue: formatDec(item.revenue)
           })) : [],
           revenueByEventTotalQty: dailyData?.eventsComparedData ? dailyData.eventsComparedData.reduce((acc, curr) => acc + (parseInt(curr.count) || 0), 0) : 0,
-          revenueByEventTotalRevenue: dailyData?.eventsComparedData ? dailyData.eventsComparedData.reduce((acc, curr) => acc + (parseFloat(curr.revenue) || 0), 0).toFixed(2) : '0.00',
+          revenueByEventTotalRevenue: formatDec(dailyData?.eventsComparedData ? dailyData.eventsComparedData.reduce((acc, curr) => acc + (parseFloat(curr.revenue) || 0), 0) : 0),
           newsletterTypesCompare: dailyData?.typesComparedData ? dailyData.typesComparedData.map(item => ({
             newsletterType: item.type,
             count: item.count,
             countDelta: (item.countPct !== null ? (item.countPct > 0 ? '+' : '') + item.countPct.toFixed(1) + '%' : 'N/A'),
-            revenue: parseFloat(item.revenue || 0).toFixed(2),
+            revenue: formatDec(item.revenue),
             revenueDelta: (item.revPct !== null ? (item.revPct > 0 ? '+' : '') + item.revPct.toFixed(1) + '%' : 'N/A')
           })) : [],
           newsletterStatistics: [],
-          dateWisePerformance: dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.slice(0, 10).map(item => ({ date: item.date, name: item.name, revenue: item.revenue })) : [],
-          dateWisePerformanceTotalRevenue: dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.reduce((acc, curr) => acc + (parseFloat(curr.revenue) || 0), 0).toFixed(2) : '0.00',
+          dateWisePerformance: dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.slice(0, 10).map(item => ({ date: item.date, name: item.name, revenue: formatDec(item.revenue) })) : [],
+          dateWisePerformanceTotalRevenue: formatDec(dailyData?.dateWisePerformance ? dailyData.dateWisePerformance.reduce((acc, curr) => acc + (parseFloat(curr.revenue) || 0), 0) : 0),
           overallNewslettersPerformance: dailyData?.overallEventsData ? dailyData.overallEventsData.map(item => ({
             eventName: item.name,
-            nlw: parseFloat(item.nlw || 0).toFixed(2),
-            nli: parseFloat(item.nli || 0).toFixed(2),
-            oml: parseFloat(item.oml || 0).toFixed(2)
+            nlw: formatDec(item.nlw),
+            nli: formatDec(item.nli),
+            oml: formatDec(item.oml)
           })) : [],
           mapAndChartImageUrl: mapAndChartImageUrl,
           categoryChartImageUrl: categoryChartImageUrl

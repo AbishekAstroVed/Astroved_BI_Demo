@@ -267,28 +267,28 @@ export const sendNewsletterDataEmail = async ({
         ${monthlyKpi ? renderKpiCards(monthlyKpi) : '<p>No monthly data available.</p>'}
 
         
-        ${dailyCategorySales ? generateTableHtml('Category Wise Sales Insights (Daily)', ['Event Name', 'Net Revenue ($)'], dailyCategorySales.map(item => [item.name, item.revenue])) : ''}
-        ${monthlyCategorySales ? generateTableHtml('Category Wise Sales Insights (Monthly)', ['Event Name', 'Net Revenue ($)'], monthlyCategorySales.map(item => [item.name, item.revenue])) : ''}
+        ${dailyCategorySales ? generateTableHtml('Category Wise Sales Insights (Daily)', ['Event Name', 'Net Revenue ($)'], dailyCategorySales.map(item => [item.name, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
+        ${monthlyCategorySales ? generateTableHtml('Category Wise Sales Insights (Monthly)', ['Event Name', 'Net Revenue ($)'], monthlyCategorySales.map(item => [item.name, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
 
         
-        ${dailyDateWisePerf ? generateTableHtml('Date Wise Newsletter Performance (Daily)', ['News Letter Sent Date', 'NewsLetter Name', 'Net Revenue ($)'], dailyDateWisePerf.map(item => [item.date, item.name, item.revenue])) : ''}
-        ${monthlyDateWisePerf ? generateTableHtml('Date Wise Newsletter Performance (Monthly)', ['News Letter Sent Date', 'NewsLetter Name', 'Net Revenue ($)'], monthlyDateWisePerf.map(item => [item.date, item.name, item.revenue])) : ''}
+        ${dailyDateWisePerf ? generateTableHtml('Date Wise Newsletter Performance (Daily)', ['News Letter Sent Date', 'NewsLetter Name', 'Net Revenue ($)'], dailyDateWisePerf.map(item => [item.date, item.name, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
+        ${monthlyDateWisePerf ? generateTableHtml('Date Wise Newsletter Performance (Monthly)', ['News Letter Sent Date', 'NewsLetter Name', 'Net Revenue ($)'], monthlyDateWisePerf.map(item => [item.date, item.name, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
 
         
-        ${dailyBreakupSummary ? generateTableHtml('Breakup Summary of Overall Newsletters (Daily)', ['NewsLetter Type', 'NewsLetter Count', 'Net Revenue ($)'], dailyBreakupSummary.map(item => [item.type, item.count, item.revenue])) : ''}
-        ${monthlyBreakupSummary ? generateTableHtml('Breakup Summary of Overall Newsletters (Monthly)', ['NewsLetter Type', 'NewsLetter Count', 'Net Revenue ($)'], monthlyBreakupSummary.map(item => [item.type, item.count, item.revenue])) : ''}
+        ${dailyBreakupSummary ? generateTableHtml('Breakup Summary of Overall Newsletters (Daily)', ['NewsLetter Type', 'NewsLetter Count', 'Net Revenue ($)'], dailyBreakupSummary.map(item => [item.type, item.count, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
+        ${monthlyBreakupSummary ? generateTableHtml('Breakup Summary of Overall Newsletters (Monthly)', ['NewsLetter Type', 'NewsLetter Count', 'Net Revenue ($)'], monthlyBreakupSummary.map(item => [item.type, item.count, parseFloat(item.revenue || 0).toFixed(2)])) : ''}
 
         
-        ${dailyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Day (Daily)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], dailyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
-        ${monthlyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Month (Monthly)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], monthlyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', item.revenue, item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
+        ${dailyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Day (Daily)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], dailyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', parseFloat(item.revenue || 0).toFixed(2), item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
+        ${monthlyTypesCompared ? generateTableHtml('Types Of NewsLetter Compared With Last Month (Monthly)', ['News Letter Type', 'News Letter Count', '%Change', 'Net Revenue ($)', '%Change'], monthlyTypesCompared.map(item => [item.type, item.count, item.countPct !== null ? item.countPct.toFixed(1) + '%' : '-', parseFloat(item.revenue || 0).toFixed(2), item.revPct !== null ? item.revPct.toFixed(1) + '%' : '-'])) : ''}
 
         
-        ${dailyOverallEvents ? generateTableHtml('Overall Newsletters Performance (Daily)', ['Event Name', 'NLW', 'NLI', 'OML'], dailyOverallEvents.map(item => [item.name, item.nlw, item.nli, item.oml])) : ''}
-        ${monthlyOverallEvents ? generateTableHtml('Overall Newsletters Performance (Monthly)', ['Event Name', 'NLW', 'NLI', 'OML'], monthlyOverallEvents.map(item => [item.name, item.nlw, item.nli, item.oml])) : ''}
+        ${dailyOverallEvents ? generateTableHtml('Overall Newsletters Performance (Daily)', ['Event Name', 'NLW', 'NLI', 'OML'], dailyOverallEvents.map(item => [item.name, parseFloat(item.nlw || 0).toFixed(2), parseFloat(item.nli || 0).toFixed(2), parseFloat(item.oml || 0).toFixed(2)])) : ''}
+        ${monthlyOverallEvents ? generateTableHtml('Overall Newsletters Performance (Monthly)', ['Event Name', 'NLW', 'NLI', 'OML'], monthlyOverallEvents.map(item => [item.name, parseFloat(item.nlw || 0).toFixed(2), parseFloat(item.nli || 0).toFixed(2), parseFloat(item.oml || 0).toFixed(2)])) : ''}
 
         
-        ${dailySpecialEvents ? generateTableHtml('Special Events Newsletters Performance (Daily)', ['Event Name', 'NLW', 'NLI', 'OML'], dailySpecialEvents.map(item => [item.name, item.nlw, item.nli, item.oml])) : ''}
-        ${monthlySpecialEvents ? generateTableHtml('Special Events Newsletters Performance (Monthly)', ['Event Name', 'NLW', 'NLI', 'OML'], monthlySpecialEvents.map(item => [item.name, item.nlw, item.nli, item.oml])) : ''}
+        ${dailySpecialEvents ? generateTableHtml('Special Events Newsletters Performance (Daily)', ['Event Name', 'NLW', 'NLI', 'OML'], dailySpecialEvents.map(item => [item.name, parseFloat(item.nlw || 0).toFixed(2), parseFloat(item.nli || 0).toFixed(2), parseFloat(item.oml || 0).toFixed(2)])) : ''}
+        ${monthlySpecialEvents ? generateTableHtml('Special Events Newsletters Performance (Monthly)', ['Event Name', 'NLW', 'NLI', 'OML'], monthlySpecialEvents.map(item => [item.name, parseFloat(item.nlw || 0).toFixed(2), parseFloat(item.nli || 0).toFixed(2), parseFloat(item.oml || 0).toFixed(2)])) : ''}
 
         <p style="margin-top: 40px; font-size: 12px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
           This is an automatically generated newsletter report email from AstroVed BI.
