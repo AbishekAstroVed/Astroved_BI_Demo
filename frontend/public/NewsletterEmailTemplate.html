@@ -67,12 +67,6 @@
                     <h4 style="color: #5f6368; margin: 0; font-size: 30px; font-weight: bold;">Newsletter Performance
                     </h4>
                   </td>
-                  <td align="right">
-                    <div
-                      style="background-color: #3b429b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; display: inline-block;">
-                      {{dateRange}} ▾
-                    </div>
-                  </td>
                 </tr>
               </table>
 
@@ -86,14 +80,14 @@
                       style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
                       <thead>
                         <tr>
-                          <th bgcolor="#89e2e2" scope="col"
-                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                          <th bgcolor="#89e2e2" scope="col" width="28%"
+                            style="width:28%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold;">
                             NL Date</th>
-                          <th bgcolor="#89e2e2" scope="col"
-                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                          <th bgcolor="#89e2e2" scope="col" width="48%"
+                            style="width:48%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold;">
                             Newsletter Name</th>
-                          <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
-                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                          <th class="text-right" bgcolor="#89e2e2" scope="col" width="24%" align="right"
+                            style="width:24%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right;">
                             Revenue</th>
                         </tr>
                       </thead>
@@ -104,8 +98,10 @@
                             style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
                             {{this.nlDate}}</td>
                           <td
-                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
-                            {{this.newsletterName}}</td>
+                            style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0;">
+                            <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;"
+                              title="{{this.newsletterName}}">{{this.newsletterName}}</div>
+                          </td>
                           <td class="text-right" align="right"
                             style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
                             {{this.revenue}}</td>
@@ -215,14 +211,14 @@
                         style="width:100%; border-collapse:collapse; font-size:11px; line-height:16px; table-layout:fixed; ">
                         <thead>
                           <tr>
-                            <th bgcolor="#89e2e2" scope="col"
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                            <th bgcolor="#89e2e2" scope="col" width="60%"
+                              style="width:60%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold;">
                               Event Name</th>
-                            <th bgcolor="#89e2e2" scope="col"
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; ">
+                            <th bgcolor="#89e2e2" scope="col" width="18%"
+                              style="width:18%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold;">
                               Quantity</th>
-                            <th class="text-right" bgcolor="#89e2e2" scope="col" align="right"
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right; ">
+                            <th class="text-right" bgcolor="#89e2e2" scope="col" width="22%" align="right"
+                              style="width:22%; padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; background-color:#89e2e2; color:#000000; font-weight:bold; text-align:right;">
                               Revenue</th>
                           </tr>
                         </thead>
@@ -230,8 +226,10 @@
                           {{#each revenueByEvent}}
                           <tr>
                             <td
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
-                              {{this.eventName}}</td>
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0;">
+                              <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;"
+                                title="{{this.eventName}}">{{this.eventName}}</div>
+                            </td>
                             <td
                               style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
                               {{this.quantity}}</td>
@@ -293,8 +291,10 @@
                           {{#each newsletterTypesCompare}}
                           <tr>
                             <td
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
-                              {{this.newsletterType}}</td>
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0;">
+                              <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;"
+                                title="{{this.newsletterType}}">{{this.newsletterType}}</div>
+                            </td>
                             <td
                               style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
                               {{this.count}}</td>
@@ -400,8 +400,10 @@
                               style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
                               {{this.date}}</td>
                             <td
-                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; ">
-                              {{this.name}}</td>
+                              style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:0;">
+                              <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;"
+                                title="{{this.name}}">{{this.name}}</div>
+                            </td>
                             <td class="text-right" align="right"
                               style="padding:8px 10px; text-align:left; border-bottom:1px solid #eeeeee; vertical-align:top; overflow-wrap:break-word; word-wrap:break-word; text-align:right; ">
                               {{this.revenue}}</td>
@@ -421,7 +423,6 @@
                   </td>
                 </tr>
               </table>
-
             </td>
           </tr>
         </table>

@@ -1656,7 +1656,7 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
       console.log(`[Report Scheduler] SUCCESS: Sent Newsletter HTML Template to ${recipients}`);
     }
 
-    let combinedHtml = '';
+    const processedSections = [];
 
     if (dashboards.includes('DailySalesEmailTemplate.html')) {
       htmlHandled = true;
@@ -1749,10 +1749,10 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           total_store_items_revenue: dailySales?.specialsStoreItems ? dailySales.specialsStoreItems.reduce((a, c) => a + (parseFloat(c.revenue) || 0), 0).toFixed(2) : '0.00'
         };
 
-        if (combinedHtml !== '') {
-          combinedHtml += '<br><br><div style="border-top: 3px dashed #EA4335; margin: 30px 0;"></div><br><br>';
-        }
-        combinedHtml += template(context);
+        processedSections.push({
+          name: 'DailySales',
+          html: template(context)
+        });
         console.log(`[Report Scheduler] SUCCESS: Processed DailySalesEmailTemplate.html for combined email`);
       } catch (err) {
         console.error('Error processing DailySales template:', err);
@@ -1879,11 +1879,56 @@ export const sendReportEmail = async (name, recipients, format, isAutomated = fa
           categoryChartImageUrl: categoryChartImageUrl
         };
 
-        combinedHtml += template(context);
+        processedSections.push({
+          name: 'Newsletter',
+          html: template(context)
+        });
         console.log(`[Report Scheduler] SUCCESS: Processed NewsletterEmailTemplate.html for combined email`);
       } catch (err) {
         console.error('Error processing custom template:', err);
       }
+    }
+
+    let combinedHtml = '';
+
+    if (processedSections.length === 1) {
+      combinedHtml = processedSections[0].html;
+    } else if (processedSections.length > 1) {
+      const extractEmailContent = (fullHtml) => {
+        const styleMatches = [...fullHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)];
+        const css = styleMatches.map(m => m[1]).join('\n');
+
+        const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        let innerBody = bodyMatch ? bodyMatch[1] : fullHtml;
+
+        innerBody = innerBody.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+        return { css, innerBody: innerBody.trim() };
+      };
+
+      const extracted = processedSections.map(s => extractEmailContent(s.html));
+      const mergedCss = extracted.map(e => e.css).filter(Boolean).join('\n');
+      const mergedBodies = extracted.map(e => e.innerBody).join(`
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 25px 0;">
+          <tr><td height="25" style="height:25px; font-size:1px; line-height:25px;">&nbsp;</td></tr>
+        </table>
+      `);
+
+      combinedHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=840, user-scalable=yes">
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no">
+<title>${dynamicSubject}</title>
+<style>
+${mergedCss}
+</style>
+</head>
+<body style="margin:0; padding:0; width:100%; background-color:#ffffff; font-family:Arial,sans-serif; color:#333333; -webkit-text-size-adjust:100%;">
+${mergedBodies}
+</body>
+</html>`;
     }
 
     if (combinedHtml !== '') {
